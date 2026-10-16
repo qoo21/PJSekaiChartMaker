@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>プロセカ譜面動画 変換ソフト</title>
+<title>PJSekaiChartMaker - プロセカ譜面動画 変換ソフト</title>
 <style>
   :root {
     --primary: #00d4d4;
@@ -159,7 +159,7 @@
       <h1>プロセカ譜面動画 静止画メーカー</h1>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn" id="linkRootFolderBtn">同階層フォルダを連携（自動読み込み設定）</button>
+      <button class="btn" id="linkRootFolderBtn">PC内のフォルダを連携</button>
       <button class="btn btn-secondary" id="selectFolderBtn">フォルダ選択</button>
       <button class="btn btn-secondary" id="selectVideoBtn">動画選択</button>
       <button class="btn btn-secondary" id="selectImagesBtn">画像選択</button>
@@ -169,16 +169,16 @@
     </div>
   </header>
 
-  <!-- プレビュー最上部：同階層フォルダ・ファイル自動読み込み＆ワンクリック切り替えバー -->
+  <!-- プレビュー最上部：GitHub同階層＆ローカルフォルダ自動読み込み・切り替えバー -->
   <div class="top-switcher-card" id="topSwitcherCard">
     <div class="switcher-header">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <strong style="color:var(--primary); font-size:0.98rem;">フォルダ・ファイル切り替えバー</strong>
-        <span class="hint" id="folderStatusLabel">同階層のフォルダまたはファイルをドラッグ＆ドロップ、または右上のボタンから連携するとここに自動表示されます</span>
+        <span class="hint" id="folderStatusLabel">GitHub同階層またはドラッグ＆ドロップされたフォルダ・ファイルがここに自動表示されます</span>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <button class="btn btn-accent" id="reconnectFolderBtn" style="display:none; padding:6px 12px; font-size:0.84rem;">前回のフォルダを自動再読み込み</button>
-        <button class="btn btn-secondary" id="refreshFolderBtn" style="display:none; padding:6px 12px; font-size:0.84rem;">フォルダ内を再スキャン</button>
+        <button class="btn btn-secondary" id="refreshFolderBtn" style="display:none; padding:6px 12px; font-size:0.84rem;">再スキャン</button>
       </div>
     </div>
 
@@ -198,7 +198,6 @@
       <span class="hint" id="currentViewFileName"></span>
     </h2>
 
-    <!-- 動画からの新規生成 ＆ 生成済み静止画からの高さ変更再生成バー -->
     <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:#121724; padding:12px 14px; border-radius:8px; border:1px solid #222b40;">
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-accent" id="generateBtn" disabled>動画から譜面静止画を作成する</button>
@@ -210,8 +209,8 @@
         <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
         <input type="number" id="colHeightInput" class="num-input" step="100" min="400" max="16000" value="1800" style="width:85px;">
         <select id="layoutMode" class="num-input" style="width:175px;">
-          <option value="grid" selected>折り返して一覧に並べる</option>
-          <option value="single">1本の縦長画像にする</option>
+          <option value="grid" selected>1枚の一覧画像に折り返して並べる</option>
+          <option value="single">折り返さずに1本の縦長画像にする</option>
         </select>
         <button class="btn" id="reLayoutBtn" disabled>現在の静止画から高さを変更して再生成</button>
       </div>
@@ -227,9 +226,8 @@
       </div>
     </div>
 
-    <!-- ソフト上で見れる譜面ビューアー（プレビュー上部のファイル切り替えバー直下に配置） -->
+    <!-- ソフト上で見れる譜面ビューアー -->
     <div id="resultArea" style="display:none; margin-top:14px;">
-      <!-- ビューアー内クイック画像切り替えバー -->
       <div id="viewerQuickSwitchBar" style="display:none; background:#101624; border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:10px; align-items:center; gap:8px; overflow-x:auto;">
         <span style="font-size:0.82rem; color:var(--primary); font-weight:bold; white-space:nowrap;">画像ワンクリック切替:</span>
         <div id="viewerQuickSwitchList" style="display:flex; gap:6px;"></div>
@@ -287,7 +285,7 @@
     <div class="grid-2">
       <div>
         <div class="preview-wrapper">
-          <video id="videoPreview" playsinline muted></video>
+          <video id="videoPreview" playsinline muted crossorigin="anonymous"></video>
           <canvas id="previewCanvas" width="640" height="440"></canvas>
         </div>
         <div class="control-group" style="margin-top:12px;">
@@ -578,7 +576,7 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 }
 
 // =========================================================
-// 3. UI要素・同階層フォルダ自動記憶＆プレビュー上部切り替え機能
+// 3. UI要素・GitHub Pages自動スキャン＆ローカルフォルダ連携機能
 // =========================================================
 const video = document.getElementById("videoPreview");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -652,15 +650,13 @@ let currentColumnWidths = 0;
 let activeImageName = "";
 let activeVideoName = "";
 
-// =========================================================
 // マスター譜面データ保持構造（1列の高さ変更による即時再生成用）
-// =========================================================
 const MASTER_CHUNK_H = 2048;
 let masterChartData = {
   hasData: false,
   cropW: 0,
   totalHeight: 0,
-  chunks: [], // 下から順のCanvas配列（各高さ最大 MASTER_CHUNK_H）
+  chunks: [],
   tStart: 2.1,
   tEnd: 118.5,
   timeToYMap: [],
@@ -682,12 +678,146 @@ let chartMeta = {
   timeToYMap: []
 };
 
-// フォルダごとのファイル管理マップ
+// フォルダごとのアイテム管理マップ
+// 各アイテムは { name, file (ローカルFile), url (GitHub等のURL) } の形式
 const folderGroups = new Map();
 let activeFolderName = "";
 let savedDirectoryHandle = null;
 
-// IndexedDBによる同階層フォルダハンドルの永続保存（次回起動時の自動読み込み用）
+// =========================================================
+// GitHub Pages リポジトリ内の同階層フォルダ・ファイル完全自動検出
+// =========================================================
+async function autoScanGitHubRepo() {
+  const host = window.location.hostname;
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  let owner = "";
+  let repo = "";
+  let baseDir = "";
+
+  // URLパラメータ ?repo=owner/repo での明示指定にも対応
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("repo")) {
+    const parts = params.get("repo").split("/");
+    owner = parts[0];
+    repo = parts[1];
+  } else if (host.endsWith(".github.io")) {
+    owner = host.split(".")[0];
+    if (pathParts.length > 0) {
+      repo = pathParts[0];
+      // index.html がサブディレクトリにある場合のパス取得
+      const subParts = pathParts.slice(1);
+      if (subParts.length > 0 && /\.html?$/i.test(subParts[subParts.length - 1])) {
+        subParts.pop();
+      }
+      baseDir = subParts.join("/");
+    } else {
+      repo = `${owner}.github.io`;
+    }
+  }
+
+  if (!owner || !repo) return false;
+
+  try {
+    folderStatusLabel.textContent = `GitHubリポジトリ (${owner}/${repo}) 内のフォルダ・ファイルを自動スキャン中...`;
+    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+    if (!repoRes.ok) return false;
+    const repoInfo = await repoRes.json();
+    const branch = repoInfo.default_branch || "main";
+
+    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
+    if (!treeRes.ok) return false;
+    const treeData = await treeRes.json();
+    if (!treeData.tree) return false;
+
+    const remoteItems = [];
+    for (const item of treeData.tree) {
+      if (item.type !== "blob") continue;
+      if (baseDir && !item.path.startsWith(baseDir + "/")) continue;
+
+      const relPath = baseDir ? item.path.slice(baseDir.length + 1) : item.path;
+      const isVid = /\.(mp4|mov|webm|mkv|avi)$/i.test(relPath);
+      const isImg = /\.(png|jpe?g|webp|bmp)$/i.test(relPath);
+      if (!isVid && !isImg) continue;
+
+      const parts = relPath.split("/");
+      const fileName = parts.pop();
+      const folderName = parts.join("/") || "GitHub同階層ルート";
+
+      // 相対URLを構築（GitHub Pages上の実ファイルパス）
+      const encodedRelPath = relPath.split("/").map(encodeURIComponent).join("/");
+      remoteItems.push({
+        name: fileName,
+        folderName: folderName,
+        url: encodedRelPath,
+        isVid: isVid,
+        isImg: isImg
+      });
+    }
+
+    if (remoteItems.length > 0) {
+      handleRemoteItems(remoteItems);
+      refreshFolderBtn.style.display = "inline-flex";
+      return true;
+    } else {
+      folderStatusLabel.textContent = `GitHubリポジトリ (${owner}/${repo}) に連携済み（リポジトリ内に画像・動画を追加するか、PC・スマホからファイルを選択してください）`;
+      return false;
+    }
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleRemoteItems(items) {
+  let firstVideoItem = null;
+  let firstImageItem = null;
+  let firstImageFolder = "";
+
+  for (const item of items) {
+    if (!folderGroups.has(item.folderName)) {
+      folderGroups.set(item.folderName, { images: [], videos: [] });
+    }
+    const group = folderGroups.get(item.folderName);
+
+    if (item.isVid) {
+      const idx = group.videos.findIndex(v => v.name === item.name);
+      const entry = { name: item.name, url: item.url, file: null };
+      if (idx >= 0) group.videos[idx] = entry;
+      else group.videos.push(entry);
+      if (!firstVideoItem) firstVideoItem = entry;
+    } else if (item.isImg) {
+      const idx = group.images.findIndex(img => img.name === item.name);
+      const entry = { name: item.name, url: item.url, file: null };
+      if (idx >= 0) group.images[idx] = entry;
+      else group.images.push(entry);
+      if (!firstImageItem) { firstImageItem = entry; firstImageFolder = item.folderName; }
+    }
+  }
+
+  for (const [, grp] of folderGroups) {
+    grp.images.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    grp.videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }
+
+  if (firstVideoItem && !video.src) {
+    loadVideoItem(firstVideoItem);
+  }
+
+  if (folderGroups.size > 0) {
+    switcherContent.style.display = "block";
+    if (!activeFolderName || !folderGroups.has(activeFolderName)) {
+      activeFolderName = firstImageFolder || Array.from(folderGroups.keys())[0];
+    }
+    if (firstImageItem && !outputCanvas.width) {
+      loadImageItemToViewer(firstImageItem);
+    } else {
+      renderTopSwitcher();
+    }
+  }
+}
+
+// =========================================================
+// ローカルPC用：IndexedDBによるフォルダハンドルの永続保存
+// =========================================================
 function openHandleDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open("ProsekaChartMakerDB", 1);
@@ -747,19 +877,18 @@ async function loadFromSavedHandle(requestPerm = false) {
     if (perm === "granted") {
       reconnectFolderBtn.style.display = "none";
       refreshFolderBtn.style.display = "inline-flex";
-      folderGroups.clear();
       const files = await scanDirectoryHandle(savedDirectoryHandle, "");
       handleIncomingFiles(files);
     } else {
       reconnectFolderBtn.style.display = "inline-flex";
       reconnectFolderBtn.textContent = `前回のフォルダ「${savedDirectoryHandle.name}」を自動読み込み`;
-      folderStatusLabel.textContent = `右のボタンを押すと、前回連携した「${savedDirectoryHandle.name}」内のフォルダ・ファイルをすべて自動で読み込みます`;
     }
   } catch (e) {}
 }
 
-// 起動時に自動で同階層フォルダの復元を試行
+// 起動時にGitHubリポジトリの自動スキャン ＆ ローカルフォルダの自動復元を実行
 window.addEventListener("DOMContentLoaded", async () => {
+  await autoScanGitHubRepo();
   savedDirectoryHandle = await getDirHandleFromDB();
   if (savedDirectoryHandle) {
     await loadFromSavedHandle(false);
@@ -780,13 +909,15 @@ linkRootFolderBtn.addEventListener("click", async () => {
 });
 
 reconnectFolderBtn.addEventListener("click", () => loadFromSavedHandle(true));
-refreshFolderBtn.addEventListener("click", () => loadFromSavedHandle(true));
+refreshFolderBtn.addEventListener("click", async () => {
+  await autoScanGitHubRepo();
+  if (savedDirectoryHandle) await loadFromSavedHandle(true);
+});
 
 selectVideoBtn.addEventListener("click", () => videoInput.click());
 selectFolderBtn.addEventListener("click", () => folderInput.click());
 selectImagesBtn.addEventListener("click", () => imagesInput.click());
 
-// 画面全体へのドラッグ＆ドロップでいつでもフォルダ・ファイルを追加読み込み可能
 window.addEventListener("dragover", (e) => {
   e.preventDefault();
   topSwitcherCard.style.borderColor = "#ff4d88";
@@ -835,7 +966,6 @@ videoInput.addEventListener("change", (e) => {
 });
 folderInput.addEventListener("change", (e) => {
   if (e.target.files && e.target.files.length > 0) {
-    folderGroups.clear();
     handleIncomingFiles(Array.from(e.target.files));
   }
 });
@@ -844,8 +974,8 @@ imagesInput.addEventListener("change", (e) => {
 });
 
 function handleIncomingFiles(files) {
-  let firstVideo = null;
-  let firstImage = null;
+  let firstVideoItem = null;
+  let firstImageItem = null;
   let firstImageFolder = "";
 
   for (const f of files) {
@@ -865,17 +995,18 @@ function handleIncomingFiles(files) {
       folderGroups.set(folderName, { images: [], videos: [] });
     }
     const group = folderGroups.get(folderName);
+    const entry = { name: f.name, file: f, url: null };
 
     if (isVid) {
       const idx = group.videos.findIndex(v => v.name === f.name);
-      if (idx >= 0) group.videos[idx] = f;
-      else group.videos.push(f);
-      if (!firstVideo) firstVideo = f;
+      if (idx >= 0) group.videos[idx] = entry;
+      else group.videos.push(entry);
+      if (!firstVideoItem) firstVideoItem = entry;
     } else if (isImg) {
       const idx = group.images.findIndex(img => img.name === f.name);
-      if (idx >= 0) group.images[idx] = f;
-      else group.images.push(f);
-      if (!firstImage) { firstImage = f; firstImageFolder = folderName; }
+      if (idx >= 0) group.images[idx] = entry;
+      else group.images.push(entry);
+      if (!firstImageItem) { firstImageItem = entry; firstImageFolder = folderName; }
     }
   }
 
@@ -884,8 +1015,8 @@ function handleIncomingFiles(files) {
     grp.videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }
 
-  if (firstVideo && !video.src) {
-    loadVideoFile(firstVideo);
+  if (firstVideoItem && !video.src) {
+    loadVideoItem(firstVideoItem);
   }
 
   if (folderGroups.size > 0) {
@@ -893,8 +1024,8 @@ function handleIncomingFiles(files) {
     if (!activeFolderName || !folderGroups.has(activeFolderName)) {
       activeFolderName = firstImageFolder || Array.from(folderGroups.keys())[0];
     }
-    if (firstImage && !outputCanvas.width) {
-      loadExternalImageToViewer(firstImage);
+    if (firstImageItem && !outputCanvas.width) {
+      loadImageItemToViewer(firstImageItem);
     } else {
       renderTopSwitcher();
     }
@@ -924,10 +1055,10 @@ function renderTopSwitcher() {
     tabBtn.addEventListener("click", () => {
       activeFolderName = folderName;
       if (grp.videos.length > 0 && grp.videos[0].name !== activeVideoName) {
-        loadVideoFile(grp.videos[0]);
+        loadVideoItem(grp.videos[0]);
       }
       if (grp.images.length > 0) {
-        loadExternalImageToViewer(grp.images[0]);
+        loadImageItemToViewer(grp.images[0]);
       } else {
         renderTopSwitcher();
       }
@@ -938,7 +1069,6 @@ function renderTopSwitcher() {
   const activeGroup = folderGroups.get(activeFolderName);
   if (!activeGroup) return;
 
-  // 画像切り替えチップ（上部バー＆ビューアー直上バーの両方に連動配置）
   if (activeGroup.images.length > 0) {
     const label = document.createElement("span");
     label.style.fontSize = "0.82rem";
@@ -949,27 +1079,26 @@ function renderTopSwitcher() {
 
     viewerQuickSwitchBar.style.display = "flex";
 
-    for (const imgFile of activeGroup.images) {
-      const isAct = imgFile.name === activeImageName;
+    for (const imgItem of activeGroup.images) {
+      const isAct = imgItem.name === activeImageName;
       const chip = document.createElement("button");
       chip.className = "file-chip" + (isAct ? " active" : "");
-      chip.textContent = imgFile.name;
-      chip.addEventListener("click", () => loadExternalImageToViewer(imgFile));
+      chip.textContent = imgItem.name;
+      chip.addEventListener("click", () => loadImageItemToViewer(imgItem));
       imageFileList.appendChild(chip);
 
       const qChip = document.createElement("button");
       qChip.className = "file-chip" + (isAct ? " active" : "");
       qChip.style.padding = "4px 10px";
       qChip.style.fontSize = "0.8rem";
-      qChip.textContent = imgFile.name;
-      qChip.addEventListener("click", () => loadExternalImageToViewer(imgFile));
+      qChip.textContent = imgItem.name;
+      qChip.addEventListener("click", () => loadImageItemToViewer(imgItem));
       viewerQuickSwitchList.appendChild(qChip);
     }
   } else {
     viewerQuickSwitchBar.style.display = "none";
   }
 
-  // 動画切り替えチップ
   if (activeGroup.videos.length > 0) {
     const label = document.createElement("span");
     label.style.fontSize = "0.82rem";
@@ -978,26 +1107,27 @@ function renderTopSwitcher() {
     label.textContent = "動画:";
     videoFileList.appendChild(label);
 
-    for (const vidFile of activeGroup.videos) {
-      const isAct = vidFile.name === activeVideoName;
+    for (const vidItem of activeGroup.videos) {
+      const isAct = vidItem.name === activeVideoName;
       const chip = document.createElement("button");
       chip.className = "file-chip video-chip" + (isAct ? " active" : "");
-      chip.textContent = vidFile.name;
-      chip.addEventListener("click", () => loadVideoFile(vidFile));
+      chip.textContent = vidItem.name;
+      chip.addEventListener("click", () => loadVideoItem(vidItem));
       videoFileList.appendChild(chip);
     }
   }
 }
 
 // =========================================================
-// 4. 外部画像の読み込み ＆ マスター譜面データへの自動分解（高さ再生成対応）
+// 4. 画像の読み込み（ローカルFile ＆ GitHub URL両対応）と高さ再生成データ構築
 // =========================================================
-function loadExternalImageToViewer(imgFile) {
-  activeImageName = imgFile.name;
+function loadImageItemToViewer(imgItem) {
+  activeImageName = imgItem.name;
   renderTopSwitcher();
 
-  const url = URL.createObjectURL(imgFile);
+  const srcUrl = imgItem.file ? URL.createObjectURL(imgItem.file) : imgItem.url;
   const img = new Image();
+  img.crossOrigin = "anonymous";
   img.onload = () => {
     outputCanvas.width = img.width;
     outputCanvas.height = img.height;
@@ -1007,16 +1137,15 @@ function loadExternalImageToViewer(imgFile) {
     playheadCanvas.width = img.width;
     playheadCanvas.height = img.height;
 
-    currentViewFileName.textContent = `表示中: ${imgFile.name} (${img.width} x ${img.height} px)`;
+    currentViewFileName.textContent = `表示中: ${imgItem.name} (${img.width} x ${img.height} px)`;
     resultArea.style.display = "block";
 
-    // 画像構造を解析し、内部のマスター譜面データ（masterChartData）も構築して「1列の高さ変更再生成」を可能にする
-    extractMasterFromExternalImage(img, outCtx, imgFile.name);
+    extractMasterFromExternalImage(img, outCtx, imgItem.name);
     setupViewerAfterGenerate(chartMeta.numCols);
     drawPlayheadOverlay();
-    URL.revokeObjectURL(url);
+    if (imgItem.file) URL.revokeObjectURL(srcUrl);
   };
-  img.src = url;
+  img.src = srcUrl;
 }
 
 function extractMasterFromExternalImage(img, ctx, fileName) {
@@ -1035,21 +1164,17 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
   let colMaxH = H;
 
   if (W > H * 0.65 && expectedColMaxH > 400) {
-    // ギャップ部分をスキャンして正確な列数を自動検出
     const scanY = headerH + colGap + Math.round(expectedColMaxH * 0.5);
     const rowData = ctx.getImageData(0, scanY, W, 1).data;
 
-    // 背景色（#05070b または #161c2e）の縦帯（幅12〜16px）を探索して列数を特定
     let bestNumCols = 1;
     for (let candCols = 2; candCols <= 40; candCols++) {
       const cwFloat = (W - (candCols + 1) * colGap) / candCols;
       if (cwFloat < 120 || cwFloat > 1200) continue;
       if (Math.abs(cwFloat - Math.round(cwFloat)) < 0.15) {
         const cw = Math.round(cwFloat);
-        // 境界の枠線座標をチェック
         const borderX = colGap + cw + 1;
         const idx = borderX * 4;
-        // 枠線(#2b3856 -> R:43, G:56, B:86)付近かどうか確認
         if (Math.abs(rowData[idx] - 43) < 25 && Math.abs(rowData[idx + 2] - 86) < 30) {
           bestNumCols = candCols;
           calcCropW = cw;
@@ -1075,7 +1200,6 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
   currentColumnWidths = calcCropW;
   const totalHeight = numCols * colMaxH;
 
-  // 各列を下から順にマスターチャンクへ格納し、任意の高さで再生成できるようにする
   const numChunks = Math.ceil(totalHeight / MASTER_CHUNK_H);
   const chunks = [];
   for (let k = 0; k < numChunks; k++) {
@@ -1096,7 +1220,6 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
     colCtx.drawImage(img, sx, sy, calcCropW, colMaxH, 0, 0, calcCropW, colMaxH);
     lastGeneratedColumns.push(colC);
 
-    // この列(下からのオフセット c * colMaxH 〜 (c+1) * colMaxH)をマスターチャンクにコピー
     const colBottomStart = c * colMaxH;
     const startChunk = Math.floor(colBottomStart / MASTER_CHUNK_H);
     const endChunk = Math.floor((colBottomStart + colMaxH - 1) / MASTER_CHUNK_H);
@@ -1142,7 +1265,7 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
 }
 
 // =========================================================
-// 5. マスター譜面データから「1列の高さ」を変更して0.1秒で再生成する関数
+// 5. マスター譜面データから「1列の高さ」を変更して即時再生成する関数
 // =========================================================
 function rebuildLayoutFromMaster() {
   if (!masterChartData.hasData) return;
@@ -1154,7 +1277,6 @@ function rebuildLayoutFromMaster() {
   const colGap = 14;
   const headerH = 36;
 
-  // 新しい colMaxH に合わせて各列のCanvasをマスターチャンクから切り出す
   const newColumns = [];
   for (let c = 0; c < numCols; c++) {
     const colC = document.createElement("canvas");
@@ -1261,12 +1383,12 @@ colHeightInput.addEventListener("change", () => {
   if (masterChartData.hasData) rebuildLayoutFromMaster();
 });
 
-function loadVideoFile(file) {
-  activeVideoName = file.name;
+function loadVideoItem(vidItem) {
+  activeVideoName = vidItem.name;
   renderTopSwitcher();
 
-  const url = URL.createObjectURL(file);
-  video.src = url;
+  const srcUrl = vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url;
+  video.src = srcUrl;
   video.load();
   video.onloadedmetadata = () => {
     previewCanvas.width = video.videoWidth || 640;
@@ -1689,7 +1811,6 @@ async function generateChartImage(isTestMode = false) {
   const bottomBaseH = h - capY;
   const topSafeY = Math.round(h * 0.07);
 
-  // マスターチャンク（高さ MASTER_CHUNK_H 固定）に描画して保持する
   const masterChunks = [];
   const masterCtxs = [];
 
@@ -1856,7 +1977,6 @@ async function generateChartImage(isTestMode = false) {
     }
   }
 
-  // マスター譜面データを保存（これ以降、1列の高さを変えても0.1秒で再生成可能）
   masterChartData = {
     hasData: true,
     cropW: cropW,

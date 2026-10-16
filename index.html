@@ -47,8 +47,10 @@
   .btn-secondary.active { background: var(--primary); color: #001818; border-color: var(--primary); }
   .btn-accent { background: var(--accent); color: #fff; }
   .btn-accent:hover { background: #ff709f; }
+  .btn-danger { background: #e63946; color: #fff; }
+  .btn-danger:hover { background: #ff525f; }
 
-  /* プレビュー上部のフォルダ・ファイル切り替えバー */
+  /* プレビュー上部のフォルダ一括切り替えバー（フォルダ名ボタンのみ表示） */
   .top-switcher-card {
     background: #141b2b; border: 2px solid #00a8a8;
     border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
@@ -58,22 +60,19 @@
     flex-wrap: wrap; gap: 10px;
   }
   .folder-tabs {
-    display: flex; gap: 6px; flex-wrap: wrap;
-    padding-bottom: 8px; margin-top: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--border);
   }
-  .file-switcher-row {
-    display: flex; gap: 8px; align-items: center; overflow-x: auto;
-    padding: 4px 0;
-  }
-  .file-chip {
+  .folder-set-btn {
     background: #222c42; color: #e2e8f0; border: 1px solid #3a496b;
-    padding: 5px 12px; border-radius: 6px; font-size: 0.84rem;
+    padding: 7px 15px; border-radius: 8px; font-size: 0.9rem;
     cursor: pointer; white-space: nowrap; transition: 0.15s; font-weight: bold;
   }
-  .file-chip:hover { background: #2e3c59; }
-  .file-chip.active { background: var(--primary); color: #001818; border-color: var(--primary); }
-  .file-chip.video-chip { border-color: #ff4d88; }
-  .file-chip.video-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .folder-set-btn:hover { background: #2e3c59; transform: translateY(-1px); }
+  .folder-set-btn.active {
+    background: var(--primary); color: #001818; border-color: var(--primary);
+    box-shadow: 0 0 12px rgba(0, 212, 212, 0.35);
+  }
 
   /* 動画プレビュー（上部） */
   .preview-wrapper {
@@ -154,13 +153,22 @@
 
   /* 静止画プレビュー本体 */
   .viewer-box {
-    background: #07090e; border: 2px solid var(--border);
+    position: relative; background: #07090e; border: 2px solid var(--border);
     overflow: hidden; display: flex; flex-direction: column;
   }
   .viewer-box.fullscreen {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     z-index: 9999; margin: 0; border-radius: 0; border: none;
   }
+  .exit-fullscreen-btn {
+    display: none; position: fixed; top: 16px; right: 20px;
+    z-index: 10001; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
+    padding: 10px 18px; font-size: 0.95rem;
+  }
+  .viewer-box.fullscreen .exit-fullscreen-btn {
+    display: inline-flex;
+  }
+
   .viewer-viewport {
     position: relative; width: 100%; height: 580px; overflow: hidden;
     cursor: grab; background: #000; user-select: none;
@@ -171,11 +179,32 @@
     transform-origin: 0 0;
     position: absolute; top: 0; left: 0;
     box-shadow: 0 0 25px rgba(0,0,0,0.8);
+    will-change: transform;
   }
   #outputCanvas { display: block; }
-  #playheadCanvas {
+
+  /* 軽量化されたGPUアクセラレーション再生位置バー */
+  #playheadColHighlight {
     position: absolute; top: 0; left: 0;
-    pointer-events: none;
+    border: 3px solid rgba(255, 77, 136, 0.55);
+    pointer-events: none; display: none;
+    will-change: transform, width, height;
+  }
+  #playheadBar {
+    position: absolute; top: 0; left: 0; height: 16px; margin-top: -8px;
+    background: rgba(255, 50, 110, 0.22);
+    pointer-events: none; display: none;
+    will-change: transform, width;
+  }
+  #playheadBar::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%;
+    height: 3px; margin-top: -1.5px; background: #ff2a6d;
+  }
+  #playheadTimeBadge {
+    position: absolute; left: 0; top: -4px;
+    background: #ff2a6d; color: #fff; font-weight: bold;
+    font-size: 12px; line-height: 22px; padding: 0 8px;
+    border-radius: 3px; white-space: nowrap; z-index: 2;
   }
 
   /* 静止画プレビューの下：常時表示保存バー */
@@ -197,33 +226,31 @@
       <h1>プロセカ譜面動画 静止画メーカー</h1>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn" id="selectVideoBtn">動画選択（複数可）</button>
-      <button class="btn btn-secondary" id="selectImagesBtn">画像選択</button>
+      <button class="btn" id="linkRootFolderBtn">同階層フォルダを登録（自動読み込み設定）</button>
       <button class="btn btn-secondary" id="selectFolderBtn">フォルダ選択</button>
+      <button class="btn btn-secondary" id="selectVideoBtn">動画選択</button>
+      <button class="btn btn-secondary" id="selectImagesBtn">画像選択</button>
       <input type="file" id="videoInput" accept="video/*" multiple style="display:none;">
       <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
       <input type="file" id="imagesInput" accept="image/*" multiple style="display:none;">
     </div>
   </header>
 
-  <!-- プレビュー最上部：フォルダ・ファイル切り替えバー -->
+  <!-- プレビュー最上部：フォルダ切り替えバー（フォルダ名ボタン1つで動画と静止画を同時に切り替え） -->
   <div class="top-switcher-card" id="topSwitcherCard">
     <div class="switcher-header">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <strong style="color:var(--primary); font-size:0.95rem;">フォルダ・ファイル切り替えバー</strong>
-        <span class="hint" id="folderStatusLabel"></span>
+        <span class="hint" id="folderStatusLabel">右上の「同階層フォルダを登録」で index.html のあるフォルダを選ぶと、次回から自動読み込みされます</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-accent" id="reconnectFolderBtn" style="display:none; padding:6px 14px; font-size:0.85rem;">同階層フォルダを自動読み込み</button>
         <button class="btn btn-secondary" id="refreshFolderBtn" style="display:none; padding:5px 11px; font-size:0.82rem;">再スキャン</button>
       </div>
     </div>
 
     <div id="switcherContent" style="display:none;">
       <div class="folder-tabs" id="folderTabs"></div>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <div class="file-switcher-row" id="imageFileList"></div>
-        <div class="file-switcher-row" id="videoFileList"></div>
-      </div>
     </div>
   </div>
 
@@ -232,7 +259,7 @@
 
     <!-- 1. 上部：動画プレビュー -->
     <div class="preview-wrapper">
-      <video id="videoPreview" playsinline crossorigin="anonymous"></video>
+      <video id="videoPreview" playsinline></video>
       <canvas id="previewCanvas" width="640" height="360"></canvas>
     </div>
 
@@ -243,13 +270,14 @@
       <span id="currentTimeLabel" style="font-size:0.88rem; font-weight:bold; min-width:135px; text-align:right;">0.00 秒 / 0.00 秒</span>
     </div>
 
-    <!-- 3. 静止画の作成・複数動画同時処理・高さ変更再生成パネル（常時表示） -->
+    <!-- 3. 静止画の作成・停止・複数動画同時処理・高さ変更再生成パネル（常時表示） -->
     <div class="always-panel" style="border-color:#00a8a8;">
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-accent" id="generateBtn" disabled>現在の動画から静止画を作成</button>
           <button class="btn" id="batchGenerateBtn" disabled>複数動画を同時処理して一括作成</button>
           <button class="btn btn-secondary" id="testGenerateBtn" disabled>最初の12秒だけテスト作成</button>
+          <button class="btn btn-danger" id="stopGenerateBtn" disabled>生成を停止</button>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
@@ -265,16 +293,19 @@
 
     <!-- 進捗バー（生成処理中のみ表示） -->
     <div class="progress-container" id="progressContainer">
-      <div style="display:flex; justify-content:space-between; font-size:0.88rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.88rem; gap:10px;">
         <span id="progressText">譜面を合成しています...</span>
-        <span id="progressPercent">0%</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span id="progressPercent" style="font-weight:bold;">0%</span>
+          <button class="btn btn-danger" id="progressStopBtn" style="padding:4px 10px; font-size:0.8rem;">停止</button>
+        </div>
       </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" id="progressBar"></div>
       </div>
     </div>
 
-    <!-- 4. 詳細設定タブ（切り抜き範囲・黒背景フィルター・精度・速度設定） -->
+    <!-- 4. 詳細設定タブ（切り抜き範囲・黒背景フィルター・速度設定） -->
     <details class="details-tab-wrap" id="detailsTab">
       <summary class="details-tab-summary">
         <span>詳細設定を開く / 閉じる</span>
@@ -304,7 +335,9 @@
                 <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
               </div>
             </div>
+          </div>
 
+          <div>
             <!-- 黒背景フィルター設定 -->
             <div class="control-group">
               <label class="checkbox-row">
@@ -324,36 +357,16 @@
                 <input type="range" id="gridBoostSlider" min="0.5" max="3.5" step="0.1" value="0.5">
               </div>
             </div>
-          </div>
 
-          <div>
-            <!-- 曲線の滑らかさ・高速生成設定（デフォルト：超高速モード） -->
-            <div class="control-group">
-              <label><span>② 曲線の滑らかさ・高速生成設定</span></label>
-              <div class="inline-inputs">
-                <select id="qualitySelect" class="num-input" style="width:100%;">
-                  <option value="turbo" selected>超高速モード（大判スライス＋フレームロック補正：最速）</option>
-                  <option value="fast_ultra">高速・超高精度（マルチスライス補間：滑らか＆高速）</option>
-                  <option value="ultra">超高精度（4px刻み：精密合成）</option>
-                  <option value="high">高精度（8px刻み）</option>
-                  <option value="normal">標準（16px刻み）</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- スクロール速度＆自動キャリブレーション・自動追跡設定 -->
+            <!-- スクロール速度＆自動キャリブレーション設定 -->
             <div class="control-group">
               <label class="checkbox-row" style="margin-bottom:6px;">
                 <input type="checkbox" id="autoCalibToggle" checked>
                 <span>動画ごとに基準速度を自動検出して合わせる（速度違いの動画に対応）</span>
               </label>
-              <label class="checkbox-row" style="margin-bottom:6px;">
-                <input type="checkbox" id="autoTrackToggle">
-                <span>自動追跡をONにする（1本の動画内で途中で速度が変わる場合に対応）</span>
-              </label>
               <div id="manualSpeedControls">
                 <label>
-                  <span>③ スクロール速度（画面高さに対する % / 秒）</span>
+                  <span>② スクロール速度（画面高さに対する % / 秒）</span>
                   <span id="speedValLabel">47.50 %/秒</span>
                 </label>
                 <input type="range" id="speedSlider" min="15" max="110" step="0.02" value="47.50">
@@ -400,10 +413,13 @@
 
     <!-- 6. 静止画プレビュー本体 -->
     <div class="viewer-box" id="viewerBox">
+      <button class="btn btn-accent exit-fullscreen-btn" id="exitFullscreenBtn">全画面表示から戻る (Esc)</button>
+
       <div class="viewer-viewport" id="viewerViewport" title="マウスホイールで拡大縮小・ドラッグで移動・ダブルクリックでその位置の秒数へ動画をシークします">
         <div id="canvasStage">
           <canvas id="outputCanvas"></canvas>
-          <canvas id="playheadCanvas"></canvas>
+          <div id="playheadColHighlight"></div>
+          <div id="playheadBar"><span id="playheadTimeBadge">0.00s</span></div>
         </div>
       </div>
     </div>
@@ -614,15 +630,18 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 }
 
 // =========================================================
-// 3. UI要素・GitHub自動スキャン＆ファイル切り替え管理
+// 3. UI要素・PC内の同階層フォルダ自動読み込み＆一括切り替え管理
 // =========================================================
 const video = document.getElementById("videoPreview");
 const previewCanvas = document.getElementById("previewCanvas");
 const pCtx = previewCanvas.getContext("2d", { willReadFrequently: true });
+const filterSubCanvas = document.createElement("canvas");
+const filterSubCtx = filterSubCanvas.getContext("2d", { willReadFrequently: true });
 
 const videoInput = document.getElementById("videoInput");
 const folderInput = document.getElementById("folderInput");
 const imagesInput = document.getElementById("imagesInput");
+const linkRootFolderBtn = document.getElementById("linkRootFolderBtn");
 const selectVideoBtn = document.getElementById("selectVideoBtn");
 const selectFolderBtn = document.getElementById("selectFolderBtn");
 const selectImagesBtn = document.getElementById("selectImagesBtn");
@@ -630,10 +649,9 @@ const selectImagesBtn = document.getElementById("selectImagesBtn");
 const topSwitcherCard = document.getElementById("topSwitcherCard");
 const switcherContent = document.getElementById("switcherContent");
 const folderStatusLabel = document.getElementById("folderStatusLabel");
+const reconnectFolderBtn = document.getElementById("reconnectFolderBtn");
 const refreshFolderBtn = document.getElementById("refreshFolderBtn");
 const folderTabs = document.getElementById("folderTabs");
-const imageFileList = document.getElementById("imageFileList");
-const videoFileList = document.getElementById("videoFileList");
 const currentViewFileName = document.getElementById("currentViewFileName");
 const bottomSaveStatusLabel = document.getElementById("bottomSaveStatusLabel");
 
@@ -650,10 +668,7 @@ const cropRightSlider = document.getElementById("cropRightSlider");
 const leftVal = document.getElementById("leftVal");
 const rightVal = document.getElementById("rightVal");
 
-const qualitySelect = document.getElementById("qualitySelect");
 const autoCalibToggle = document.getElementById("autoCalibToggle");
-const autoTrackToggle = document.getElementById("autoTrackToggle");
-const manualSpeedControls = document.getElementById("manualSpeedControls");
 const speedSlider = document.getElementById("speedSlider");
 const speedInput = document.getElementById("speedInput");
 const speedValLabel = document.getElementById("speedValLabel");
@@ -666,6 +681,8 @@ const reLayoutBtn = document.getElementById("reLayoutBtn");
 const generateBtn = document.getElementById("generateBtn");
 const batchGenerateBtn = document.getElementById("batchGenerateBtn");
 const testGenerateBtn = document.getElementById("testGenerateBtn");
+const stopGenerateBtn = document.getElementById("stopGenerateBtn");
+const progressStopBtn = document.getElementById("progressStopBtn");
 const progressContainer = document.getElementById("progressContainer");
 const progressText = document.getElementById("progressText");
 const progressPercent = document.getElementById("progressPercent");
@@ -673,7 +690,10 @@ const progressBar = document.getElementById("progressBar");
 
 const canvasStage = document.getElementById("canvasStage");
 const outputCanvas = document.getElementById("outputCanvas");
-const playheadCanvas = document.getElementById("playheadCanvas");
+const playheadColHighlight = document.getElementById("playheadColHighlight");
+const playheadBar = document.getElementById("playheadBar");
+const playheadTimeBadge = document.getElementById("playheadTimeBadge");
+
 const downloadPngBtn = document.getElementById("downloadPngBtn");
 const downloadResultZipBtn = document.getElementById("downloadResultZipBtn");
 const showPlayheadToggle = document.getElementById("showPlayheadToggle");
@@ -681,8 +701,8 @@ const followPlayheadToggle = document.getElementById("followPlayheadToggle");
 
 let lastGeneratedColumns = [];
 let currentColumnWidths = 0;
-let activeImageName = "";
 let activeVideoName = "";
+let cancelGenerationRequested = false;
 
 // マスター譜面データ保持構造
 const MASTER_CHUNK_H = 2048;
@@ -712,145 +732,108 @@ let chartMeta = {
   timeToYMap: []
 };
 
+// フォルダごとのセット管理マップ: folderName -> { images: [entry], videos: [entry] }
 const folderGroups = new Map();
 let activeFolderName = "";
+let savedDirectoryHandle = null;
 
 // =========================================================
-// GitHub Pages リポジトリ内の同階層フォルダ・ファイル自動検出
+// PC内の同階層フォルダをIndexedDBに記憶して自動読み込みする仕組み
 // =========================================================
-async function autoScanGitHubRepo() {
-  const host = window.location.hostname;
-  const pathParts = window.location.pathname.split("/").filter(Boolean);
-  let owner = "";
-  let repo = "";
-  let baseDir = "";
+function openHandleDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("ProsekaChartMakerLocalDB", 1);
+    req.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore("handles");
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
 
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("repo")) {
-    const parts = params.get("repo").split("/");
-    owner = parts[0];
-    repo = parts[1];
-  } else if (host.endsWith(".github.io")) {
-    owner = host.split(".")[0];
-    if (pathParts.length > 0) {
-      repo = pathParts[0];
-      const subParts = pathParts.slice(1);
-      if (subParts.length > 0 && /\.html?$/i.test(subParts[subParts.length - 1])) {
-        subParts.pop();
-      }
-      baseDir = subParts.join("/");
-    } else {
-      repo = `${owner}.github.io`;
-    }
-  }
-
-  if (!owner || !repo) return false;
-
+async function saveDirHandleToDB(handle) {
   try {
-    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-    if (!repoRes.ok) return false;
-    const repoInfo = await repoRes.json();
-    const branch = repoInfo.default_branch || "main";
+    const db = await openHandleDB();
+    const tx = db.transaction("handles", "readwrite");
+    tx.objectStore("handles").put(handle, "rootDir");
+  } catch (e) {}
+}
 
-    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
-    if (!treeRes.ok) return false;
-    const treeData = await treeRes.json();
-    if (!treeData.tree) return false;
-
-    const remoteItems = [];
-    for (const item of treeData.tree) {
-      if (item.type !== "blob") continue;
-      if (baseDir && !item.path.startsWith(baseDir + "/")) continue;
-
-      const relPath = baseDir ? item.path.slice(baseDir.length + 1) : item.path;
-      const isVid = /\.(mp4|mov|webm|mkv|avi)$/i.test(relPath);
-      const isImg = /\.(png|jpe?g|webp|bmp)$/i.test(relPath);
-      if (!isVid && !isImg) continue;
-
-      const parts = relPath.split("/");
-      const fileName = parts.pop();
-      const folderName = parts.join("/") || "ルート";
-
-      const encodedRelPath = relPath.split("/").map(encodeURIComponent).join("/");
-      remoteItems.push({
-        name: fileName,
-        folderName: folderName,
-        url: encodedRelPath,
-        isVid: isVid,
-        isImg: isImg
-      });
-    }
-
-    if (remoteItems.length > 0) {
-      handleRemoteItems(remoteItems);
-      refreshFolderBtn.style.display = "inline-flex";
-      return true;
-    } else {
-      folderStatusLabel.textContent = "";
-      return false;
-    }
+async function getDirHandleFromDB() {
+  try {
+    const db = await openHandleDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("handles", "readonly");
+      const req = tx.objectStore("handles").get("rootDir");
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
   } catch (e) {
-    folderStatusLabel.textContent = "";
-    return false;
+    return null;
   }
 }
 
-function handleRemoteItems(items) {
-  let firstVideoItem = null;
-  let firstImageItem = null;
-  let firstImageFolder = "";
-
-  for (const item of items) {
-    if (!folderGroups.has(item.folderName)) {
-      folderGroups.set(item.folderName, { images: [], videos: [] });
-    }
-    const group = folderGroups.get(item.folderName);
-
-    if (item.isVid) {
-      const idx = group.videos.findIndex(v => v.name === item.name);
-      const entry = { name: item.name, url: item.url, file: null };
-      if (idx >= 0) group.videos[idx] = entry;
-      else group.videos.push(entry);
-      if (!firstVideoItem) firstVideoItem = entry;
-    } else if (item.isImg) {
-      const idx = group.images.findIndex(img => img.name === item.name);
-      const entry = { name: item.name, url: item.url, file: null };
-      if (idx >= 0) group.images[idx] = entry;
-      else group.images.push(entry);
-      if (!firstImageItem) { firstImageItem = entry; firstImageFolder = item.folderName; }
+async function scanDirectoryHandle(dirHandle, path = "", collected = []) {
+  for await (const entry of dirHandle.values()) {
+    if (entry.kind === "file") {
+      if (/\.(mp4|mov|webm|mkv|avi|png|jpe?g|webp|bmp)$/i.test(entry.name)) {
+        const file = await entry.getFile();
+        // 直下にファイルがある場合は拡張子を除いたファイル名をグループ名にし、サブフォルダにある場合はサブフォルダ名にする
+        const baseName = entry.name.replace(/\.[^.]+$/, "");
+        file._customFolder = path || baseName;
+        collected.push(file);
+      }
+    } else if (entry.kind === "directory") {
+      const subPath = path ? `${path}/${entry.name}` : entry.name;
+      await scanDirectoryHandle(entry, subPath, collected);
     }
   }
+  return collected;
+}
 
-  for (const [, grp] of folderGroups) {
-    grp.images.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    grp.videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-  }
-
-  if (firstVideoItem && !video.src) {
-    loadVideoItem(firstVideoItem);
-  }
-
-  if (folderGroups.size > 0) {
-    switcherContent.style.display = "block";
-    if (!activeFolderName || !folderGroups.has(activeFolderName)) {
-      activeFolderName = firstImageFolder || Array.from(folderGroups.keys())[0];
+async function loadFromSavedHandle(requestPerm = false) {
+  if (!savedDirectoryHandle) return;
+  try {
+    let perm = await savedDirectoryHandle.queryPermission({ mode: "read" });
+    if (perm !== "granted" && requestPerm) {
+      perm = await savedDirectoryHandle.requestPermission({ mode: "read" });
     }
-    if (firstImageItem && !outputCanvas.width) {
-      loadImageItemToViewer(firstImageItem);
+    if (perm === "granted") {
+      reconnectFolderBtn.style.display = "none";
+      refreshFolderBtn.style.display = "inline-flex";
+      folderGroups.clear();
+      const files = await scanDirectoryHandle(savedDirectoryHandle, "");
+      handleIncomingFiles(files);
     } else {
-      renderTopSwitcher();
+      reconnectFolderBtn.style.display = "inline-flex";
+      reconnectFolderBtn.textContent = `同階層フォルダ「${savedDirectoryHandle.name}」を自動読み込み`;
+      folderStatusLabel.textContent = `右のボタンを押すと、登録済みの同階層フォルダ「${savedDirectoryHandle.name}」から全フォルダを一括読み込みします`;
     }
-  }
-  updateBatchButtonState();
+  } catch (e) {}
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  await autoScanGitHubRepo();
+  savedDirectoryHandle = await getDirHandleFromDB();
+  if (savedDirectoryHandle) {
+    await loadFromSavedHandle(false);
+  }
 });
 
-refreshFolderBtn.addEventListener("click", async () => {
-  await autoScanGitHubRepo();
+linkRootFolderBtn.addEventListener("click", async () => {
+  if (window.showDirectoryPicker) {
+    try {
+      const handle = await window.showDirectoryPicker();
+      savedDirectoryHandle = handle;
+      await saveDirHandleToDB(handle);
+      await loadFromSavedHandle(true);
+    } catch (e) {}
+  } else {
+    folderInput.click();
+  }
 });
+
+reconnectFolderBtn.addEventListener("click", () => loadFromSavedHandle(true));
+refreshFolderBtn.addEventListener("click", () => loadFromSavedHandle(true));
 
 selectVideoBtn.addEventListener("click", () => videoInput.click());
 selectFolderBtn.addEventListener("click", () => folderInput.click());
@@ -882,7 +865,8 @@ window.addEventListener("drop", async (e) => {
 async function traverseFileTree(item, path, collected) {
   if (item.isFile) {
     const file = await new Promise((res) => item.file(res));
-    file._customFolder = path || "選択ファイル";
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    file._customFolder = path || baseName;
     collected.push(file);
   } else if (item.isDirectory) {
     const dirReader = item.createReader();
@@ -903,17 +887,17 @@ videoInput.addEventListener("change", (e) => {
   if (e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
 });
 folderInput.addEventListener("change", (e) => {
-  if (e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
+  if (e.target.files && e.target.files.length > 0) {
+    folderGroups.clear();
+    handleIncomingFiles(Array.from(e.target.files));
+  }
 });
 imagesInput.addEventListener("change", (e) => {
   if (e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
 });
 
 function handleIncomingFiles(files) {
-  let firstVideoItem = null;
-  let firstImageItem = null;
-  let firstImageFolder = "";
-  let firstVideoFolder = "";
+  let firstFolder = "";
 
   for (const f of files) {
     const isVid = f.type.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi)$/i.test(f.name);
@@ -923,28 +907,33 @@ function handleIncomingFiles(files) {
     let folderName = f._customFolder || "";
     if (!folderName && f.webkitRelativePath) {
       const parts = f.webkitRelativePath.split("/");
-      parts.pop();
-      folderName = parts.join("/") || "選択ファイル";
+      parts.pop(); // ファイル名を除去
+      if (parts.length > 1) {
+        parts.shift(); // 選択した親フォルダ名そのものを除き、同階層のサブフォルダ名を取得
+      }
+      folderName = parts.join("/");
     }
-    if (!folderName) folderName = "選択ファイル";
+    if (!folderName) {
+      folderName = f.name.replace(/\.[^.]+$/, "");
+    }
 
     if (!folderGroups.has(folderName)) {
       folderGroups.set(folderName, { images: [], videos: [] });
     }
     const group = folderGroups.get(folderName);
-    const entry = { name: f.name, file: f, url: null };
+    const entry = { name: f.name, file: f, url: null, folderName: folderName };
 
     if (isVid) {
       const idx = group.videos.findIndex(v => v.name === f.name);
       if (idx >= 0) group.videos[idx] = entry;
       else group.videos.push(entry);
-      if (!firstVideoItem) { firstVideoItem = entry; firstVideoFolder = folderName; }
     } else if (isImg) {
       const idx = group.images.findIndex(img => img.name === f.name);
       if (idx >= 0) group.images[idx] = entry;
       else group.images.push(entry);
-      if (!firstImageItem) { firstImageItem = entry; firstImageFolder = folderName; }
     }
+
+    if (!firstFolder) firstFolder = folderName;
   }
 
   for (const [, grp] of folderGroups) {
@@ -952,36 +941,43 @@ function handleIncomingFiles(files) {
     grp.videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }
 
-  if (firstVideoItem) {
-    loadVideoItem(firstVideoItem);
-  }
-
   if (folderGroups.size > 0) {
     switcherContent.style.display = "block";
-    if (!activeFolderName || !folderGroups.has(activeFolderName)) {
-      activeFolderName = firstImageFolder || firstVideoFolder || Array.from(folderGroups.keys())[0];
-    }
-    if (firstImageItem && !outputCanvas.width) {
-      loadImageItemToViewer(firstImageItem);
-    } else {
-      renderTopSwitcher();
-    }
+    const targetFolder = (activeFolderName && folderGroups.has(activeFolderName))
+      ? activeFolderName
+      : (firstFolder || Array.from(folderGroups.keys())[0]);
+    selectFolderSet(targetFolder);
   }
   updateBatchButtonState();
 }
 
-function getAllLoadedVideos() {
-  const activeGrp = folderGroups.get(activeFolderName);
-  if (activeGrp && activeGrp.videos.length > 0) return activeGrp.videos;
+// フォルダ名ボタンを1つ押したときに、そのフォルダ内の「動画」と「静止画」を一緒に切り替える関数
+function selectFolderSet(folderName) {
+  const grp = folderGroups.get(folderName);
+  if (!grp) return;
+  activeFolderName = folderName;
+  renderTopSwitcher();
+
+  if (grp.videos.length > 0) {
+    loadVideoItem(grp.videos[0]);
+  }
+  if (grp.images.length > 0) {
+    loadImageItemToViewer(grp.images[0]);
+  }
+}
+
+function getAllLoadedVideoEntries() {
   const all = [];
-  for (const [, grp] of folderGroups) {
-    for (const v of grp.videos) all.push(v);
+  for (const [fName, grp] of folderGroups) {
+    for (const v of grp.videos) {
+      all.push({ videoEntry: v, folderName: fName });
+    }
   }
   return all;
 }
 
 function updateBatchButtonState() {
-  const vids = getAllLoadedVideos();
+  const vids = getAllLoadedVideoEntries();
   batchGenerateBtn.disabled = vids.length === 0;
   if (vids.length > 1) {
     batchGenerateBtn.textContent = `複数動画 (${vids.length}本) を同時処理して一括作成`;
@@ -990,84 +986,30 @@ function updateBatchButtonState() {
   }
 }
 
+// フォルダ・ファイル切り替えバーにはフォルダ名のボタンを1つずつ並べて表示
 function renderTopSwitcher() {
   folderTabs.innerHTML = "";
-  imageFileList.innerHTML = "";
-  videoFileList.innerHTML = "";
 
+  let totalFolders = folderGroups.size;
   let totalImgs = 0;
   let totalVids = 0;
   for (const [, grp] of folderGroups) {
     totalImgs += grp.images.length;
     totalVids += grp.videos.length;
   }
-  folderStatusLabel.textContent = totalImgs + totalVids > 0
-    ? `全 ${folderGroups.size} フォルダ （静止画 ${totalImgs} 枚 / 動画 ${totalVids} 本）`
+
+  folderStatusLabel.textContent = totalFolders > 0
+    ? `全 ${totalFolders} フォルダ （ボタンをクリックすると静止画と動画が一緒に切り替わります）`
     : "";
 
   for (const [folderName, grp] of folderGroups) {
-    const tabBtn = document.createElement("button");
-    tabBtn.className = "btn btn-secondary" + (folderName === activeFolderName ? " active" : "");
-    tabBtn.style.padding = "5px 12px";
-    tabBtn.style.fontSize = "0.84rem";
-    tabBtn.textContent = `${folderName} (画像${grp.images.length} / 動画${grp.videos.length})`;
-    tabBtn.addEventListener("click", () => {
-      activeFolderName = folderName;
-      updateBatchButtonState();
-      if (grp.videos.length > 0 && grp.videos[0].name !== activeVideoName) {
-        loadVideoItem(grp.videos[0]);
-      }
-      if (grp.images.length > 0) {
-        loadImageItemToViewer(grp.images[0]);
-      } else {
-        renderTopSwitcher();
-      }
+    const btn = document.createElement("button");
+    btn.className = "folder-set-btn" + (folderName === activeFolderName ? " active" : "");
+    btn.textContent = folderName;
+    btn.addEventListener("click", () => {
+      selectFolderSet(folderName);
     });
-    folderTabs.appendChild(tabBtn);
-  }
-
-  const activeGroup = folderGroups.get(activeFolderName);
-  if (!activeGroup) return;
-
-  if (activeGroup.images.length > 0) {
-    const label = document.createElement("span");
-    label.style.fontSize = "0.82rem";
-    label.style.color = "var(--muted)";
-    label.style.whiteSpace = "nowrap";
-    label.textContent = "静止画:";
-    imageFileList.appendChild(label);
-
-    for (const imgItem of activeGroup.images) {
-      const isAct = imgItem.name === activeImageName;
-      const chip = document.createElement("button");
-      chip.className = "file-chip" + (isAct ? " active" : "");
-      chip.textContent = imgItem.name;
-      chip.addEventListener("click", () => {
-        if (imgItem.pairedVideo && imgItem.pairedVideo.name !== activeVideoName) {
-          loadVideoItem(imgItem.pairedVideo);
-        }
-        loadImageItemToViewer(imgItem);
-      });
-      imageFileList.appendChild(chip);
-    }
-  }
-
-  if (activeGroup.videos.length > 0) {
-    const label = document.createElement("span");
-    label.style.fontSize = "0.82rem";
-    label.style.color = "var(--muted)";
-    label.style.whiteSpace = "nowrap";
-    label.textContent = "動画:";
-    videoFileList.appendChild(label);
-
-    for (const vidItem of activeGroup.videos) {
-      const isAct = vidItem.name === activeVideoName;
-      const chip = document.createElement("button");
-      chip.className = "file-chip video-chip" + (isAct ? " active" : "");
-      chip.textContent = vidItem.name;
-      chip.addEventListener("click", () => loadVideoItem(vidItem));
-      videoFileList.appendChild(chip);
-    }
+    folderTabs.appendChild(btn);
   }
 }
 
@@ -1075,9 +1017,6 @@ function renderTopSwitcher() {
 // 4. 画像の読み込み ＆ マスター譜面データからの高さ変更再生成
 // =========================================================
 function loadImageItemToViewer(imgItem) {
-  activeImageName = imgItem.name;
-  renderTopSwitcher();
-
   if (imgItem.masterData) {
     masterChartData = imgItem.masterData;
     reLayoutBtn.disabled = false;
@@ -1087,21 +1026,17 @@ function loadImageItemToViewer(imgItem) {
 
   const srcUrl = imgItem.file ? URL.createObjectURL(imgItem.file) : imgItem.url;
   const img = new Image();
-  img.crossOrigin = "anonymous";
   img.onload = () => {
     outputCanvas.width = img.width;
     outputCanvas.height = img.height;
     const outCtx = outputCanvas.getContext("2d");
     outCtx.drawImage(img, 0, 0);
 
-    playheadCanvas.width = img.width;
-    playheadCanvas.height = img.height;
-
-    const infoText = `表示中: ${imgItem.name} (${img.width} x ${img.height} px)`;
+    const infoText = `表示中: ${activeFolderName} / ${imgItem.name} (${img.width} x ${img.height} px)`;
     currentViewFileName.textContent = infoText;
     bottomSaveStatusLabel.textContent = infoText;
 
-    extractMasterFromExternalImage(img, outCtx, imgItem.name);
+    extractMasterFromExternalImage(img, outCtx, `${activeFolderName}`);
     setupViewerAfterGenerate(chartMeta.numCols);
     drawPlayheadOverlay();
     if (imgItem.file) URL.revokeObjectURL(srcUrl);
@@ -1109,7 +1044,7 @@ function loadImageItemToViewer(imgItem) {
   img.src = srcUrl;
 }
 
-function extractMasterFromExternalImage(img, ctx, fileName) {
+function extractMasterFromExternalImage(img, ctx, labelName) {
   const W = img.width;
   const H = img.height;
   const tStart = parseFloat(startTimeInput.value) || 2.1;
@@ -1205,7 +1140,7 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
     tStart: tStart,
     tEnd: tEnd,
     timeToYMap: [],
-    sourceLabel: fileName
+    sourceLabel: labelName
   };
   reLayoutBtn.disabled = false;
 
@@ -1312,9 +1247,6 @@ function rebuildLayoutFromMaster() {
     }
   }
 
-  playheadCanvas.width = outputCanvas.width;
-  playheadCanvas.height = outputCanvas.height;
-
   chartMeta = {
     isGenerated: true,
     mode: mode,
@@ -1330,7 +1262,7 @@ function rebuildLayoutFromMaster() {
     timeToYMap: timeToYMap
   };
 
-  const infoText = `${sourceLabel || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
+  const infoText = `${sourceLabel || activeFolderName || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
   currentViewFileName.textContent = infoText;
   bottomSaveStatusLabel.textContent = infoText;
   setupViewerAfterGenerate(numCols);
@@ -1347,7 +1279,6 @@ colHeightInput.addEventListener("change", () => {
 
 function loadVideoItem(vidItem) {
   activeVideoName = vidItem.name;
-  renderTopSwitcher();
 
   const srcUrl = vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url;
   video.src = srcUrl;
@@ -1378,7 +1309,7 @@ function loadVideoItem(vidItem) {
   };
 }
 
-function drawPreview() {
+function drawPreview(forceFilter = false) {
   if (!video.videoWidth) return;
   const w = previewCanvas.width;
   const h = previewCanvas.height;
@@ -1390,14 +1321,14 @@ function drawPreview() {
   const x2 = Math.round(w * rightPct);
   const cw = x2 - x1;
 
-  if (blackBgToggle.checked && cw > 10) {
-    const subC = document.createElement("canvas");
-    subC.width = cw;
-    subC.height = h;
-    const subCtx = subC.getContext("2d", { willReadFrequently: true });
-    subCtx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
-    applyBlackBackgroundFilter(subCtx, cw, h);
-    pCtx.drawImage(subC, x1, 0);
+  if ((video.paused || forceFilter) && blackBgToggle.checked && cw > 10) {
+    if (filterSubCanvas.width !== cw || filterSubCanvas.height !== h) {
+      filterSubCanvas.width = cw;
+      filterSubCanvas.height = h;
+    }
+    filterSubCtx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
+    applyBlackBackgroundFilter(filterSubCtx, cw, h);
+    pCtx.drawImage(filterSubCanvas, x1, 0);
   }
 
   pCtx.fillStyle = "rgba(0, 0, 0, 0.72)";
@@ -1419,7 +1350,7 @@ function drawPreview() {
 }
 
 // =========================================================
-// 6. 動画と連動する「再生位置バー」の描画＆逆シーク連携
+// 6. 軽量化された「再生位置バー」の描画＆逆シーク連携
 // =========================================================
 function getBottomYForTime(t) {
   const { tStart, tEnd, totalHeight, timeToYMap } = chartMeta;
@@ -1465,11 +1396,11 @@ function getTimeForBottomY(targetBottomY) {
 }
 
 function drawPlayheadOverlay() {
-  if (!playheadCanvas.width || !playheadCanvas.height) return;
-  const ctx = playheadCanvas.getContext("2d");
-  ctx.clearRect(0, 0, playheadCanvas.width, playheadCanvas.height);
-
-  if (!showPlayheadToggle.checked) return;
+  if (!outputCanvas.width || !outputCanvas.height || !showPlayheadToggle.checked) {
+    playheadBar.style.display = "none";
+    playheadColHighlight.style.display = "none";
+    return;
+  }
 
   const t = video.currentTime || 0;
   const bottomY = getBottomYForTime(t);
@@ -1480,8 +1411,9 @@ function drawPlayheadOverlay() {
   if (chartMeta.mode === "single") {
     const scale = chartMeta.scale || 1;
     barX = 0;
-    barW = playheadCanvas.width;
-    barY = playheadCanvas.height - bottomY * scale;
+    barW = outputCanvas.width;
+    barY = outputCanvas.height - bottomY * scale;
+    playheadColHighlight.style.display = "none";
   } else {
     const { colMaxH, cropW, colGap, headerH, numCols } = chartMeta;
     colIndex = Math.min(numCols - 1, Math.max(0, Math.floor(bottomY / colMaxH)));
@@ -1489,31 +1421,17 @@ function drawPlayheadOverlay() {
     barX = colGap + colIndex * (cropW + colGap);
     barY = headerH + colGap + (colMaxH - relBottom);
     barW = cropW;
+
+    playheadColHighlight.style.display = "block";
+    playheadColHighlight.style.width = `${barW}px`;
+    playheadColHighlight.style.height = `${colMaxH}px`;
+    playheadColHighlight.style.transform = `translate3d(${barX}px, ${headerH + colGap}px, 0)`;
   }
 
-  if (chartMeta.mode === "grid") {
-    ctx.strokeStyle = "rgba(255, 77, 136, 0.55)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(barX, chartMeta.headerH + chartMeta.colGap, barW, chartMeta.colMaxH);
-  }
-
-  ctx.save();
-  ctx.fillStyle = "rgba(255, 50, 110, 0.22)";
-  ctx.fillRect(barX, barY - 8, barW, 16);
-
-  ctx.strokeStyle = "#ff2a6d";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(barX, barY);
-  ctx.lineTo(barX + barW, barY);
-  ctx.stroke();
-
-  ctx.fillStyle = "#ff2a6d";
-  ctx.fillRect(barX, barY - 12, 78, 22);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 12px 'Segoe UI', sans-serif";
-  ctx.fillText(`${t.toFixed(2)}s`, barX + 6, barY + 4);
-  ctx.restore();
+  playheadBar.style.display = "block";
+  playheadBar.style.width = `${barW}px`;
+  playheadBar.style.transform = `translate3d(${barX}px, ${barY}px, 0)`;
+  playheadTimeBadge.textContent = `${t.toFixed(2)}s`;
 
   if (followPlayheadToggle.checked && !isDragging) {
     const vw = viewerViewport.clientWidth;
@@ -1525,10 +1443,13 @@ function drawPlayheadOverlay() {
 }
 
 let animFrameId = null;
-function startPlayheadLoop() {
+function startPlaybackLoop() {
   const tick = () => {
-    drawPlayheadOverlay();
     if (!video.paused && !video.ended) {
+      seekSlider.value = video.currentTime;
+      currentTimeLabel.textContent = `${video.currentTime.toFixed(2)} 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
+      drawPreview(false);
+      drawPlayheadOverlay();
       animFrameId = requestAnimationFrame(tick);
     }
   };
@@ -1536,16 +1457,19 @@ function startPlayheadLoop() {
   animFrameId = requestAnimationFrame(tick);
 }
 
-video.addEventListener("play", startPlayheadLoop);
-video.addEventListener("timeupdate", () => {
-  seekSlider.value = video.currentTime;
-  currentTimeLabel.textContent = `${video.currentTime.toFixed(2)} 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
-  drawPreview();
+video.addEventListener("play", startPlaybackLoop);
+video.addEventListener("pause", () => {
+  cancelAnimationFrame(animFrameId);
+  drawPreview(true);
   drawPlayheadOverlay();
 });
 video.addEventListener("seeked", () => {
-  drawPreview();
-  drawPlayheadOverlay();
+  if (video.paused) {
+    seekSlider.value = video.currentTime;
+    currentTimeLabel.textContent = `${video.currentTime.toFixed(2)} 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
+    drawPreview(true);
+    drawPlayheadOverlay();
+  }
 });
 
 showPlayheadToggle.addEventListener("change", drawPlayheadOverlay);
@@ -1583,28 +1507,24 @@ cropLeftSlider.addEventListener("input", () => {
     cropLeftSlider.value = parseFloat(cropRightSlider.value) - 5;
   }
   leftVal.textContent = parseFloat(cropLeftSlider.value).toFixed(1);
-  drawPreview();
+  drawPreview(true);
 });
 cropRightSlider.addEventListener("input", () => {
   if (parseFloat(cropRightSlider.value) <= parseFloat(cropLeftSlider.value) + 5) {
     cropRightSlider.value = parseFloat(cropLeftSlider.value) + 5;
   }
   rightVal.textContent = parseFloat(cropRightSlider.value).toFixed(1);
-  drawPreview();
+  drawPreview(true);
 });
 
-blackBgToggle.addEventListener("change", drawPreview);
+blackBgToggle.addEventListener("change", () => drawPreview(true));
 bgThreshSlider.addEventListener("input", () => {
   bgThreshLabel.textContent = bgThreshSlider.value;
-  drawPreview();
+  drawPreview(true);
 });
 gridBoostSlider.addEventListener("input", () => {
   gridBoostLabel.textContent = `${parseFloat(gridBoostSlider.value).toFixed(1)}倍`;
-  drawPreview();
-});
-
-autoTrackToggle.addEventListener("change", () => {
-  manualSpeedControls.style.opacity = autoTrackToggle.checked ? "0.5" : "1";
+  drawPreview(true);
 });
 
 speedSlider.addEventListener("input", () => {
@@ -1635,10 +1555,8 @@ function seekVideoElementTo(vidElem, timeSec) {
 }
 
 // =========================================================
-// 7. 速度が違う動画・可変速度に対する高精度ハイブリッド移動量検出エンジン
+// 7. 速度が違う動画に対する高精度ハイブリッド移動量検出エンジン
 // =========================================================
-// 各行(y)ごとの「上下エッジ強度（16分音符ライン・小節線・ノーツ境界）」と「高彩度・高輝度ノーツ特徴」を抽出し、
-// 動かない背景透かしイラストの影響を完全に排除してサブピクセル精度で移動量 dy を求める
 function computeFrameRowFeatures(imgData, cw, h) {
   const edgeProfile = new Float32Array(h);
   const brightProfile = new Float32Array(h);
@@ -1662,11 +1580,9 @@ function computeFrameRowFeatures(imgData, cw, h) {
         (imgData[iDown] * 0.25 + imgData[iDown + 1] * 0.45 + imgData[iDown + 2] * 0.30)
       ) * 0.5;
 
-      // 水平エッジ（16分線・小節線・ノーツの上下端）のピーク
       const edge = lumCurr - lumBg;
       if (edge > 2.0) eSum += edge;
 
-      // ノーツおよび小節番号の明度・彩度特徴
       const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
       const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
       if (maxC > 75 || (maxC - minC) > 35) {
@@ -1696,7 +1612,6 @@ function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, mi
   const e2 = feat2.edgeProfile, b2 = feat2.brightProfile;
 
   for (let dy = searchMin; dy <= searchMax; dy++) {
-    // 1) 1Dプロファイル誤差（超高速かつ16分線・ノーツの周期に強い）
     let profDiff = 0;
     let validRows = 0;
     let activeSignal = 0;
@@ -1713,7 +1628,6 @@ function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, mi
 
     if (validRows < 20 || activeSignal < 8) continue;
 
-    // 2) 2Dピクセル照合（ノーツ・小節番号・グリッド線の2次元一致度）
     let pixDiff = 0;
     let pixCount = 0;
     for (let y = yStart; y < yEnd; y += 3) {
@@ -1724,7 +1638,6 @@ function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, mi
       for (let x = 0; x < cw; x += 4) {
         const idx1 = (row1 + x) << 2;
         const idx2 = (row2 + x) << 2;
-        // 動いているノーツ・ライン領域（または前後のフレームで変化がある領域）を重点評価
         const sum1 = img1[idx1] + img1[idx1 + 1] + img1[idx1 + 2];
         const sum2 = img2[idx2] + img2[idx2 + 1] + img2[idx2 + 2];
         if (sum1 > 115 || sum2 > 115) {
@@ -1740,7 +1653,6 @@ function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, mi
     const normPix = pixCount > 15 ? (pixDiff / pixCount) * 0.18 : 12.0;
     let totalScore = normProf + normPix;
 
-    // 予測移動量(expectedDy)がある場合は、16分グリッドの周期誤認（1マス飛ばし）を防ぐ緩やかな正則化を付与
     if (expectedDy >= 0) {
       const dev = Math.abs(dy - expectedDy);
       totalScore += dev * 0.035;
@@ -1769,7 +1681,6 @@ function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, mi
   return -1;
 }
 
-// 任意の動画要素に対して基準スクロール速度（%/秒）を高精度自動計測する関数
 async function calibrateVideoSpeed(vidElem, cropLeftPct, cropRightPct, tStart, tEnd) {
   const w = vidElem.videoWidth;
   const h = vidElem.videoHeight;
@@ -1782,12 +1693,12 @@ async function calibrateVideoSpeed(vidElem, cropLeftPct, cropRightPct, tStart, t
   tmpC.height = h;
   const ctx = tmpC.getContext("2d", { willReadFrequently: true });
 
-  // 異なる速度（低速〜超高速）に幅広く対応するため短めの時間間隔 dt = 0.08秒 と 0.14秒 を併用
   const samples = [];
   const sampleCount = 10;
   const span = Math.max(1.0, tEnd - tStart);
 
   for (let i = 0; i < sampleCount; i++) {
+    if (cancelGenerationRequested) break;
     const dt = (i % 2 === 0) ? 0.08 : 0.12;
     const t = tStart + (span * (i + 1)) / (sampleCount + 2);
     if (t + dt >= (vidElem.duration || tEnd)) continue;
@@ -1817,7 +1728,6 @@ async function calibrateVideoSpeed(vidElem, cropLeftPct, cropRightPct, tStart, t
 
   if (samples.length === 0) return null;
   samples.sort((a, b) => a - b);
-  // 外れ値を除いた中央値付近の平均を算出してサブピクセル精度を高める
   const mid = Math.floor(samples.length / 2);
   let sum = 0, cnt = 0;
   for (let i = Math.max(0, mid - 1); i <= Math.min(samples.length - 1, mid + 1); i++) {
@@ -1834,6 +1744,7 @@ autoSpeedBtn.addEventListener("click", async () => {
   video.muted = true;
   autoSpeedBtn.disabled = true;
   autoSpeedBtn.textContent = "高精度計測中...";
+  cancelGenerationRequested = false;
 
   try {
     const leftPct = parseFloat(cropLeftSlider.value) / 100;
@@ -1857,8 +1768,16 @@ autoSpeedBtn.addEventListener("click", async () => {
 });
 
 // =========================================================
-// 8. 速度違い・可変速度・フレームロック補正対応の譜面合成エンジン
+// 8. 超高速・フレームロック吸着補正対応の譜面合成エンジン（停止機能付き）
 // =========================================================
+function requestStopGeneration() {
+  cancelGenerationRequested = true;
+  stopGenerateBtn.disabled = true;
+  progressText.textContent = "生成を停止しています...";
+}
+stopGenerateBtn.addEventListener("click", requestStopGeneration);
+progressStopBtn.addEventListener("click", requestStopGeneration);
+
 async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, onStepProgress) {
   const w = vidElem.videoWidth;
   const h = vidElem.videoHeight;
@@ -1876,9 +1795,8 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   const tEnd = isTestMode ? Math.min(fullEnd, tStart + 12.0) : fullEnd;
   const duration = Math.max(0.5, tEnd - tStart);
 
-  // 動画ごとに速度が違う場合に対応する自動速度キャリブレーション
   let baseSpeedPct = parseFloat(speedInput.value) || 47.50;
-  if (autoCalibToggle.checked) {
+  if (autoCalibToggle.checked && !cancelGenerationRequested) {
     const calibrated = await calibrateVideoSpeed(vidElem, leftPct, rightPct, tStart, tEnd);
     if (calibrated !== null) {
       baseSpeedPct = calibrated;
@@ -1892,14 +1810,8 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   }
   const baseSpeedPxPerSec = h * (baseSpeedPct / 100);
 
-  const qMode = qualitySelect.value;
-  let stepPx = 36;
-  let overlapPx = 4;
-  if (qMode === "turbo") { stepPx = 36; overlapPx = 4; }
-  else if (qMode === "fast_ultra") { stepPx = 20; overlapPx = 3; }
-  else if (qMode === "ultra") { stepPx = 4; overlapPx = 2; }
-  else if (qMode === "high") { stepPx = 8; overlapPx = 2; }
-  else if (qMode === "normal") { stepPx = 16; overlapPx = 2; }
+  const stepPx = 36;
+  const overlapPx = 4;
 
   const capY = Math.round(h * 0.70);
   const bottomBaseH = h - capY;
@@ -1954,183 +1866,101 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
 
   let currentBottomY = 0;
   const timeToYMap = [];
-  const isAutoTrack = autoTrackToggle.checked;
 
-  if (isAutoTrack) {
-    // =========================================================
-    // 適応型ステップ制御つき高精度自動追跡モード（途中で速度が変わる動画に対応）
-    // =========================================================
-    let currentTime = tStart;
-    let currentSpeedPxPerSec = baseSpeedPxPerSec;
-    const targetStepPx = Math.min(24, Math.max(8, stepPx));
+  const dt = stepPx / baseSpeedPxPerSec;
+  const totalSteps = Math.floor(duration / dt);
 
-    await seekVideoElementTo(vidElem, currentTime);
+  let prevImgData = null;
+  let prevFeat = null;
+  let prevActualTime = tStart;
+  let lastSliceHeight = stepPx;
+
+  for (let step = 0; step <= totalSteps; step++) {
+    if (cancelGenerationRequested) break;
+
+    const exactTime = tStart + (step * stepPx) / baseSpeedPxPerSec;
+    await seekVideoElementTo(vidElem, exactTime);
+    const currActualTime = vidElem.currentTime;
+
     fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
-    let prevImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-    let prevFeat = computeFrameRowFeatures(prevImgData, cropW, h);
-    let prevActualTime = vidElem.currentTime;
+    const currImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
+    const currFeat = computeFrameRowFeatures(currImgData, cropW, h);
 
-    if (bottomBaseH > 0) {
-      drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
-      currentBottomY += bottomBaseH;
+    if (step === 0) {
+      if (bottomBaseH > 0) {
+        drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
+        currentBottomY += bottomBaseH;
+      }
+      timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
+      prevImgData = currImgData;
+      prevFeat = currFeat;
+      prevActualTime = currActualTime;
+      continue;
     }
-    timeToYMap.push({ time: prevActualTime, bottomY: currentBottomY });
 
-    let stepCount = 0;
-    while (currentTime < tEnd) {
-      // 現在の推定速度から、1ステップで約 targetStepPx 進む秒数 dt を動的に算出
-      const adaptiveDt = Math.min(0.10, Math.max(0.025, targetStepPx / Math.max(40, currentSpeedPxPerSec)));
-      currentTime = Math.min(tEnd, currentTime + adaptiveDt);
+    const realDt = Math.max(0.0001, currActualTime - prevActualTime);
+    const nominalDy = realDt * baseSpeedPxPerSec;
+    let actualDy = nominalDy;
 
-      await seekVideoElementTo(vidElem, currentTime);
-      const currActualTime = vidElem.currentTime;
-      const realDt = Math.max(0.001, currActualTime - prevActualTime);
-
-      fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
-      const currImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-      const currFeat = computeFrameRowFeatures(currImgData, cropW, h);
-
-      const expectedDy = currentSpeedPxPerSec * realDt;
-      const maxSearchDy = Math.min(Math.round(h * 0.35), Math.max(36, Math.round(expectedDy * 2.4)));
-
-      let trackedDy = matchFrameDisplacementHighPrecision(
-        prevImgData, currImgData, prevFeat, currFeat, cropW, h, 0, maxSearchDy, expectedDy
+    if (nominalDy >= 3) {
+      const lockMin = Math.max(1, Math.floor(nominalDy - 8));
+      const lockMax = Math.ceil(nominalDy + 8);
+      const lockedDy = matchFrameDisplacementHighPrecision(
+        prevImgData, currImgData, prevFeat, currFeat, cropW, h, lockMin, lockMax, nominalDy
       );
-
-      if (trackedDy < 0) {
-        trackedDy = expectedDy;
-      } else if (trackedDy > 1.0 && realDt > 0.01) {
-        // 検出された瞬間速度で推定速度を滑らかに更新
-        const instSpeed = trackedDy / realDt;
-        currentSpeedPxPerSec = currentSpeedPxPerSec * 0.65 + instSpeed * 0.35;
-      }
-
-      if (trackedDy > 0.25) {
-        const sy = Math.max(0, Math.min(h - trackedDy, capY - trackedDy));
-        drawSliceToMaster(frameCanvas, sy, trackedDy, currentBottomY, 1.0);
-
-        if (overlapPx > 0 && currentBottomY > overlapPx) {
-          const featherSy = Math.max(0, Math.min(h - overlapPx, sy + trackedDy - overlapPx * 0.5));
-          drawSliceToMaster(frameCanvas, featherSy, overlapPx, currentBottomY - overlapPx * 0.5, 0.45);
-        }
-        currentBottomY += trackedDy;
-      }
-
-      timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
-      prevImgData = currImgData;
-      prevFeat = currFeat;
-      prevActualTime = currActualTime;
-      stepCount++;
-
-      if (currentTime >= tEnd) {
-        const topCapH = Math.max(0, (capY - trackedDy) - topSafeY);
-        if (topCapH > 0) {
-          drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
-          currentBottomY += topCapH;
-        }
-        break;
-      }
-
-      if (onStepProgress && stepCount % 5 === 0) {
-        onStepProgress((currentTime - tStart) / duration, currentTime, tEnd);
+      if (lockedDy > 0 && Math.abs(lockedDy - nominalDy) <= 7.5) {
+        actualDy = lockedDy * 0.75 + nominalDy * 0.25;
       }
     }
-  } else {
-    // =========================================================
-    // フレームロック吸着補正つき高速マルチスライス合成モード
-    // =========================================================
-    const dt = stepPx / baseSpeedPxPerSec;
-    const totalSteps = Math.floor(duration / dt);
 
-    let prevImgData = null;
-    let prevFeat = null;
-    let prevActualTime = tStart;
-    let lastSliceHeight = stepPx;
+    if (actualDy > 0.2) {
+      const sy = Math.max(0, Math.min(h - actualDy, capY - actualDy));
+      drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY, 1.0);
 
-    for (let step = 0; step <= totalSteps; step++) {
-      const exactTime = tStart + (step * stepPx) / baseSpeedPxPerSec;
-      await seekVideoElementTo(vidElem, exactTime);
-      const currActualTime = vidElem.currentTime;
-
-      fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
-      const currImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-      const currFeat = computeFrameRowFeatures(currImgData, cropW, h);
-
-      if (step === 0) {
-        if (bottomBaseH > 0) {
-          drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
-          currentBottomY += bottomBaseH;
-        }
-        timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
-        prevImgData = currImgData;
-        prevFeat = currFeat;
-        prevActualTime = currActualTime;
-        continue;
+      if (overlapPx > 0 && currentBottomY > overlapPx) {
+        const featherSy = Math.max(0, Math.min(h - overlapPx, sy + actualDy - overlapPx * 0.5));
+        drawSliceToMaster(frameCanvas, featherSy, overlapPx, currentBottomY - overlapPx * 0.5, 0.45);
       }
 
-      // 実際のシーク時刻差から理論移動量を計算し、さらに前後フレームの相関で±8px以内の微小ズレをピタッと吸着補正
-      const realDt = Math.max(0.0001, currActualTime - prevActualTime);
-      const nominalDy = realDt * baseSpeedPxPerSec;
-      let actualDy = nominalDy;
+      currentBottomY += actualDy;
+      lastSliceHeight = actualDy;
+    }
 
-      if (nominalDy >= 3) {
-        const lockMin = Math.max(1, Math.floor(nominalDy - 8));
-        const lockMax = Math.ceil(nominalDy + 8);
-        const lockedDy = matchFrameDisplacementHighPrecision(
-          prevImgData, currImgData, prevFeat, currFeat, cropW, h, lockMin, lockMax, nominalDy
-        );
-        if (lockedDy > 0 && Math.abs(lockedDy - nominalDy) <= 7.5) {
-          actualDy = lockedDy * 0.75 + nominalDy * 0.25;
-        }
+    timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
+    prevImgData = currImgData;
+    prevFeat = currFeat;
+    prevActualTime = currActualTime;
+
+    if (step === totalSteps) {
+      const topCapH = Math.max(0, (capY - lastSliceHeight) - topSafeY);
+      if (topCapH > 0) {
+        drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
+        currentBottomY += topCapH;
       }
+    }
 
-      if (actualDy > 0.2) {
-        const sy = Math.max(0, Math.min(h - actualDy, capY - actualDy));
-        drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY, 1.0);
-
-        if (overlapPx > 0 && currentBottomY > overlapPx) {
-          const featherSy = Math.max(0, Math.min(h - overlapPx, sy + actualDy - overlapPx * 0.5));
-          drawSliceToMaster(frameCanvas, featherSy, overlapPx, currentBottomY - overlapPx * 0.5, 0.45);
-        }
-
-        currentBottomY += actualDy;
-        lastSliceHeight = actualDy;
-      }
-
-      timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
-      prevImgData = currImgData;
-      prevFeat = currFeat;
-      prevActualTime = currActualTime;
-
-      if (step === totalSteps) {
-        const topCapH = Math.max(0, (capY - lastSliceHeight) - topSafeY);
-        if (topCapH > 0) {
-          drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
-          currentBottomY += topCapH;
-        }
-      }
-
-      if (onStepProgress && (step % 8 === 0 || step === totalSteps)) {
-        onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd);
-      }
+    if (onStepProgress && (step % 8 === 0 || step === totalSteps)) {
+      onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd);
     }
   }
 
   const totalHeight = Math.max(100, Math.round(currentBottomY));
 
-  if (blackBgToggle.checked) {
+  if (blackBgToggle.checked && masterChunks.length > 0) {
     for (let k = 0; k < masterChunks.length; k++) {
       applyBlackBackgroundFilter(masterCtxs[k], cropW, MASTER_CHUNK_H);
     }
   }
 
+  const actualLastTime = timeToYMap.length > 0 ? timeToYMap[timeToYMap.length - 1].time : tEnd;
+
   return {
-    hasData: true,
+    hasData: masterChunks.length > 0,
     cropW: cropW,
     totalHeight: totalHeight,
     chunks: masterChunks,
     tStart: tStart,
-    tEnd: tEnd,
+    tEnd: actualLastTime,
     timeToYMap: timeToYMap,
     sourceLabel: sourceName
   };
@@ -2141,81 +1971,101 @@ async function generateChartImage(isTestMode = false) {
   video.pause();
   const prevMuted = video.muted;
   video.muted = true;
+  cancelGenerationRequested = false;
 
   const startWallTime = performance.now();
   generateBtn.disabled = true;
   batchGenerateBtn.disabled = true;
   testGenerateBtn.disabled = true;
   reLayoutBtn.disabled = true;
+  stopGenerateBtn.disabled = false;
   progressContainer.style.display = "block";
   progressText.textContent = "動画のスクロール速度を解析・合成準備中...";
 
   try {
-    masterChartData = await buildMasterDataForVideoElement(
+    const label = activeFolderName || (activeVideoName ? activeVideoName.replace(/\.[^.]+$/, "") : "生成譜面");
+    const resultData = await buildMasterDataForVideoElement(
       video,
-      activeVideoName ? `${activeVideoName} の生成譜面` : "生成譜面",
+      label,
       isTestMode,
       (ratio, exactTime, tEnd) => {
         const pct = Math.min(100, Math.round(ratio * 100));
         progressPercent.textContent = `${pct}%`;
         progressBar.style.width = `${pct}%`;
-        progressText.textContent = `高精度合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
+        progressText.textContent = `高速合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
       }
     );
 
-    rebuildLayoutFromMaster();
+    if (resultData.hasData) {
+      masterChartData = resultData;
+      // 現在のフォルダセットにも生成済みデータを紐づける（フォルダ切り替え時に動画と一緒に復元できるようにする）
+      if (activeFolderName && folderGroups.has(activeFolderName)) {
+        const grp = folderGroups.get(activeFolderName);
+        grp.images = [{ name: `${activeFolderName}_譜面.png`, file: null, url: null, masterData: resultData }];
+      }
+      rebuildLayoutFromMaster();
+    }
 
     const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-    progressText.textContent = `譜面静止画の作成が完了しました（処理時間: ${elapsedSec}秒）`;
+    if (cancelGenerationRequested) {
+      progressText.textContent = `静止画の生成を停止しました（停止時点までの譜面を表示しています / ${elapsedSec}秒）`;
+    } else {
+      progressText.textContent = `譜面静止画の作成が完了しました（処理時間: ${elapsedSec}秒）`;
+    }
   } finally {
     video.muted = prevMuted;
+    stopGenerateBtn.disabled = true;
     generateBtn.disabled = false;
     updateBatchButtonState();
     testGenerateBtn.disabled = false;
-    reLayoutBtn.disabled = false;
+    reLayoutBtn.disabled = !masterChartData.hasData;
+    drawPreview(true);
   }
 }
 
-// 複数動画同時処理（並列ワーカー実行）
+// 複数動画同時処理（各フォルダの動画ごとに静止画を生成してフォルダセットに紐づける）
 async function processMultipleVideosConcurrently() {
-  const vids = getAllLoadedVideos();
-  if (vids.length === 0) return;
-  if (vids.length === 1) {
+  const vidEntries = getAllLoadedVideoEntries();
+  if (vidEntries.length === 0) return;
+  if (vidEntries.length === 1) {
     await generateChartImage(false);
     return;
   }
 
   video.pause();
+  cancelGenerationRequested = false;
   const startWallTime = performance.now();
   generateBtn.disabled = true;
   batchGenerateBtn.disabled = true;
   testGenerateBtn.disabled = true;
   reLayoutBtn.disabled = true;
+  stopGenerateBtn.disabled = false;
   progressContainer.style.display = "block";
 
-  const progressMap = new Float32Array(vids.length);
+  const progressMap = new Float32Array(vidEntries.length);
   function updateBatchProgressUI() {
+    if (cancelGenerationRequested) return;
     let sum = 0;
     for (let i = 0; i < progressMap.length; i++) sum += progressMap[i];
-    const pct = Math.min(100, Math.round((sum / vids.length) * 100));
+    const pct = Math.min(100, Math.round((sum / vidEntries.length) * 100));
     progressPercent.textContent = `${pct}%`;
     progressBar.style.width = `${pct}%`;
-    progressText.textContent = `複数動画 (${vids.length}本) をそれぞれの速度に合わせて同時処理中... (${pct}%)`;
+    progressText.textContent = `複数動画 (${vidEntries.length}本) を同時処理中... (${pct}%)`;
   }
 
-  const concurrency = Math.min(3, vids.length);
+  const concurrency = Math.min(3, vidEntries.length);
   let cursor = 0;
-  const generatedEntries = [];
+  let completedCount = 0;
+  let firstCompletedFolder = "";
 
   async function worker() {
-    while (cursor < vids.length) {
+    while (cursor < vidEntries.length && !cancelGenerationRequested) {
       const idx = cursor++;
-      const vidItem = vids[idx];
+      const { videoEntry, folderName } = vidEntries[idx];
       const tempVid = document.createElement("video");
       tempVid.playsInline = true;
       tempVid.muted = true;
-      tempVid.crossOrigin = "anonymous";
-      const srcUrl = vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url;
+      const srcUrl = videoEntry.file ? URL.createObjectURL(videoEntry.file) : videoEntry.url;
       tempVid.src = srcUrl;
       tempVid.load();
 
@@ -2224,30 +2074,35 @@ async function processMultipleVideosConcurrently() {
         tempVid.onerror = resolve;
       });
 
-      if (tempVid.videoWidth) {
-        const baseName = vidItem.name.replace(/\.[^.]+$/, "");
-        const chartName = `${baseName}_譜面.png`;
+      if (tempVid.videoWidth && !cancelGenerationRequested) {
         const mData = await buildMasterDataForVideoElement(
           tempVid,
-          chartName,
+          folderName,
           false,
           (ratio) => {
             progressMap[idx] = ratio;
             updateBatchProgressUI();
           }
         );
-        progressMap[idx] = 1.0;
-        updateBatchProgressUI();
-        generatedEntries.push({
-          name: chartName,
-          file: null,
-          url: null,
-          masterData: mData,
-          pairedVideo: vidItem
-        });
+        if (mData.hasData) {
+          progressMap[idx] = 1.0;
+          updateBatchProgressUI();
+          completedCount++;
+          if (!firstCompletedFolder) firstCompletedFolder = folderName;
+
+          const grp = folderGroups.get(folderName);
+          if (grp) {
+            grp.images = [{
+              name: `${folderName}_譜面.png`,
+              file: null,
+              url: null,
+              masterData: mData
+            }];
+          }
+        }
       }
 
-      if (vidItem.file) URL.revokeObjectURL(srcUrl);
+      if (videoEntry.file) URL.revokeObjectURL(srcUrl);
       tempVid.src = "";
     }
   }
@@ -2257,29 +2112,23 @@ async function processMultipleVideosConcurrently() {
     for (let w = 0; w < concurrency; w++) workers.push(worker());
     await Promise.all(workers);
 
-    if (generatedEntries.length > 0) {
-      if (!activeFolderName || !folderGroups.has(activeFolderName)) {
-        activeFolderName = "同時処理結果";
-        folderGroups.set(activeFolderName, { images: [], videos: vids });
-      }
-      const grp = folderGroups.get(activeFolderName);
-      for (const entry of generatedEntries) {
-        const existIdx = grp.images.findIndex(img => img.name === entry.name);
-        if (existIdx >= 0) grp.images[existIdx] = entry;
-        else grp.images.push(entry);
-      }
-
+    if (firstCompletedFolder) {
       switcherContent.style.display = "block";
-      loadImageItemToViewer(generatedEntries[0]);
+      selectFolderSet(firstCompletedFolder);
     }
 
     const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-    progressText.textContent = `全 ${generatedEntries.length} 本の動画の同時処理が完了しました（処理時間: ${elapsedSec}秒）`;
+    if (cancelGenerationRequested) {
+      progressText.textContent = `同時処理を停止しました（完了分 ${completedCount} フォルダ / ${elapsedSec}秒）`;
+    } else {
+      progressText.textContent = `全 ${completedCount} フォルダの同時処理が完了しました（処理時間: ${elapsedSec}秒） 上部のフォルダ名ボタンで動画と静止画を一緒に切り替えられます`;
+    }
   } finally {
+    stopGenerateBtn.disabled = true;
     generateBtn.disabled = false;
     updateBatchButtonState();
     testGenerateBtn.disabled = false;
-    reLayoutBtn.disabled = false;
+    reLayoutBtn.disabled = !masterChartData.hasData;
   }
 }
 
@@ -2288,7 +2137,7 @@ batchGenerateBtn.addEventListener("click", processMultipleVideosConcurrently);
 testGenerateBtn.addEventListener("click", () => generateChartImage(true));
 
 // =========================================================
-// 9. ソフト内蔵「譜面ビューアー」＆ダブルクリック動画シーク連携
+// 9. ソフト内蔵「譜面ビューアー」＆全画面表示切り替え・戻るボタン
 // =========================================================
 const viewerBox = document.getElementById("viewerBox");
 const viewerViewport = document.getElementById("viewerViewport");
@@ -2299,6 +2148,7 @@ const fitAllBtn = document.getElementById("fitAllBtn");
 const fitHeightBtn = document.getElementById("fitHeightBtn");
 const zoom100Btn = document.getElementById("zoom100Btn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
+const exitFullscreenBtn = document.getElementById("exitFullscreenBtn");
 const colJumpBar = document.getElementById("colJumpBar");
 
 let vScale = 1.0;
@@ -2309,7 +2159,7 @@ let dragStartX = 0;
 let dragStartY = 0;
 
 function updateViewerTransform() {
-  canvasStage.style.transform = `translate(${vX}px, ${vY}px) scale(${vScale})`;
+  canvasStage.style.transform = `translate3d(${vX}px, ${vY}px, 0) scale(${vScale})`;
   zoomLevelLabel.textContent = `${Math.round(vScale * 100)}%`;
 }
 
@@ -2400,21 +2250,28 @@ fitAllBtn.addEventListener("click", fitViewerAll);
 fitHeightBtn.addEventListener("click", fitViewerHeight);
 zoom100Btn.addEventListener("click", () => { vScale = 1.0; vX = 10; vY = 10; updateViewerTransform(); });
 
-fullscreenBtn.addEventListener("click", () => {
-  viewerBox.classList.toggle("fullscreen");
-  if (viewerBox.classList.contains("fullscreen")) {
+function setViewerFullscreen(enable) {
+  if (enable) {
+    viewerBox.classList.add("fullscreen");
     fullscreenBtn.textContent = "全画面を閉じる (Esc)";
   } else {
+    viewerBox.classList.remove("fullscreen");
     fullscreenBtn.textContent = "全画面表示";
   }
   setTimeout(fitViewerAll, 50);
+}
+
+fullscreenBtn.addEventListener("click", () => {
+  setViewerFullscreen(!viewerBox.classList.contains("fullscreen"));
+});
+
+exitFullscreenBtn.addEventListener("click", () => {
+  setViewerFullscreen(false);
 });
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && viewerBox.classList.contains("fullscreen")) {
-    viewerBox.classList.remove("fullscreen");
-    fullscreenBtn.textContent = "全画面表示";
-    setTimeout(fitViewerAll, 50);
+    setViewerFullscreen(false);
   }
 });
 
@@ -2433,6 +2290,7 @@ viewerViewport.addEventListener("wheel", (e) => {
 }, { passive: false });
 
 viewerViewport.addEventListener("mousedown", (e) => {
+  if (e.target === exitFullscreenBtn) return;
   isDragging = true;
   dragStartX = e.clientX - vX;
   dragStartY = e.clientY - vY;
@@ -2455,8 +2313,8 @@ window.addEventListener("mouseup", () => {
 downloadPngBtn.addEventListener("click", () => {
   if (!outputCanvas.width) return;
   outputCanvas.toBlob((blob) => {
-    const hVal = parseInt(colHeightInput.value, 10) || 5400;
-    downloadBlob(blob, `Proseka_Chart_${hVal}px.png`);
+    const prefix = activeFolderName || "Proseka_Chart";
+    downloadBlob(blob, `${prefix}.png`);
   }, "image/png");
 });
 
@@ -2466,17 +2324,18 @@ downloadResultZipBtn.addEventListener("click", async () => {
   downloadResultZipBtn.textContent = "ZIPファイルを作成中...";
   try {
     const files = [];
+    const prefix = activeFolderName || "Proseka_Chart";
     const fullPngBytes = await canvasToUint8Array(outputCanvas);
-    files.push({ name: "00_全体一覧譜面_FullChart.png", data: fullPngBytes });
+    files.push({ name: `00_${prefix}_全体一覧.png`, data: fullPngBytes });
 
     for (let i = 0; i < lastGeneratedColumns.length; i++) {
       const colBytes = await canvasToUint8Array(lastGeneratedColumns[i]);
       const num = String(i + 1).padStart(2, "0");
-      files.push({ name: `分割列_${num}.png`, data: colBytes });
+      files.push({ name: `${prefix}_分割列_${num}.png`, data: colBytes });
     }
 
     const zipBlob = createZipBlob(files);
-    downloadBlob(zipBlob, "Proseka_Chart_Images.zip");
+    downloadBlob(zipBlob, `${prefix}_Images.zip`);
   } finally {
     downloadResultZipBtn.disabled = false;
     downloadResultZipBtn.textContent = "全体＋分割画像をZIPで保存";

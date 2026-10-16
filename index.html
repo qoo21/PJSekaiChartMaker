@@ -95,6 +95,12 @@
     flex: 1; min-width: 160px; accent-color: var(--primary); cursor: pointer;
   }
 
+  /* 常時表示パネル共通 */
+  .always-panel {
+    margin-top: 10px; background: #121724; padding: 12px 14px;
+    border-radius: 8px; border: 1px solid #222b40;
+  }
+
   /* 詳細設定の折りたたみタブ */
   .details-tab-wrap {
     margin-top: 10px; background: #121724; border: 1px solid var(--border);
@@ -136,18 +142,24 @@
   .progress-bar-bg { width: 100%; height: 12px; background: #1e2638; border-radius: 6px; overflow: hidden; margin-top: 6px; }
   .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #55ffaa); transition: width 0.08s; }
 
-  /* 静止画プレビュー（下部：動画プレビューと同じ枠内） */
+  /* 静止画プレビューの上：常時表示ツールバー */
+  .viewer-top-controls {
+    margin-top: 12px; background: #141a29; border: 2px solid var(--border);
+    border-bottom: none; border-radius: 10px 10px 0 0; padding: 10px 14px;
+  }
+  .viewer-col-jumps {
+    display: none; gap: 6px; align-items: center; overflow-x: auto;
+    padding-top: 8px; margin-top: 8px; border-top: 1px solid #26314d;
+  }
+
+  /* 静止画プレビュー本体 */
   .viewer-box {
-    margin-top: 12px; background: #07090e; border: 2px solid var(--border);
-    border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
+    background: #07090e; border: 2px solid var(--border);
+    overflow: hidden; display: flex; flex-direction: column;
   }
   .viewer-box.fullscreen {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     z-index: 9999; margin: 0; border-radius: 0; border: none;
-  }
-  .viewer-col-jumps {
-    display: none; gap: 6px; align-items: center; overflow-x: auto;
-    padding: 6px 14px; background: #0d121d; border-bottom: 1px solid #1f2940;
   }
   .viewer-viewport {
     position: relative; width: 100%; height: 580px; overflow: hidden;
@@ -165,6 +177,15 @@
     position: absolute; top: 0; left: 0;
     pointer-events: none;
   }
+
+  /* 静止画プレビューの下：常時表示保存バー */
+  .viewer-bottom-save-bar {
+    background: #141a29; border: 2px solid var(--border);
+    border-top: none; border-radius: 0 0 10px 10px; padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px;
+  }
+
   .hint { font-size: 0.82rem; color: var(--muted); }
 </style>
 </head>
@@ -222,6 +243,26 @@
       <span id="currentTimeLabel" style="font-size:0.88rem; font-weight:bold; min-width:135px; text-align:right;">0.00 秒 / 0.00 秒</span>
     </div>
 
+    <!-- 3. 静止画の作成・複数動画同時処理・高さ変更再生成パネル（常時表示） -->
+    <div class="always-panel" style="border-color:#00a8a8;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-accent" id="generateBtn" disabled>現在の動画から静止画を作成</button>
+          <button class="btn" id="batchGenerateBtn" disabled>複数動画を同時処理して一括作成</button>
+          <button class="btn btn-secondary" id="testGenerateBtn" disabled>最初の12秒だけテスト作成</button>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
+          <input type="number" id="colHeightInput" class="num-input" step="100" min="400" max="16000" value="5400" style="width:90px;">
+          <select id="layoutMode" class="num-input" style="width:185px;">
+            <option value="grid" selected>1枚の一覧画像に折り返して並べる</option>
+            <option value="single">折り返さずに1本の縦長画像にする</option>
+          </select>
+          <button class="btn btn-secondary" id="reLayoutBtn" disabled>高さを変更して再生成</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 進捗バー（生成処理中のみ表示） -->
     <div class="progress-container" id="progressContainer">
       <div style="display:flex; justify-content:space-between; font-size:0.88rem;">
@@ -233,63 +274,14 @@
       </div>
     </div>
 
-    <!-- 3. 詳細設定タブ（再生ボタン・バー以外のすべての設定・生成・保存機能を集約） -->
+    <!-- 4. 詳細設定タブ（切り抜き範囲・黒背景フィルター・精度・速度設定） -->
     <details class="details-tab-wrap" id="detailsTab">
       <summary class="details-tab-summary">
-        <span>詳細設定・静止画作成・保存メニューを開く / 閉じる</span>
+        <span>詳細設定を開く / 閉じる</span>
         <span class="hint" id="currentViewFileName"></span>
       </summary>
 
       <div class="details-tab-body">
-        <!-- 静止画生成・複数動画同時処理・高さ変更再生成・保存ボタン群 -->
-        <div class="control-group" style="border-color:#00a8a8;">
-          <label><span>静止画の作成・複数動画同時処理・保存</span></label>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px;">
-            <button class="btn btn-accent" id="generateBtn" disabled>現在の動画から静止画を作成</button>
-            <button class="btn" id="batchGenerateBtn" disabled>複数動画を同時処理して一括作成</button>
-            <button class="btn btn-secondary" id="testGenerateBtn" disabled>最初の12秒だけテスト作成</button>
-            <button class="btn btn-secondary" id="downloadPngBtn">1枚の譜面画像 (.png) を保存</button>
-            <button class="btn btn-secondary" id="downloadResultZipBtn">全体＋分割画像をZIPで保存</button>
-          </div>
-
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
-            <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
-            <input type="number" id="colHeightInput" class="num-input" step="100" min="400" max="16000" value="5400" style="width:90px;">
-            <select id="layoutMode" class="num-input" style="width:190px;">
-              <option value="grid" selected>1枚の一覧画像に折り返して並べる</option>
-              <option value="single">折り返さずに1本の縦長画像にする</option>
-            </select>
-            <button class="btn btn-secondary" id="reLayoutBtn" disabled>現在の静止画から高さを変更して再生成</button>
-          </div>
-        </div>
-
-        <!-- ビューアー表示調整・再生バー連動設定 -->
-        <div class="control-group">
-          <label><span>静止画ビューアー表示操作 ＆ 再生位置バー設定</span></label>
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; justify-content:space-between;">
-            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-              <button class="btn btn-secondary" id="zoomOutBtn" style="padding:5px 10px;">ー 縮小</button>
-              <span id="zoomLevelLabel" style="min-width:55px; text-align:center; font-weight:bold;">100%</span>
-              <button class="btn btn-secondary" id="zoomInBtn" style="padding:5px 10px;">＋ 拡大</button>
-              <button class="btn btn-secondary" id="fitAllBtn" style="padding:5px 10px; font-size:0.84rem;">全体を表示</button>
-              <button class="btn btn-secondary" id="fitHeightBtn" style="padding:5px 10px; font-size:0.84rem;">高さに合わせる</button>
-              <button class="btn btn-secondary" id="zoom100Btn" style="padding:5px 10px; font-size:0.84rem;">1:1 等倍</button>
-              <button class="btn btn-secondary" id="fullscreenBtn" style="padding:5px 12px; font-size:0.84rem;">全画面表示</button>
-            </div>
-            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:#55ffaa; margin:0;">
-                <input type="checkbox" id="showPlayheadToggle" checked style="accent-color:var(--primary);">
-                再生位置バーを表示
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; margin:0;">
-                <input type="checkbox" id="followPlayheadToggle" style="accent-color:var(--primary);">
-                再生位置を自動追従
-              </label>
-            </div>
-          </div>
-          <div class="viewer-col-jumps" id="colJumpBar" style="margin-top:8px; border-radius:6px;"></div>
-        </div>
-
         <div class="grid-2">
           <div>
             <!-- 時間と左右切り抜き -->
@@ -340,33 +332,37 @@
               <label><span>② 曲線の滑らかさ・高速生成設定</span></label>
               <div class="inline-inputs">
                 <select id="qualitySelect" class="num-input" style="width:100%;">
-                  <option value="turbo" selected>超高速モード（大判スライス一括合成：最速）</option>
+                  <option value="turbo" selected>超高速モード（大判スライス＋フレームロック補正：最速）</option>
                   <option value="fast_ultra">高速・超高精度（マルチスライス補間：滑らか＆高速）</option>
-                  <option value="ultra">超高精度（4px刻み：従来の精密合成）</option>
+                  <option value="ultra">超高精度（4px刻み：精密合成）</option>
                   <option value="high">高精度（8px刻み）</option>
                   <option value="normal">標準（16px刻み）</option>
                 </select>
               </div>
             </div>
 
-            <!-- スクロール速度＆自動追跡設定 -->
+            <!-- スクロール速度＆自動キャリブレーション・自動追跡設定 -->
             <div class="control-group">
               <label class="checkbox-row" style="margin-bottom:6px;">
+                <input type="checkbox" id="autoCalibToggle" checked>
+                <span>動画ごとに基準速度を自動検出して合わせる（速度違いの動画に対応）</span>
+              </label>
+              <label class="checkbox-row" style="margin-bottom:6px;">
                 <input type="checkbox" id="autoTrackToggle">
-                <span>自動追跡をONにする（途中で速度が変わる動画に対応）</span>
+                <span>自動追跡をONにする（1本の動画内で途中で速度が変わる場合に対応）</span>
               </label>
               <div id="manualSpeedControls">
                 <label>
                   <span>③ スクロール速度（画面高さに対する % / 秒）</span>
                   <span id="speedValLabel">47.50 %/秒</span>
                 </label>
-                <input type="range" id="speedSlider" min="20" max="90" step="0.02" value="47.50">
+                <input type="range" id="speedSlider" min="15" max="110" step="0.02" value="47.50">
                 <div class="inline-inputs" style="justify-content: space-between;">
                   <div>
                     <span>微調整:</span>
                     <input type="number" id="speedInput" class="num-input" step="0.02" value="47.50">
                   </div>
-                  <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">速度を自動計測する</button>
+                  <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">今すぐ速度を自動計測する</button>
                 </div>
               </div>
             </div>
@@ -375,7 +371,34 @@
       </div>
     </details>
 
-    <!-- 4. 下部：静止画プレビュー（動画プレビューの下に配置） -->
+    <!-- 5. 静止画プレビューの上：静止画ビューアー表示操作 ＆ 再生位置バー設定（常時表示） -->
+    <div class="viewer-top-controls">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <strong style="color:var(--primary); font-size:0.9rem; margin-right:4px;">ビューアー操作:</strong>
+          <button class="btn btn-secondary" id="zoomOutBtn" style="padding:5px 10px;">ー 縮小</button>
+          <span id="zoomLevelLabel" style="min-width:55px; text-align:center; font-weight:bold;">100%</span>
+          <button class="btn btn-secondary" id="zoomInBtn" style="padding:5px 10px;">＋ 拡大</button>
+          <button class="btn btn-secondary" id="fitAllBtn" style="padding:5px 10px; font-size:0.84rem;">全体を表示</button>
+          <button class="btn btn-secondary" id="fitHeightBtn" style="padding:5px 10px; font-size:0.84rem;">高さに合わせる</button>
+          <button class="btn btn-secondary" id="zoom100Btn" style="padding:5px 10px; font-size:0.84rem;">1:1 等倍</button>
+          <button class="btn btn-secondary" id="fullscreenBtn" style="padding:5px 12px; font-size:0.84rem;">全画面表示</button>
+        </div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.86rem; cursor:pointer; color:#55ffaa; font-weight:bold; margin:0;">
+            <input type="checkbox" id="showPlayheadToggle" checked style="accent-color:var(--primary);">
+            再生位置バーを表示
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; font-size:0.86rem; cursor:pointer; font-weight:bold; margin:0;">
+            <input type="checkbox" id="followPlayheadToggle" style="accent-color:var(--primary);">
+            再生位置を自動追従
+          </label>
+        </div>
+      </div>
+      <div class="viewer-col-jumps" id="colJumpBar"></div>
+    </div>
+
+    <!-- 6. 静止画プレビュー本体 -->
     <div class="viewer-box" id="viewerBox">
       <div class="viewer-viewport" id="viewerViewport" title="マウスホイールで拡大縮小・ドラッグで移動・ダブルクリックでその位置の秒数へ動画をシークします">
         <div id="canvasStage">
@@ -383,6 +406,15 @@
           <canvas id="playheadCanvas"></canvas>
         </div>
       </div>
+    </div>
+
+    <!-- 7. 静止画プレビューの下：保存ボタンバー（常時表示） -->
+    <div class="viewer-bottom-save-bar">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button class="btn" id="downloadPngBtn">1枚の譜面画像 (.png) を保存</button>
+        <button class="btn btn-secondary" id="downloadResultZipBtn">全体＋分割画像をZIPで保存</button>
+      </div>
+      <span class="hint" id="bottomSaveStatusLabel"></span>
     </div>
 
   </div>
@@ -603,6 +635,7 @@ const folderTabs = document.getElementById("folderTabs");
 const imageFileList = document.getElementById("imageFileList");
 const videoFileList = document.getElementById("videoFileList");
 const currentViewFileName = document.getElementById("currentViewFileName");
+const bottomSaveStatusLabel = document.getElementById("bottomSaveStatusLabel");
 
 const seekSlider = document.getElementById("seekSlider");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
@@ -618,6 +651,7 @@ const leftVal = document.getElementById("leftVal");
 const rightVal = document.getElementById("rightVal");
 
 const qualitySelect = document.getElementById("qualitySelect");
+const autoCalibToggle = document.getElementById("autoCalibToggle");
 const autoTrackToggle = document.getElementById("autoTrackToggle");
 const manualSpeedControls = document.getElementById("manualSpeedControls");
 const speedSlider = document.getElementById("speedSlider");
@@ -650,7 +684,7 @@ let currentColumnWidths = 0;
 let activeImageName = "";
 let activeVideoName = "";
 
-// マスター譜面データ保持構造（1列の高さ変更による即時再生成用）
+// マスター譜面データ保持構造
 const MASTER_CHUNK_H = 2048;
 let masterChartData = {
   hasData: false,
@@ -678,8 +712,6 @@ let chartMeta = {
   timeToYMap: []
 };
 
-// フォルダごとのアイテム管理マップ
-// 各画像アイテムは { name, file, url, masterData, pairedVideo } を保持可能
 const folderGroups = new Map();
 let activeFolderName = "";
 
@@ -1046,7 +1078,6 @@ function loadImageItemToViewer(imgItem) {
   activeImageName = imgItem.name;
   renderTopSwitcher();
 
-  // 同時処理などで既にマスターデータがメモリにある場合は即座に展開
   if (imgItem.masterData) {
     masterChartData = imgItem.masterData;
     reLayoutBtn.disabled = false;
@@ -1066,7 +1097,9 @@ function loadImageItemToViewer(imgItem) {
     playheadCanvas.width = img.width;
     playheadCanvas.height = img.height;
 
-    currentViewFileName.textContent = `表示中: ${imgItem.name} (${img.width} x ${img.height} px)`;
+    const infoText = `表示中: ${imgItem.name} (${img.width} x ${img.height} px)`;
+    currentViewFileName.textContent = infoText;
+    bottomSaveStatusLabel.textContent = infoText;
 
     extractMasterFromExternalImage(img, outCtx, imgItem.name);
     setupViewerAfterGenerate(chartMeta.numCols);
@@ -1091,7 +1124,7 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
   let calcCropW = W;
   let colMaxH = H;
 
-  if (W > H * 0.35 && expectedColMaxH > 400) {
+  if (W > H * 0.25 && expectedColMaxH > 400) {
     const scanY = headerH + colGap + Math.round(expectedColMaxH * 0.5);
     const rowData = ctx.getImageData(0, scanY, W, 1).data;
 
@@ -1297,7 +1330,9 @@ function rebuildLayoutFromMaster() {
     timeToYMap: timeToYMap
   };
 
-  currentViewFileName.textContent = `${sourceLabel || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列]`;
+  const infoText = `${sourceLabel || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
+  currentViewFileName.textContent = infoText;
+  bottomSaveStatusLabel.textContent = infoText;
   setupViewerAfterGenerate(numCols);
   drawPlayheadOverlay();
 }
@@ -1600,50 +1635,196 @@ function seekVideoElementTo(vidElem, timeSec) {
 }
 
 // =========================================================
-// 7. 2フレーム間の移動ピクセル量（サブピクセル精度）の算出
+// 7. 速度が違う動画・可変速度に対する高精度ハイブリッド移動量検出エンジン
 // =========================================================
-function matchFrameDisplacement(img1, img2, cw, h, minDy, maxDy) {
-  const yStart = Math.round(h * 0.25);
-  const yEnd = Math.round(h * 0.58);
-  let bestDy = -1;
-  const scores = new Float64Array(maxDy + 2);
+// 各行(y)ごとの「上下エッジ強度（16分音符ライン・小節線・ノーツ境界）」と「高彩度・高輝度ノーツ特徴」を抽出し、
+// 動かない背景透かしイラストの影響を完全に排除してサブピクセル精度で移動量 dy を求める
+function computeFrameRowFeatures(imgData, cw, h) {
+  const edgeProfile = new Float32Array(h);
+  const brightProfile = new Float32Array(h);
+
+  for (let y = 2; y < h - 2; y++) {
+    const rowCurr = y * cw;
+    const rowUp = (y - 2) * cw;
+    const rowDown = (y + 2) * cw;
+    let eSum = 0;
+    let bSum = 0;
+
+    for (let x = 0; x < cw; x += 2) {
+      const iCurr = (rowCurr + x) << 2;
+      const iUp = (rowUp + x) << 2;
+      const iDown = (rowDown + x) << 2;
+
+      const r = imgData[iCurr], g = imgData[iCurr + 1], b = imgData[iCurr + 2];
+      const lumCurr = r * 0.25 + g * 0.45 + b * 0.30;
+      const lumBg = (
+        (imgData[iUp] * 0.25 + imgData[iUp + 1] * 0.45 + imgData[iUp + 2] * 0.30) +
+        (imgData[iDown] * 0.25 + imgData[iDown + 1] * 0.45 + imgData[iDown + 2] * 0.30)
+      ) * 0.5;
+
+      // 水平エッジ（16分線・小節線・ノーツの上下端）のピーク
+      const edge = lumCurr - lumBg;
+      if (edge > 2.0) eSum += edge;
+
+      // ノーツおよび小節番号の明度・彩度特徴
+      const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
+      const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
+      if (maxC > 75 || (maxC - minC) > 35) {
+        bSum += maxC;
+      }
+    }
+    edgeProfile[y] = eSum / (cw * 0.5);
+    brightProfile[y] = bSum / (cw * 0.5);
+  }
+  return { edgeProfile, brightProfile };
+}
+
+function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, minDy, maxDy, expectedDy = -1) {
+  const yStart = Math.round(h * 0.16);
+  const yEnd = Math.round(h * 0.66);
+  const searchMin = Math.max(0, Math.floor(minDy));
+  const searchMax = Math.min(Math.round(h * 0.45), Math.ceil(maxDy));
+
+  if (searchMax <= searchMin) return expectedDy > 0 ? expectedDy : -1;
+
+  const scores = new Float64Array(searchMax + 2);
   scores.fill(Infinity);
+  let bestDy = -1;
   let minScore = Infinity;
 
-  for (let dy = minDy; dy <= maxDy; dy++) {
-    let diffSum = 0, count = 0;
-    for (let y = yStart; y < yEnd; y += 2) {
+  const e1 = feat1.edgeProfile, b1 = feat1.brightProfile;
+  const e2 = feat2.edgeProfile, b2 = feat2.brightProfile;
+
+  for (let dy = searchMin; dy <= searchMax; dy++) {
+    // 1) 1Dプロファイル誤差（超高速かつ16分線・ノーツの周期に強い）
+    let profDiff = 0;
+    let validRows = 0;
+    let activeSignal = 0;
+
+    for (let y = yStart; y < yEnd; y++) {
       const y2 = y + dy;
-      if (y2 >= h) continue;
+      if (y2 >= h - 2) break;
+      const de = Math.abs(e1[y] - e2[y2]);
+      const db = Math.abs(b1[y] - b2[y2]) * 0.25;
+      profDiff += de + db;
+      activeSignal += e1[y] + b1[y] * 0.1;
+      validRows++;
+    }
+
+    if (validRows < 20 || activeSignal < 8) continue;
+
+    // 2) 2Dピクセル照合（ノーツ・小節番号・グリッド線の2次元一致度）
+    let pixDiff = 0;
+    let pixCount = 0;
+    for (let y = yStart; y < yEnd; y += 3) {
+      const y2 = y + dy;
+      if (y2 >= h - 2) break;
       const row1 = y * cw;
       const row2 = y2 * cw;
       for (let x = 0; x < cw; x += 4) {
         const idx1 = (row1 + x) << 2;
         const idx2 = (row2 + x) << 2;
-        if (img1[idx1] + img1[idx1 + 1] + img1[idx1 + 2] > 140) {
-          diffSum += Math.abs(img1[idx1] - img2[idx2]) +
+        // 動いているノーツ・ライン領域（または前後のフレームで変化がある領域）を重点評価
+        const sum1 = img1[idx1] + img1[idx1 + 1] + img1[idx1 + 2];
+        const sum2 = img2[idx2] + img2[idx2 + 1] + img2[idx2 + 2];
+        if (sum1 > 115 || sum2 > 115) {
+          pixDiff += Math.abs(img1[idx1] - img2[idx2]) +
                      Math.abs(img1[idx1 + 1] - img2[idx2 + 1]) +
                      Math.abs(img1[idx1 + 2] - img2[idx2 + 2]);
-          count++;
+          pixCount++;
         }
       }
     }
-    if (count > 25) {
-      const s = diffSum / count;
-      scores[dy] = s;
-      if (s < minScore) { minScore = s; bestDy = dy; }
+
+    const normProf = profDiff / validRows;
+    const normPix = pixCount > 15 ? (pixDiff / pixCount) * 0.18 : 12.0;
+    let totalScore = normProf + normPix;
+
+    // 予測移動量(expectedDy)がある場合は、16分グリッドの周期誤認（1マス飛ばし）を防ぐ緩やかな正則化を付与
+    if (expectedDy >= 0) {
+      const dev = Math.abs(dy - expectedDy);
+      totalScore += dev * 0.035;
+    }
+
+    scores[dy] = totalScore;
+    if (totalScore < minScore) {
+      minScore = totalScore;
+      bestDy = dy;
     }
   }
 
-  if (bestDy > minDy && bestDy < maxDy && minScore < 95) {
-    const sPrev = scores[bestDy - 1];
-    const sCurr = scores[bestDy];
-    const sNext = scores[bestDy + 1];
-    const denom = 2 * (sPrev - 2 * sCurr + sNext);
-    const subOffset = denom !== 0 ? (sPrev - sNext) / denom : 0;
-    return bestDy + Math.max(-0.5, Math.min(0.5, subOffset));
+  if (bestDy >= searchMin && bestDy <= searchMax && minScore < 45) {
+    if (bestDy > searchMin && bestDy < searchMax) {
+      const sPrev = scores[bestDy - 1];
+      const sCurr = scores[bestDy];
+      const sNext = scores[bestDy + 1];
+      if (isFinite(sPrev) && isFinite(sNext)) {
+        const denom = 2 * (sPrev - 2 * sCurr + sNext);
+        const subOffset = denom !== 0 ? (sPrev - sNext) / denom : 0;
+        return bestDy + Math.max(-0.5, Math.min(0.5, subOffset));
+      }
+    }
+    return bestDy;
   }
-  return bestDy >= 0 && minScore < 95 ? bestDy : -1;
+  return -1;
+}
+
+// 任意の動画要素に対して基準スクロール速度（%/秒）を高精度自動計測する関数
+async function calibrateVideoSpeed(vidElem, cropLeftPct, cropRightPct, tStart, tEnd) {
+  const w = vidElem.videoWidth;
+  const h = vidElem.videoHeight;
+  const x1 = Math.round(w * cropLeftPct);
+  const x2 = Math.round(w * cropRightPct);
+  const cw = x2 - x1;
+
+  const tmpC = document.createElement("canvas");
+  tmpC.width = cw;
+  tmpC.height = h;
+  const ctx = tmpC.getContext("2d", { willReadFrequently: true });
+
+  // 異なる速度（低速〜超高速）に幅広く対応するため短めの時間間隔 dt = 0.08秒 と 0.14秒 を併用
+  const samples = [];
+  const sampleCount = 10;
+  const span = Math.max(1.0, tEnd - tStart);
+
+  for (let i = 0; i < sampleCount; i++) {
+    const dt = (i % 2 === 0) ? 0.08 : 0.12;
+    const t = tStart + (span * (i + 1)) / (sampleCount + 2);
+    if (t + dt >= (vidElem.duration || tEnd)) continue;
+
+    await seekVideoElementTo(vidElem, t);
+    ctx.drawImage(vidElem, x1, 0, cw, h, 0, 0, cw, h);
+    const img1 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
+    const feat1 = computeFrameRowFeatures(img1, cw, h);
+
+    await seekVideoElementTo(vidElem, t + dt);
+    ctx.drawImage(vidElem, x1, 0, cw, h, 0, 0, cw, h);
+    const img2 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
+    const feat2 = computeFrameRowFeatures(img2, cw, h);
+
+    const actualDt = Math.max(0.01, vidElem.currentTime - t);
+    const minDy = Math.max(1, Math.round(h * 0.08 * actualDt));
+    const maxDy = Math.round(h * 1.35 * actualDt);
+
+    const exactDy = matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, minDy, maxDy, -1);
+    if (exactDy > 0) {
+      const pctPerSec = (exactDy / h / actualDt) * 100;
+      if (pctPerSec >= 10 && pctPerSec <= 130) {
+        samples.push(pctPerSec);
+      }
+    }
+  }
+
+  if (samples.length === 0) return null;
+  samples.sort((a, b) => a - b);
+  // 外れ値を除いた中央値付近の平均を算出してサブピクセル精度を高める
+  const mid = Math.floor(samples.length / 2);
+  let sum = 0, cnt = 0;
+  for (let i = Math.max(0, mid - 1); i <= Math.min(samples.length - 1, mid + 1); i++) {
+    sum += samples[i];
+    cnt++;
+  }
+  return sum / cnt;
 }
 
 autoSpeedBtn.addEventListener("click", async () => {
@@ -1652,65 +1833,39 @@ autoSpeedBtn.addEventListener("click", async () => {
   const prevMuted = video.muted;
   video.muted = true;
   autoSpeedBtn.disabled = true;
-  autoSpeedBtn.textContent = "計測中...";
+  autoSpeedBtn.textContent = "高精度計測中...";
 
   try {
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    const x1 = Math.round(w * (parseFloat(cropLeftSlider.value) / 100));
-    const x2 = Math.round(w * (parseFloat(cropRightSlider.value) / 100));
-    const cw = x2 - x1;
-
-    const tmpC = document.createElement("canvas");
-    tmpC.width = cw;
-    tmpC.height = h;
-    const ctx = tmpC.getContext("2d", { willReadFrequently: true });
-
+    const leftPct = parseFloat(cropLeftSlider.value) / 100;
+    const rightPct = parseFloat(cropRightSlider.value) / 100;
     const tStart = parseFloat(startTimeInput.value) || 2.0;
-    const tEnd = parseFloat(endTimeInput.value) || 10.0;
-    const dt = 0.15;
-    const samples = [];
+    const tEnd = parseFloat(endTimeInput.value) || 15.0;
 
-    for (let i = 0; i < 8; i++) {
-      const t = tStart + ((tEnd - tStart) * (i + 1)) / 10;
-      await seekVideoElementTo(video, t);
-      ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
-      const img1 = ctx.getImageData(0, 0, cw, h).data;
-
-      await seekVideoElementTo(video, t + dt);
-      ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
-      const img2 = ctx.getImageData(0, 0, cw, h).data;
-
-      const exactDy = matchFrameDisplacement(img1, img2, cw, h, Math.max(1, Math.round(h * 0.02)), Math.round(h * 0.16));
-      if (exactDy > 0) {
-        samples.push((exactDy / h / dt) * 100);
-      }
-    }
-
-    if (samples.length > 0) {
-      samples.sort((a, b) => a - b);
-      const median = samples[Math.floor(samples.length / 2)];
-      const rounded = (Math.round(median * 50) / 50).toFixed(2);
+    const measured = await calibrateVideoSpeed(video, leftPct, rightPct, tStart, tEnd);
+    if (measured !== null) {
+      const rounded = (Math.round(measured * 50) / 50).toFixed(2);
       speedInput.value = rounded;
       speedSlider.value = rounded;
       speedValLabel.textContent = `${rounded} %/秒`;
     }
   } finally {
     autoSpeedBtn.disabled = false;
-    autoSpeedBtn.textContent = "速度を自動計測する";
+    autoSpeedBtn.textContent = "今すぐ速度を自動計測する";
     await seekVideoElementTo(video, parseFloat(startTimeInput.value) || 2.0);
     video.muted = prevMuted;
   }
 });
 
 // =========================================================
-// 8. 単一動画 ＆ 複数動画同時処理（並列）対応の譜面合成エンジン
+// 8. 速度違い・可変速度・フレームロック補正対応の譜面合成エンジン
 // =========================================================
 async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, onStepProgress) {
   const w = vidElem.videoWidth;
   const h = vidElem.videoHeight;
-  const x1 = Math.round(w * (parseFloat(cropLeftSlider.value) / 100));
-  const x2 = Math.round(w * (parseFloat(cropRightSlider.value) / 100));
+  const leftPct = parseFloat(cropLeftSlider.value) / 100;
+  const rightPct = parseFloat(cropRightSlider.value) / 100;
+  const x1 = Math.round(w * leftPct);
+  const x2 = Math.round(w * rightPct);
   const cropW = x2 - x1;
 
   const dur = vidElem.duration || 120;
@@ -1721,13 +1876,26 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   const tEnd = isTestMode ? Math.min(fullEnd, tStart + 12.0) : fullEnd;
   const duration = Math.max(0.5, tEnd - tStart);
 
-  const baseSpeedPct = parseFloat(speedInput.value) || 47.50;
+  // 動画ごとに速度が違う場合に対応する自動速度キャリブレーション
+  let baseSpeedPct = parseFloat(speedInput.value) || 47.50;
+  if (autoCalibToggle.checked) {
+    const calibrated = await calibrateVideoSpeed(vidElem, leftPct, rightPct, tStart, tEnd);
+    if (calibrated !== null) {
+      baseSpeedPct = calibrated;
+      if (vidElem === video) {
+        const rounded = (Math.round(calibrated * 50) / 50).toFixed(2);
+        speedInput.value = rounded;
+        speedSlider.value = rounded;
+        speedValLabel.textContent = `${rounded} %/秒`;
+      }
+    }
+  }
   const baseSpeedPxPerSec = h * (baseSpeedPct / 100);
 
   const qMode = qualitySelect.value;
-  let stepPx = 38;
+  let stepPx = 36;
   let overlapPx = 4;
-  if (qMode === "turbo") { stepPx = 38; overlapPx = 4; }
+  if (qMode === "turbo") { stepPx = 36; overlapPx = 4; }
   else if (qMode === "fast_ultra") { stepPx = 20; overlapPx = 3; }
   else if (qMode === "ultra") { stepPx = 4; overlapPx = 2; }
   else if (qMode === "high") { stepPx = 8; overlapPx = 2; }
@@ -1789,34 +1957,55 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   const isAutoTrack = autoTrackToggle.checked;
 
   if (isAutoTrack) {
-    const dtTrack = Math.min(0.12, Math.max(0.04, stepPx / baseSpeedPxPerSec));
-    const totalSteps = Math.floor(duration / dtTrack);
-    let prevImgData = null;
-    let lastValidDy = baseSpeedPxPerSec * dtTrack;
+    // =========================================================
+    // 適応型ステップ制御つき高精度自動追跡モード（途中で速度が変わる動画に対応）
+    // =========================================================
+    let currentTime = tStart;
+    let currentSpeedPxPerSec = baseSpeedPxPerSec;
+    const targetStepPx = Math.min(24, Math.max(8, stepPx));
 
-    for (let step = 0; step <= totalSteps; step++) {
-      const exactTime = tStart + step * dtTrack;
-      await seekVideoElementTo(vidElem, exactTime);
+    await seekVideoElementTo(vidElem, currentTime);
+    fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
+    let prevImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
+    let prevFeat = computeFrameRowFeatures(prevImgData, cropW, h);
+    let prevActualTime = vidElem.currentTime;
+
+    if (bottomBaseH > 0) {
+      drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
+      currentBottomY += bottomBaseH;
+    }
+    timeToYMap.push({ time: prevActualTime, bottomY: currentBottomY });
+
+    let stepCount = 0;
+    while (currentTime < tEnd) {
+      // 現在の推定速度から、1ステップで約 targetStepPx 進む秒数 dt を動的に算出
+      const adaptiveDt = Math.min(0.10, Math.max(0.025, targetStepPx / Math.max(40, currentSpeedPxPerSec)));
+      currentTime = Math.min(tEnd, currentTime + adaptiveDt);
+
+      await seekVideoElementTo(vidElem, currentTime);
+      const currActualTime = vidElem.currentTime;
+      const realDt = Math.max(0.001, currActualTime - prevActualTime);
+
       fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
-      const currImgData = fCtx.getImageData(0, 0, cropW, h).data;
+      const currImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
+      const currFeat = computeFrameRowFeatures(currImgData, cropW, h);
 
-      if (step === 0) {
-        if (bottomBaseH > 0) {
-          drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
-          currentBottomY += bottomBaseH;
-        }
-        timeToYMap.push({ time: vidElem.currentTime, bottomY: currentBottomY });
-        prevImgData = currImgData;
-        continue;
+      const expectedDy = currentSpeedPxPerSec * realDt;
+      const maxSearchDy = Math.min(Math.round(h * 0.35), Math.max(36, Math.round(expectedDy * 2.4)));
+
+      let trackedDy = matchFrameDisplacementHighPrecision(
+        prevImgData, currImgData, prevFeat, currFeat, cropW, h, 0, maxSearchDy, expectedDy
+      );
+
+      if (trackedDy < 0) {
+        trackedDy = expectedDy;
+      } else if (trackedDy > 1.0 && realDt > 0.01) {
+        // 検出された瞬間速度で推定速度を滑らかに更新
+        const instSpeed = trackedDy / realDt;
+        currentSpeedPxPerSec = currentSpeedPxPerSec * 0.65 + instSpeed * 0.35;
       }
 
-      const maxSearchDy = Math.min(Math.round(h * 0.25), Math.max(30, Math.round(lastValidDy * 2.5)));
-      let trackedDy = matchFrameDisplacement(prevImgData, currImgData, cropW, h, 0, maxSearchDy);
-
-      if (trackedDy < 0) trackedDy = lastValidDy;
-      else lastValidDy = trackedDy * 0.7 + lastValidDy * 0.3;
-
-      if (trackedDy > 0.4) {
+      if (trackedDy > 0.25) {
         const sy = Math.max(0, Math.min(h - trackedDy, capY - trackedDy));
         drawSliceToMaster(frameCanvas, sy, trackedDy, currentBottomY, 1.0);
 
@@ -1827,55 +2016,98 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
         currentBottomY += trackedDy;
       }
 
-      timeToYMap.push({ time: vidElem.currentTime, bottomY: currentBottomY });
+      timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
       prevImgData = currImgData;
+      prevFeat = currFeat;
+      prevActualTime = currActualTime;
+      stepCount++;
 
-      if (step === totalSteps) {
+      if (currentTime >= tEnd) {
         const topCapH = Math.max(0, (capY - trackedDy) - topSafeY);
         if (topCapH > 0) {
           drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
           currentBottomY += topCapH;
         }
+        break;
       }
 
-      if (onStepProgress && (step % 5 === 0 || step === totalSteps)) {
-        onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd);
+      if (onStepProgress && stepCount % 5 === 0) {
+        onStepProgress((currentTime - tStart) / duration, currentTime, tEnd);
       }
     }
   } else {
+    // =========================================================
+    // フレームロック吸着補正つき高速マルチスライス合成モード
+    // =========================================================
     const dt = stepPx / baseSpeedPxPerSec;
     const totalSteps = Math.floor(duration / dt);
-    const topCapH = Math.max(0, (capY - stepPx) - topSafeY);
+
+    let prevImgData = null;
+    let prevFeat = null;
+    let prevActualTime = tStart;
+    let lastSliceHeight = stepPx;
 
     for (let step = 0; step <= totalSteps; step++) {
       const exactTime = tStart + (step * stepPx) / baseSpeedPxPerSec;
       await seekVideoElementTo(vidElem, exactTime);
-
-      const timeDiff = vidElem.currentTime - exactTime;
-      const subPixelShiftY = timeDiff * baseSpeedPxPerSec;
+      const currActualTime = vidElem.currentTime;
 
       fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
+      const currImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
+      const currFeat = computeFrameRowFeatures(currImgData, cropW, h);
 
-      if (step === 0 && bottomBaseH > 0) {
-        drawSliceToMaster(frameCanvas, capY + subPixelShiftY, bottomBaseH, 0, 1.0);
-        currentBottomY += bottomBaseH;
+      if (step === 0) {
+        if (bottomBaseH > 0) {
+          drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
+          currentBottomY += bottomBaseH;
+        }
+        timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
+        prevImgData = currImgData;
+        prevFeat = currFeat;
+        prevActualTime = currActualTime;
+        continue;
       }
 
-      const sy = Math.max(0, Math.min(h - stepPx, (capY - stepPx) + subPixelShiftY));
-      drawSliceToMaster(frameCanvas, sy, stepPx, currentBottomY, 1.0);
+      // 実際のシーク時刻差から理論移動量を計算し、さらに前後フレームの相関で±8px以内の微小ズレをピタッと吸着補正
+      const realDt = Math.max(0.0001, currActualTime - prevActualTime);
+      const nominalDy = realDt * baseSpeedPxPerSec;
+      let actualDy = nominalDy;
 
-      if (step > 0 && overlapPx > 0) {
-        const featherSy = Math.max(0, Math.min(h - overlapPx, sy + stepPx - overlapPx * 0.5));
-        drawSliceToMaster(frameCanvas, featherSy, overlapPx, currentBottomY - overlapPx * 0.5, 0.45);
+      if (nominalDy >= 3) {
+        const lockMin = Math.max(1, Math.floor(nominalDy - 8));
+        const lockMax = Math.ceil(nominalDy + 8);
+        const lockedDy = matchFrameDisplacementHighPrecision(
+          prevImgData, currImgData, prevFeat, currFeat, cropW, h, lockMin, lockMax, nominalDy
+        );
+        if (lockedDy > 0 && Math.abs(lockedDy - nominalDy) <= 7.5) {
+          actualDy = lockedDy * 0.75 + nominalDy * 0.25;
+        }
       }
 
-      currentBottomY += stepPx;
-      timeToYMap.push({ time: exactTime, bottomY: currentBottomY });
+      if (actualDy > 0.2) {
+        const sy = Math.max(0, Math.min(h - actualDy, capY - actualDy));
+        drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY, 1.0);
 
-      if (step === totalSteps && topCapH > 0) {
-        const topSy = Math.max(0, topSafeY + subPixelShiftY);
-        drawSliceToMaster(frameCanvas, topSy, topCapH, currentBottomY, 1.0);
-        currentBottomY += topCapH;
+        if (overlapPx > 0 && currentBottomY > overlapPx) {
+          const featherSy = Math.max(0, Math.min(h - overlapPx, sy + actualDy - overlapPx * 0.5));
+          drawSliceToMaster(frameCanvas, featherSy, overlapPx, currentBottomY - overlapPx * 0.5, 0.45);
+        }
+
+        currentBottomY += actualDy;
+        lastSliceHeight = actualDy;
+      }
+
+      timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
+      prevImgData = currImgData;
+      prevFeat = currFeat;
+      prevActualTime = currActualTime;
+
+      if (step === totalSteps) {
+        const topCapH = Math.max(0, (capY - lastSliceHeight) - topSafeY);
+        if (topCapH > 0) {
+          drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
+          currentBottomY += topCapH;
+        }
       }
 
       if (onStepProgress && (step % 8 === 0 || step === totalSteps)) {
@@ -1916,6 +2148,7 @@ async function generateChartImage(isTestMode = false) {
   testGenerateBtn.disabled = true;
   reLayoutBtn.disabled = true;
   progressContainer.style.display = "block";
+  progressText.textContent = "動画のスクロール速度を解析・合成準備中...";
 
   try {
     masterChartData = await buildMasterDataForVideoElement(
@@ -1923,10 +2156,10 @@ async function generateChartImage(isTestMode = false) {
       activeVideoName ? `${activeVideoName} の生成譜面` : "生成譜面",
       isTestMode,
       (ratio, exactTime, tEnd) => {
-        const pct = Math.round(ratio * 100);
+        const pct = Math.min(100, Math.round(ratio * 100));
         progressPercent.textContent = `${pct}%`;
         progressBar.style.width = `${pct}%`;
-        progressText.textContent = `合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
+        progressText.textContent = `高精度合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
       }
     );
 
@@ -1964,13 +2197,12 @@ async function processMultipleVideosConcurrently() {
   function updateBatchProgressUI() {
     let sum = 0;
     for (let i = 0; i < progressMap.length; i++) sum += progressMap[i];
-    const pct = Math.round((sum / vids.length) * 100);
+    const pct = Math.min(100, Math.round((sum / vids.length) * 100));
     progressPercent.textContent = `${pct}%`;
     progressBar.style.width = `${pct}%`;
-    progressText.textContent = `複数動画 (${vids.length}本) を同時処理中... (${pct}%)`;
+    progressText.textContent = `複数動画 (${vids.length}本) をそれぞれの速度に合わせて同時処理中... (${pct}%)`;
   }
 
-  // 最大3本ずつ並列にデコード＆スティッチングを実行
   const concurrency = Math.min(3, vids.length);
   let cursor = 0;
   const generatedEntries = [];
@@ -2025,7 +2257,6 @@ async function processMultipleVideosConcurrently() {
     for (let w = 0; w < concurrency; w++) workers.push(worker());
     await Promise.all(workers);
 
-    // 生成されたすべての静止画を現在のフォルダの静止画リストに登録
     if (generatedEntries.length > 0) {
       if (!activeFolderName || !folderGroups.has(activeFolderName)) {
         activeFolderName = "同時処理結果";
@@ -2043,7 +2274,7 @@ async function processMultipleVideosConcurrently() {
     }
 
     const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-    progressText.textContent = `全 ${generatedEntries.length} 本の動画の同時処理が完了しました（処理時間: ${elapsedSec}秒） 上部のバーからワンクリックで切り替えられます`;
+    progressText.textContent = `全 ${generatedEntries.length} 本の動画の同時処理が完了しました（処理時間: ${elapsedSec}秒）`;
   } finally {
     generateBtn.disabled = false;
     updateBatchButtonState();
@@ -2219,7 +2450,7 @@ window.addEventListener("mouseup", () => {
 });
 
 // =========================================================
-// 10. PNG画像＆ZIP一括ダウンロード保存
+// 10. PNG画像＆ZIP一括ダウンロード保存（常時表示バー）
 // =========================================================
 downloadPngBtn.addEventListener("click", () => {
   if (!outputCanvas.width) return;

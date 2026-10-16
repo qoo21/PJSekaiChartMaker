@@ -17,28 +17,22 @@
   }
   * { box-sizing: border-box; font-family: "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif; }
   body {
-    margin: 0; padding: 20px;
+    margin: 0; padding: 16px 20px;
     background-color: var(--bg); color: var(--text);
     line-height: 1.55;
   }
-  .container { max-width: 1180px; margin: 0 auto; }
+  .container { max-width: 1200px; margin: 0 auto; }
   header {
     display: flex; justify-content: space-between; align-items: center;
     background: linear-gradient(135deg, #182540 0%, #101a2e 100%);
-    padding: 16px 24px; border-radius: 12px;
-    border: 1px solid var(--border); margin-bottom: 16px;
+    padding: 14px 20px; border-radius: 12px;
+    border: 1px solid var(--border); margin-bottom: 14px;
     flex-wrap: wrap; gap: 12px;
   }
-  header h1 { margin: 0; font-size: 1.35rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+  header h1 { margin: 0; font-size: 1.3rem; color: #fff; }
   .step-card {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 18px 20px; margin-bottom: 18px;
-  }
-  .step-title {
-    margin-top: 0; margin-bottom: 12px; font-size: 1.1rem;
-    color: var(--primary); border-bottom: 1px solid var(--border);
-    padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 8px;
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 16px;
   }
   .btn {
     background: var(--primary); color: #001818; border: none;
@@ -54,18 +48,18 @@
   .btn-accent { background: var(--accent); color: #fff; }
   .btn-accent:hover { background: #ff709f; }
 
-  /* プレビュー上部のフォルダ・ファイル自動切り替えバー */
+  /* プレビュー上部のフォルダ・ファイル切り替えバー */
   .top-switcher-card {
     background: #141b2b; border: 2px solid #00a8a8;
-    border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
   }
   .switcher-header {
     display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
+    flex-wrap: wrap; gap: 10px;
   }
   .folder-tabs {
     display: flex; gap: 6px; flex-wrap: wrap;
-    padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border);
+    padding-bottom: 8px; margin-top: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--border);
   }
   .file-switcher-row {
     display: flex; gap: 8px; align-items: center; overflow-x: auto;
@@ -73,7 +67,7 @@
   }
   .file-chip {
     background: #222c42; color: #e2e8f0; border: 1px solid #3a496b;
-    padding: 6px 12px; border-radius: 6px; font-size: 0.84rem;
+    padding: 5px 12px; border-radius: 6px; font-size: 0.84rem;
     cursor: pointer; white-space: nowrap; transition: 0.15s; font-weight: bold;
   }
   .file-chip:hover { background: #2e3c59; }
@@ -81,19 +75,47 @@
   .file-chip.video-chip { border-color: #ff4d88; }
   .file-chip.video-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  .grid-2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
-  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
-
+  /* 動画プレビュー（上部） */
   .preview-wrapper {
     position: relative; background: #000; border-radius: 8px;
     overflow: hidden; border: 1px solid var(--border);
     display: flex; justify-content: center; align-items: center;
-    min-height: 280px;
+    min-height: 200px; max-height: 310px;
   }
   #videoPreview { display: none; }
-  #previewCanvas { max-width: 100%; max-height: 440px; display: block; }
+  #previewCanvas { max-width: 100%; max-height: 300px; display: block; }
 
-  .control-group { margin-bottom: 12px; background: #121724; padding: 12px 14px; border-radius: 8px; border: 1px solid #222b40; }
+  /* 再生ボタン＆シークバー（常時表示） */
+  .main-transport-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: #121724; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #222b40; margin-top: 10px; flex-wrap: wrap;
+  }
+  .main-transport-bar input[type="range"] {
+    flex: 1; min-width: 160px; accent-color: var(--primary); cursor: pointer;
+  }
+
+  /* 詳細設定の折りたたみタブ */
+  .details-tab-wrap {
+    margin-top: 10px; background: #121724; border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .details-tab-summary {
+    padding: 9px 14px; cursor: pointer; font-weight: bold;
+    color: var(--primary); font-size: 0.92rem; user-select: none;
+    background: #161d2e; display: flex; justify-content: space-between; align-items: center;
+    list-style: none;
+  }
+  .details-tab-summary::-webkit-details-marker { display: none; }
+  .details-tab-summary:hover { background: #1c253b; }
+  .details-tab-body {
+    padding: 14px; border-top: 1px solid var(--border);
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .control-group { margin-bottom: 12px; background: #0e131f; padding: 12px 14px; border-radius: 8px; border: 1px solid #222b40; }
   .control-group label { display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 5px; font-weight: bold; }
   .control-group input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
   .inline-inputs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
@@ -103,18 +125,18 @@
   }
   .checkbox-row {
     display: flex; align-items: center; gap: 8px; cursor: pointer;
-    font-weight: bold; color: #55ffaa; font-size: 0.95rem; margin-bottom: 8px;
+    font-weight: bold; color: #55ffaa; font-size: 0.92rem; margin-bottom: 8px;
   }
-  .checkbox-row input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+  .checkbox-row input { width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer; }
 
   .progress-container {
-    display: none; margin-top: 15px; background: #0b0f18;
-    border-radius: 8px; padding: 12px; border: 1px solid var(--border);
+    display: none; margin-top: 10px; background: #0b0f18;
+    border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border);
   }
-  .progress-bar-bg { width: 100%; height: 14px; background: #1e2638; border-radius: 7px; overflow: hidden; margin-top: 6px; }
+  .progress-bar-bg { width: 100%; height: 12px; background: #1e2638; border-radius: 6px; overflow: hidden; margin-top: 6px; }
   .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #55ffaa); transition: width 0.08s; }
 
-  /* ビューアーと再生バー重ね合わせ */
+  /* 静止画プレビュー（下部：動画プレビューと同じ枠内） */
   .viewer-box {
     margin-top: 12px; background: #07090e; border: 2px solid var(--border);
     border-radius: 10px; overflow: hidden; display: flex; flex-direction: column;
@@ -123,20 +145,15 @@
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     z-index: 9999; margin: 0; border-radius: 0; border: none;
   }
-  .viewer-toolbar {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #141a29; padding: 10px 14px; border-bottom: 1px solid var(--border);
-    flex-wrap: wrap; gap: 8px;
-  }
   .viewer-col-jumps {
-    display: flex; gap: 6px; align-items: center; overflow-x: auto;
+    display: none; gap: 6px; align-items: center; overflow-x: auto;
     padding: 6px 14px; background: #0d121d; border-bottom: 1px solid #1f2940;
   }
   .viewer-viewport {
-    position: relative; width: 100%; height: 640px; overflow: hidden;
+    position: relative; width: 100%; height: 580px; overflow: hidden;
     cursor: grab; background: #000; user-select: none;
   }
-  .viewer-box.fullscreen .viewer-viewport { height: calc(100vh - 135px); }
+  .viewer-box.fullscreen .viewer-viewport { height: 100vh; }
   .viewer-viewport.dragging { cursor: grabbing; }
   #canvasStage {
     transform-origin: 0 0;
@@ -148,7 +165,7 @@
     position: absolute; top: 0; left: 0;
     pointer-events: none;
   }
-  .hint { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+  .hint { font-size: 0.82rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -159,26 +176,24 @@
       <h1>プロセカ譜面動画 静止画メーカー</h1>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn" id="linkRootFolderBtn">PC内のフォルダを連携</button>
-      <button class="btn btn-secondary" id="selectFolderBtn">フォルダ選択</button>
-      <button class="btn btn-secondary" id="selectVideoBtn">動画選択</button>
+      <button class="btn" id="selectVideoBtn">動画選択（複数可）</button>
       <button class="btn btn-secondary" id="selectImagesBtn">画像選択</button>
-      <input type="file" id="videoInput" accept="video/*" style="display:none;">
+      <button class="btn btn-secondary" id="selectFolderBtn">フォルダ選択</button>
+      <input type="file" id="videoInput" accept="video/*" multiple style="display:none;">
       <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
       <input type="file" id="imagesInput" accept="image/*" multiple style="display:none;">
     </div>
   </header>
 
-  <!-- プレビュー最上部：GitHub同階層＆ローカルフォルダ自動読み込み・切り替えバー -->
+  <!-- プレビュー最上部：フォルダ・ファイル切り替えバー -->
   <div class="top-switcher-card" id="topSwitcherCard">
     <div class="switcher-header">
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <strong style="color:var(--primary); font-size:0.98rem;">フォルダ・ファイル切り替えバー</strong>
-        <span class="hint" id="folderStatusLabel">GitHub同階層またはドラッグ＆ドロップされたフォルダ・ファイルがここに自動表示されます</span>
+        <strong style="color:var(--primary); font-size:0.95rem;">フォルダ・ファイル切り替えバー</strong>
+        <span class="hint" id="folderStatusLabel"></span>
       </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button class="btn btn-accent" id="reconnectFolderBtn" style="display:none; padding:6px 12px; font-size:0.84rem;">前回のフォルダを自動再読み込み</button>
-        <button class="btn btn-secondary" id="refreshFolderBtn" style="display:none; padding:6px 12px; font-size:0.84rem;">再スキャン</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-secondary" id="refreshFolderBtn" style="display:none; padding:5px 11px; font-size:0.82rem;">再スキャン</button>
       </div>
     </div>
 
@@ -191,33 +206,25 @@
     </div>
   </div>
 
-  <!-- 譜面静止画プレビュー（ビューアー）＆ 1列の高さ即時再生成パネル -->
-  <div class="step-card" id="generateSection">
-    <h2 class="step-title">
-      <span>譜面静止画プレビュー・作成・高さ変更再生成</span>
-      <span class="hint" id="currentViewFileName"></span>
-    </h2>
+  <!-- 動画プレビューと静止画プレビューを統合したメイン枠 -->
+  <div class="step-card" id="unifiedPreviewCard">
 
-    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; background:#121724; padding:12px 14px; border-radius:8px; border:1px solid #222b40;">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <button class="btn btn-accent" id="generateBtn" disabled>動画から譜面静止画を作成する</button>
-        <button class="btn btn-secondary" id="testGenerateBtn" disabled>最初の12秒だけテスト作成</button>
-      </div>
-
-      <!-- 生成した静止画を利用して1列の高さを変更して再生成する仕組み -->
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; border-left:2px solid var(--border); padding-left:12px;">
-        <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
-        <input type="number" id="colHeightInput" class="num-input" step="100" min="400" max="16000" value="1800" style="width:85px;">
-        <select id="layoutMode" class="num-input" style="width:175px;">
-          <option value="grid" selected>1枚の一覧画像に折り返して並べる</option>
-          <option value="single">折り返さずに1本の縦長画像にする</option>
-        </select>
-        <button class="btn" id="reLayoutBtn" disabled>現在の静止画から高さを変更して再生成</button>
-      </div>
+    <!-- 1. 上部：動画プレビュー -->
+    <div class="preview-wrapper">
+      <video id="videoPreview" playsinline crossorigin="anonymous"></video>
+      <canvas id="previewCanvas" width="640" height="360"></canvas>
     </div>
 
+    <!-- 2. 再生ボタン ＆ シークバー（常時表示） -->
+    <div class="main-transport-bar">
+      <button class="btn" id="playPauseBtn" style="padding:7px 16px;">再生 / 一時停止</button>
+      <input type="range" id="seekSlider" min="0" max="100" step="0.02" value="0">
+      <span id="currentTimeLabel" style="font-size:0.88rem; font-weight:bold; min-width:135px; text-align:right;">0.00 秒 / 0.00 秒</span>
+    </div>
+
+    <!-- 進捗バー（生成処理中のみ表示） -->
     <div class="progress-container" id="progressContainer">
-      <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+      <div style="display:flex; justify-content:space-between; font-size:0.88rem;">
         <span id="progressText">譜面を合成しています...</span>
         <span id="progressPercent">0%</span>
       </div>
@@ -226,159 +233,158 @@
       </div>
     </div>
 
-    <!-- ソフト上で見れる譜面ビューアー -->
-    <div id="resultArea" style="display:none; margin-top:14px;">
-      <div id="viewerQuickSwitchBar" style="display:none; background:#101624; border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:10px; align-items:center; gap:8px; overflow-x:auto;">
-        <span style="font-size:0.82rem; color:var(--primary); font-weight:bold; white-space:nowrap;">画像ワンクリック切替:</span>
-        <div id="viewerQuickSwitchList" style="display:flex; gap:6px;"></div>
-      </div>
+    <!-- 3. 詳細設定タブ（再生ボタン・バー以外のすべての設定・生成・保存機能を集約） -->
+    <details class="details-tab-wrap" id="detailsTab">
+      <summary class="details-tab-summary">
+        <span>詳細設定・静止画作成・保存メニューを開く / 閉じる</span>
+        <span class="hint" id="currentViewFileName"></span>
+      </summary>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; align-items:center; justify-content:space-between;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn" id="downloadPngBtn">1枚の譜面画像 (.png) を保存</button>
-          <button class="btn btn-secondary" id="downloadResultZipBtn">全体画像＋列ごとの分割画像をZIPで保存</button>
-        </div>
-        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-          <label style="display:flex; align-items:center; gap:6px; font-size:0.88rem; cursor:pointer; color:#55ffaa; font-weight:bold;">
-            <input type="checkbox" id="showPlayheadToggle" checked style="accent-color:var(--primary);">
-            動画と連動して再生位置バーを表示
-          </label>
-          <label style="display:flex; align-items:center; gap:6px; font-size:0.88rem; cursor:pointer;">
-            <input type="checkbox" id="followPlayheadToggle" style="accent-color:var(--primary);">
-            再生位置を自動追従
-          </label>
-        </div>
-      </div>
-
-      <div class="viewer-box" id="viewerBox">
-        <div class="viewer-toolbar">
-          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-            <strong style="color:var(--primary); margin-right:6px;">譜面ビューアー:</strong>
-            <button class="btn btn-secondary" id="zoomOutBtn" style="padding:5px 10px;">ー 縮小</button>
-            <span id="zoomLevelLabel" style="min-width:55px; text-align:center; font-weight:bold;">100%</span>
-            <button class="btn btn-secondary" id="zoomInBtn" style="padding:5px 10px;">＋ 拡大</button>
-            <button class="btn btn-secondary" id="fitAllBtn" style="padding:5px 10px; font-size:0.84rem;">全体を表示</button>
-            <button class="btn btn-secondary" id="fitHeightBtn" style="padding:5px 10px; font-size:0.84rem;">高さに合わせる</button>
-            <button class="btn btn-secondary" id="zoom100Btn" style="padding:5px 10px; font-size:0.84rem;">1:1 等倍</button>
-            <button class="btn btn-secondary" id="viewerPlayPauseBtn" style="padding:5px 12px; font-size:0.84rem;">動画 再生/停止</button>
-          </div>
-          <div>
-            <button class="btn" id="fullscreenBtn" style="padding:6px 14px; font-size:0.86rem;">全画面で大きく見る</button>
-          </div>
-        </div>
-        <div class="viewer-col-jumps" id="colJumpBar"></div>
-        <div class="viewer-viewport" id="viewerViewport" title="ダブルクリックでその位置の秒数へ動画をシークします">
-          <div id="canvasStage">
-            <canvas id="outputCanvas"></canvas>
-            <canvas id="playheadCanvas"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 動画プレビュー・黒背景フィルター・精度・範囲の設定 -->
-  <div class="step-card" id="editorSection" style="opacity:0.55;">
-    <h2 class="step-title">
-      <span>動画プレビュー・黒背景フィルター・精度・範囲の設定</span>
-    </h2>
-    <div class="grid-2">
-      <div>
-        <div class="preview-wrapper">
-          <video id="videoPreview" playsinline muted crossorigin="anonymous"></video>
-          <canvas id="previewCanvas" width="640" height="440"></canvas>
-        </div>
-        <div class="control-group" style="margin-top:12px;">
-          <label>
-            <span>動画の位置確認シークバー</span>
-            <span id="currentTimeLabel">0.00 秒 / 0.00 秒</span>
-          </label>
-          <input type="range" id="seekSlider" min="0" max="100" step="0.02" value="0">
-          <div class="inline-inputs" style="justify-content: space-between; margin-top:8px;">
-            <button class="btn btn-secondary" id="playPauseBtn" style="padding:6px 12px;">再生 / 一時停止</button>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-secondary" id="setStartBtn" style="padding:6px 10px; font-size:0.82rem;">今の位置を「開始」</button>
-              <button class="btn btn-secondary" id="setEndBtn" style="padding:6px 10px; font-size:0.82rem;">今の位置を「終了」</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 時間と左右切り抜き -->
-        <div class="control-group">
-          <label><span>① 合成する時間範囲 ＆ 左右の切り抜き範囲</span></label>
-          <div class="inline-inputs">
-            <span>開始(秒):</span>
-            <input type="number" id="startTimeInput" class="num-input" step="0.1" value="2.1">
-            <span>〜 終了(秒):</span>
-            <input type="number" id="endTimeInput" class="num-input" step="0.1" value="118.5">
-          </div>
-          <div class="inline-inputs" style="margin-top:8px;">
-            <span style="width:65px; font-size:0.85rem;">左端 <span id="leftVal">18</span>%:</span>
-            <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="18" style="flex:1;">
-            <span style="width:65px; font-size:0.85rem;">右端 <span id="rightVal">78.5</span>%:</span>
-            <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <!-- 黒背景フィルター設定 -->
+      <div class="details-tab-body">
+        <!-- 静止画生成・複数動画同時処理・高さ変更再生成・保存ボタン群 -->
         <div class="control-group" style="border-color:#00a8a8;">
-          <label class="checkbox-row">
-            <input type="checkbox" id="blackBgToggle" checked>
-            <span>背景イラストを消して見やすくする</span>
-          </label>
-          <div id="blackBgControls">
-            <label>
-              <span>背景消去しきい値（イラストの除去強度）</span>
-              <span id="bgThreshLabel">36</span>
-            </label>
-            <input type="range" id="bgThreshSlider" min="25" max="110" step="1" value="36">
-            <label style="margin-top:6px;">
-              <span>16分音符の横線・レーン縦線のくっきり度</span>
-              <span id="gridBoostLabel">0.5倍</span>
-            </label>
-            <input type="range" id="gridBoostSlider" min="0.5" max="3.5" step="0.1" value="0.5">
+          <label><span>静止画の作成・複数動画同時処理・保存</span></label>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px;">
+            <button class="btn btn-accent" id="generateBtn" disabled>現在の動画から静止画を作成</button>
+            <button class="btn" id="batchGenerateBtn" disabled>複数動画を同時処理して一括作成</button>
+            <button class="btn btn-secondary" id="testGenerateBtn" disabled>最初の12秒だけテスト作成</button>
+            <button class="btn btn-secondary" id="downloadPngBtn">1枚の譜面画像 (.png) を保存</button>
+            <button class="btn btn-secondary" id="downloadResultZipBtn">全体＋分割画像をZIPで保存</button>
           </div>
-        </div>
 
-        <!-- 曲線の滑らかさ・高速生成設定 -->
-        <div class="control-group" style="border-color:#00a8a8;">
-          <label><span>② 曲線の滑らかさ・高速生成設定</span></label>
-          <div class="inline-inputs">
-            <select id="qualitySelect" class="num-input" style="width:100%;">
-              <option value="fast_ultra" selected>高速・超高精度（マルチスライス補間：滑らか＆高速）</option>
-              <option value="turbo">超高速モード（大判スライス一括合成：最速）</option>
-              <option value="ultra">超高精度（4px刻み：従来の精密合成）</option>
-              <option value="high">高精度（8px刻み）</option>
-              <option value="normal">標準（16px刻み）</option>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+            <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
+            <input type="number" id="colHeightInput" class="num-input" step="100" min="400" max="16000" value="5400" style="width:90px;">
+            <select id="layoutMode" class="num-input" style="width:190px;">
+              <option value="grid" selected>1枚の一覧画像に折り返して並べる</option>
+              <option value="single">折り返さずに1本の縦長画像にする</option>
             </select>
+            <button class="btn btn-secondary" id="reLayoutBtn" disabled>現在の静止画から高さを変更して再生成</button>
           </div>
         </div>
 
-        <!-- スクロール速度＆自動追跡設定 -->
-        <div class="control-group" style="border-color:#00a8a8;">
-          <label class="checkbox-row" style="margin-bottom:6px;">
-            <input type="checkbox" id="autoTrackToggle">
-            <span>自動追跡をONにする（途中で速度が変わる動画に対応）</span>
-          </label>
-          <div id="manualSpeedControls">
-            <label>
-              <span>③ スクロール速度（画面高さに対する % / 秒）</span>
-              <span id="speedValLabel">47.50 %/秒</span>
-            </label>
-            <input type="range" id="speedSlider" min="20" max="90" step="0.02" value="47.50">
-            <div class="inline-inputs" style="justify-content: space-between;">
-              <div>
-                <span>微調整:</span>
-                <input type="number" id="speedInput" class="num-input" step="0.02" value="47.50">
+        <!-- ビューアー表示調整・再生バー連動設定 -->
+        <div class="control-group">
+          <label><span>静止画ビューアー表示操作 ＆ 再生位置バー設定</span></label>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; justify-content:space-between;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-secondary" id="zoomOutBtn" style="padding:5px 10px;">ー 縮小</button>
+              <span id="zoomLevelLabel" style="min-width:55px; text-align:center; font-weight:bold;">100%</span>
+              <button class="btn btn-secondary" id="zoomInBtn" style="padding:5px 10px;">＋ 拡大</button>
+              <button class="btn btn-secondary" id="fitAllBtn" style="padding:5px 10px; font-size:0.84rem;">全体を表示</button>
+              <button class="btn btn-secondary" id="fitHeightBtn" style="padding:5px 10px; font-size:0.84rem;">高さに合わせる</button>
+              <button class="btn btn-secondary" id="zoom100Btn" style="padding:5px 10px; font-size:0.84rem;">1:1 等倍</button>
+              <button class="btn btn-secondary" id="fullscreenBtn" style="padding:5px 12px; font-size:0.84rem;">全画面表示</button>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; color:#55ffaa; margin:0;">
+                <input type="checkbox" id="showPlayheadToggle" checked style="accent-color:var(--primary);">
+                再生位置バーを表示
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; margin:0;">
+                <input type="checkbox" id="followPlayheadToggle" style="accent-color:var(--primary);">
+                再生位置を自動追従
+              </label>
+            </div>
+          </div>
+          <div class="viewer-col-jumps" id="colJumpBar" style="margin-top:8px; border-radius:6px;"></div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <!-- 時間と左右切り抜き -->
+            <div class="control-group">
+              <label><span>① 合成する時間範囲 ＆ 左右の切り抜き範囲</span></label>
+              <div class="inline-inputs">
+                <span>開始(秒):</span>
+                <input type="number" id="startTimeInput" class="num-input" step="0.1" value="2.1">
+                <button class="btn btn-secondary" id="setStartBtn" style="padding:5px 9px; font-size:0.8rem;">今の位置を開始</button>
               </div>
-              <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">速度を自動計測する</button>
+              <div class="inline-inputs" style="margin-top:6px;">
+                <span>終了(秒):</span>
+                <input type="number" id="endTimeInput" class="num-input" step="0.1" value="118.5">
+                <button class="btn btn-secondary" id="setEndBtn" style="padding:5px 9px; font-size:0.8rem;">今の位置を終了</button>
+              </div>
+              <div class="inline-inputs" style="margin-top:8px;">
+                <span style="width:65px; font-size:0.85rem;">左端 <span id="leftVal">18</span>%:</span>
+                <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="18" style="flex:1;">
+                <span style="width:65px; font-size:0.85rem;">右端 <span id="rightVal">78.5</span>%:</span>
+                <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
+              </div>
+            </div>
+
+            <!-- 黒背景フィルター設定 -->
+            <div class="control-group">
+              <label class="checkbox-row">
+                <input type="checkbox" id="blackBgToggle" checked>
+                <span>背景イラストを消して見やすくする</span>
+              </label>
+              <div id="blackBgControls">
+                <label>
+                  <span>背景消去しきい値（イラストの除去強度）</span>
+                  <span id="bgThreshLabel">36</span>
+                </label>
+                <input type="range" id="bgThreshSlider" min="25" max="110" step="1" value="36">
+                <label style="margin-top:6px;">
+                  <span>16分音符の横線・レーン縦線のくっきり度</span>
+                  <span id="gridBoostLabel">0.5倍</span>
+                </label>
+                <input type="range" id="gridBoostSlider" min="0.5" max="3.5" step="0.1" value="0.5">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <!-- 曲線の滑らかさ・高速生成設定（デフォルト：超高速モード） -->
+            <div class="control-group">
+              <label><span>② 曲線の滑らかさ・高速生成設定</span></label>
+              <div class="inline-inputs">
+                <select id="qualitySelect" class="num-input" style="width:100%;">
+                  <option value="turbo" selected>超高速モード（大判スライス一括合成：最速）</option>
+                  <option value="fast_ultra">高速・超高精度（マルチスライス補間：滑らか＆高速）</option>
+                  <option value="ultra">超高精度（4px刻み：従来の精密合成）</option>
+                  <option value="high">高精度（8px刻み）</option>
+                  <option value="normal">標準（16px刻み）</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- スクロール速度＆自動追跡設定 -->
+            <div class="control-group">
+              <label class="checkbox-row" style="margin-bottom:6px;">
+                <input type="checkbox" id="autoTrackToggle">
+                <span>自動追跡をONにする（途中で速度が変わる動画に対応）</span>
+              </label>
+              <div id="manualSpeedControls">
+                <label>
+                  <span>③ スクロール速度（画面高さに対する % / 秒）</span>
+                  <span id="speedValLabel">47.50 %/秒</span>
+                </label>
+                <input type="range" id="speedSlider" min="20" max="90" step="0.02" value="47.50">
+                <div class="inline-inputs" style="justify-content: space-between;">
+                  <div>
+                    <span>微調整:</span>
+                    <input type="number" id="speedInput" class="num-input" step="0.02" value="47.50">
+                  </div>
+                  <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">速度を自動計測する</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+    </details>
+
+    <!-- 4. 下部：静止画プレビュー（動画プレビューの下に配置） -->
+    <div class="viewer-box" id="viewerBox">
+      <div class="viewer-viewport" id="viewerViewport" title="マウスホイールで拡大縮小・ドラッグで移動・ダブルクリックでその位置の秒数へ動画をシークします">
+        <div id="canvasStage">
+          <canvas id="outputCanvas"></canvas>
+          <canvas id="playheadCanvas"></canvas>
+        </div>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -576,7 +582,7 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 }
 
 // =========================================================
-// 3. UI要素・GitHub Pages自動スキャン＆ローカルフォルダ連携機能
+// 3. UI要素・GitHub自動スキャン＆ファイル切り替え管理
 // =========================================================
 const video = document.getElementById("videoPreview");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -585,7 +591,6 @@ const pCtx = previewCanvas.getContext("2d", { willReadFrequently: true });
 const videoInput = document.getElementById("videoInput");
 const folderInput = document.getElementById("folderInput");
 const imagesInput = document.getElementById("imagesInput");
-const linkRootFolderBtn = document.getElementById("linkRootFolderBtn");
 const selectVideoBtn = document.getElementById("selectVideoBtn");
 const selectFolderBtn = document.getElementById("selectFolderBtn");
 const selectImagesBtn = document.getElementById("selectImagesBtn");
@@ -593,20 +598,15 @@ const selectImagesBtn = document.getElementById("selectImagesBtn");
 const topSwitcherCard = document.getElementById("topSwitcherCard");
 const switcherContent = document.getElementById("switcherContent");
 const folderStatusLabel = document.getElementById("folderStatusLabel");
-const reconnectFolderBtn = document.getElementById("reconnectFolderBtn");
 const refreshFolderBtn = document.getElementById("refreshFolderBtn");
 const folderTabs = document.getElementById("folderTabs");
 const imageFileList = document.getElementById("imageFileList");
 const videoFileList = document.getElementById("videoFileList");
-const viewerQuickSwitchBar = document.getElementById("viewerQuickSwitchBar");
-const viewerQuickSwitchList = document.getElementById("viewerQuickSwitchList");
 const currentViewFileName = document.getElementById("currentViewFileName");
 
-const editorSection = document.getElementById("editorSection");
 const seekSlider = document.getElementById("seekSlider");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
 const playPauseBtn = document.getElementById("playPauseBtn");
-const viewerPlayPauseBtn = document.getElementById("viewerPlayPauseBtn");
 const setStartBtn = document.getElementById("setStartBtn");
 const setEndBtn = document.getElementById("setEndBtn");
 
@@ -630,13 +630,13 @@ const colHeightInput = document.getElementById("colHeightInput");
 const reLayoutBtn = document.getElementById("reLayoutBtn");
 
 const generateBtn = document.getElementById("generateBtn");
+const batchGenerateBtn = document.getElementById("batchGenerateBtn");
 const testGenerateBtn = document.getElementById("testGenerateBtn");
 const progressContainer = document.getElementById("progressContainer");
 const progressText = document.getElementById("progressText");
 const progressPercent = document.getElementById("progressPercent");
 const progressBar = document.getElementById("progressBar");
 
-const resultArea = document.getElementById("resultArea");
 const canvasStage = document.getElementById("canvasStage");
 const outputCanvas = document.getElementById("outputCanvas");
 const playheadCanvas = document.getElementById("playheadCanvas");
@@ -668,10 +668,10 @@ let chartMeta = {
   mode: "grid",
   numCols: 1,
   cropW: 400,
-  colMaxH: 1800,
+  colMaxH: 5400,
   colGap: 14,
   headerH: 36,
-  totalHeight: 1800,
+  totalHeight: 5400,
   tStart: 2.1,
   tEnd: 118.5,
   scale: 1,
@@ -679,13 +679,12 @@ let chartMeta = {
 };
 
 // フォルダごとのアイテム管理マップ
-// 各アイテムは { name, file (ローカルFile), url (GitHub等のURL) } の形式
+// 各画像アイテムは { name, file, url, masterData, pairedVideo } を保持可能
 const folderGroups = new Map();
 let activeFolderName = "";
-let savedDirectoryHandle = null;
 
 // =========================================================
-// GitHub Pages リポジトリ内の同階層フォルダ・ファイル完全自動検出
+// GitHub Pages リポジトリ内の同階層フォルダ・ファイル自動検出
 // =========================================================
 async function autoScanGitHubRepo() {
   const host = window.location.hostname;
@@ -694,7 +693,6 @@ async function autoScanGitHubRepo() {
   let repo = "";
   let baseDir = "";
 
-  // URLパラメータ ?repo=owner/repo での明示指定にも対応
   const params = new URLSearchParams(window.location.search);
   if (params.get("repo")) {
     const parts = params.get("repo").split("/");
@@ -704,7 +702,6 @@ async function autoScanGitHubRepo() {
     owner = host.split(".")[0];
     if (pathParts.length > 0) {
       repo = pathParts[0];
-      // index.html がサブディレクトリにある場合のパス取得
       const subParts = pathParts.slice(1);
       if (subParts.length > 0 && /\.html?$/i.test(subParts[subParts.length - 1])) {
         subParts.pop();
@@ -718,7 +715,6 @@ async function autoScanGitHubRepo() {
   if (!owner || !repo) return false;
 
   try {
-    folderStatusLabel.textContent = `GitHubリポジトリ (${owner}/${repo}) 内のフォルダ・ファイルを自動スキャン中...`;
     const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
     if (!repoRes.ok) return false;
     const repoInfo = await repoRes.json();
@@ -741,9 +737,8 @@ async function autoScanGitHubRepo() {
 
       const parts = relPath.split("/");
       const fileName = parts.pop();
-      const folderName = parts.join("/") || "GitHub同階層ルート";
+      const folderName = parts.join("/") || "ルート";
 
-      // 相対URLを構築（GitHub Pages上の実ファイルパス）
       const encodedRelPath = relPath.split("/").map(encodeURIComponent).join("/");
       remoteItems.push({
         name: fileName,
@@ -759,10 +754,11 @@ async function autoScanGitHubRepo() {
       refreshFolderBtn.style.display = "inline-flex";
       return true;
     } else {
-      folderStatusLabel.textContent = `GitHubリポジトリ (${owner}/${repo}) に連携済み（リポジトリ内に画像・動画を追加するか、PC・スマホからファイルを選択してください）`;
+      folderStatusLabel.textContent = "";
       return false;
     }
   } catch (e) {
+    folderStatusLabel.textContent = "";
     return false;
   }
 }
@@ -813,105 +809,15 @@ function handleRemoteItems(items) {
       renderTopSwitcher();
     }
   }
+  updateBatchButtonState();
 }
 
-// =========================================================
-// ローカルPC用：IndexedDBによるフォルダハンドルの永続保存
-// =========================================================
-function openHandleDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open("ProsekaChartMakerDB", 1);
-    req.onupgradeneeded = (e) => {
-      e.target.result.createObjectStore("handles");
-    };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror = (e) => reject(e.target.error);
-  });
-}
-
-async function saveDirHandleToDB(handle) {
-  try {
-    const db = await openHandleDB();
-    const tx = db.transaction("handles", "readwrite");
-    tx.objectStore("handles").put(handle, "rootDir");
-  } catch (e) {}
-}
-
-async function getDirHandleFromDB() {
-  try {
-    const db = await openHandleDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction("handles", "readonly");
-      const req = tx.objectStore("handles").get("rootDir");
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
-    });
-  } catch (e) {
-    return null;
-  }
-}
-
-async function scanDirectoryHandle(dirHandle, path = "", collected = []) {
-  for await (const entry of dirHandle.values()) {
-    if (entry.kind === "file") {
-      if (/\.(mp4|mov|webm|mkv|avi|png|jpe?g|webp|bmp)$/i.test(entry.name)) {
-        const file = await entry.getFile();
-        file._customFolder = path || dirHandle.name || "同階層ルート";
-        collected.push(file);
-      }
-    } else if (entry.kind === "directory") {
-      const subPath = path ? `${path}/${entry.name}` : entry.name;
-      await scanDirectoryHandle(entry, subPath, collected);
-    }
-  }
-  return collected;
-}
-
-async function loadFromSavedHandle(requestPerm = false) {
-  if (!savedDirectoryHandle) return;
-  try {
-    let perm = await savedDirectoryHandle.queryPermission({ mode: "read" });
-    if (perm !== "granted" && requestPerm) {
-      perm = await savedDirectoryHandle.requestPermission({ mode: "read" });
-    }
-    if (perm === "granted") {
-      reconnectFolderBtn.style.display = "none";
-      refreshFolderBtn.style.display = "inline-flex";
-      const files = await scanDirectoryHandle(savedDirectoryHandle, "");
-      handleIncomingFiles(files);
-    } else {
-      reconnectFolderBtn.style.display = "inline-flex";
-      reconnectFolderBtn.textContent = `前回のフォルダ「${savedDirectoryHandle.name}」を自動読み込み`;
-    }
-  } catch (e) {}
-}
-
-// 起動時にGitHubリポジトリの自動スキャン ＆ ローカルフォルダの自動復元を実行
 window.addEventListener("DOMContentLoaded", async () => {
   await autoScanGitHubRepo();
-  savedDirectoryHandle = await getDirHandleFromDB();
-  if (savedDirectoryHandle) {
-    await loadFromSavedHandle(false);
-  }
 });
 
-linkRootFolderBtn.addEventListener("click", async () => {
-  if (window.showDirectoryPicker) {
-    try {
-      const handle = await window.showDirectoryPicker();
-      savedDirectoryHandle = handle;
-      await saveDirHandleToDB(handle);
-      await loadFromSavedHandle(true);
-    } catch (e) {}
-  } else {
-    folderInput.click();
-  }
-});
-
-reconnectFolderBtn.addEventListener("click", () => loadFromSavedHandle(true));
 refreshFolderBtn.addEventListener("click", async () => {
   await autoScanGitHubRepo();
-  if (savedDirectoryHandle) await loadFromSavedHandle(true);
 });
 
 selectVideoBtn.addEventListener("click", () => videoInput.click());
@@ -944,7 +850,7 @@ window.addEventListener("drop", async (e) => {
 async function traverseFileTree(item, path, collected) {
   if (item.isFile) {
     const file = await new Promise((res) => item.file(res));
-    file._customFolder = path || "同階層ルート";
+    file._customFolder = path || "選択ファイル";
     collected.push(file);
   } else if (item.isDirectory) {
     const dirReader = item.createReader();
@@ -962,12 +868,10 @@ async function traverseFileTree(item, path, collected) {
 }
 
 videoInput.addEventListener("change", (e) => {
-  if (e.target.files && e.target.files[0]) handleIncomingFiles(Array.from(e.target.files));
+  if (e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
 });
 folderInput.addEventListener("change", (e) => {
-  if (e.target.files && e.target.files.length > 0) {
-    handleIncomingFiles(Array.from(e.target.files));
-  }
+  if (e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
 });
 imagesInput.addEventListener("change", (e) => {
   if (e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
@@ -977,6 +881,7 @@ function handleIncomingFiles(files) {
   let firstVideoItem = null;
   let firstImageItem = null;
   let firstImageFolder = "";
+  let firstVideoFolder = "";
 
   for (const f of files) {
     const isVid = f.type.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi)$/i.test(f.name);
@@ -987,9 +892,9 @@ function handleIncomingFiles(files) {
     if (!folderName && f.webkitRelativePath) {
       const parts = f.webkitRelativePath.split("/");
       parts.pop();
-      folderName = parts.join("/") || "同階層ルート";
+      folderName = parts.join("/") || "選択ファイル";
     }
-    if (!folderName) folderName = "同階層ルート";
+    if (!folderName) folderName = "選択ファイル";
 
     if (!folderGroups.has(folderName)) {
       folderGroups.set(folderName, { images: [], videos: [] });
@@ -1001,7 +906,7 @@ function handleIncomingFiles(files) {
       const idx = group.videos.findIndex(v => v.name === f.name);
       if (idx >= 0) group.videos[idx] = entry;
       else group.videos.push(entry);
-      if (!firstVideoItem) firstVideoItem = entry;
+      if (!firstVideoItem) { firstVideoItem = entry; firstVideoFolder = folderName; }
     } else if (isImg) {
       const idx = group.images.findIndex(img => img.name === f.name);
       if (idx >= 0) group.images[idx] = entry;
@@ -1015,14 +920,14 @@ function handleIncomingFiles(files) {
     grp.videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }
 
-  if (firstVideoItem && !video.src) {
+  if (firstVideoItem) {
     loadVideoItem(firstVideoItem);
   }
 
   if (folderGroups.size > 0) {
     switcherContent.style.display = "block";
     if (!activeFolderName || !folderGroups.has(activeFolderName)) {
-      activeFolderName = firstImageFolder || Array.from(folderGroups.keys())[0];
+      activeFolderName = firstImageFolder || firstVideoFolder || Array.from(folderGroups.keys())[0];
     }
     if (firstImageItem && !outputCanvas.width) {
       loadImageItemToViewer(firstImageItem);
@@ -1030,13 +935,33 @@ function handleIncomingFiles(files) {
       renderTopSwitcher();
     }
   }
+  updateBatchButtonState();
+}
+
+function getAllLoadedVideos() {
+  const activeGrp = folderGroups.get(activeFolderName);
+  if (activeGrp && activeGrp.videos.length > 0) return activeGrp.videos;
+  const all = [];
+  for (const [, grp] of folderGroups) {
+    for (const v of grp.videos) all.push(v);
+  }
+  return all;
+}
+
+function updateBatchButtonState() {
+  const vids = getAllLoadedVideos();
+  batchGenerateBtn.disabled = vids.length === 0;
+  if (vids.length > 1) {
+    batchGenerateBtn.textContent = `複数動画 (${vids.length}本) を同時処理して一括作成`;
+  } else {
+    batchGenerateBtn.textContent = `複数動画を同時処理して一括作成`;
+  }
 }
 
 function renderTopSwitcher() {
   folderTabs.innerHTML = "";
   imageFileList.innerHTML = "";
   videoFileList.innerHTML = "";
-  viewerQuickSwitchList.innerHTML = "";
 
   let totalImgs = 0;
   let totalVids = 0;
@@ -1044,7 +969,9 @@ function renderTopSwitcher() {
     totalImgs += grp.images.length;
     totalVids += grp.videos.length;
   }
-  folderStatusLabel.textContent = `全 ${folderGroups.size} フォルダ （静止画 ${totalImgs} 枚 / 動画 ${totalVids} 本） クリックで即座に切り替え`;
+  folderStatusLabel.textContent = totalImgs + totalVids > 0
+    ? `全 ${folderGroups.size} フォルダ （静止画 ${totalImgs} 枚 / 動画 ${totalVids} 本）`
+    : "";
 
   for (const [folderName, grp] of folderGroups) {
     const tabBtn = document.createElement("button");
@@ -1054,6 +981,7 @@ function renderTopSwitcher() {
     tabBtn.textContent = `${folderName} (画像${grp.images.length} / 動画${grp.videos.length})`;
     tabBtn.addEventListener("click", () => {
       activeFolderName = folderName;
+      updateBatchButtonState();
       if (grp.videos.length > 0 && grp.videos[0].name !== activeVideoName) {
         loadVideoItem(grp.videos[0]);
       }
@@ -1077,26 +1005,19 @@ function renderTopSwitcher() {
     label.textContent = "静止画:";
     imageFileList.appendChild(label);
 
-    viewerQuickSwitchBar.style.display = "flex";
-
     for (const imgItem of activeGroup.images) {
       const isAct = imgItem.name === activeImageName;
       const chip = document.createElement("button");
       chip.className = "file-chip" + (isAct ? " active" : "");
       chip.textContent = imgItem.name;
-      chip.addEventListener("click", () => loadImageItemToViewer(imgItem));
+      chip.addEventListener("click", () => {
+        if (imgItem.pairedVideo && imgItem.pairedVideo.name !== activeVideoName) {
+          loadVideoItem(imgItem.pairedVideo);
+        }
+        loadImageItemToViewer(imgItem);
+      });
       imageFileList.appendChild(chip);
-
-      const qChip = document.createElement("button");
-      qChip.className = "file-chip" + (isAct ? " active" : "");
-      qChip.style.padding = "4px 10px";
-      qChip.style.fontSize = "0.8rem";
-      qChip.textContent = imgItem.name;
-      qChip.addEventListener("click", () => loadImageItemToViewer(imgItem));
-      viewerQuickSwitchList.appendChild(qChip);
     }
-  } else {
-    viewerQuickSwitchBar.style.display = "none";
   }
 
   if (activeGroup.videos.length > 0) {
@@ -1119,11 +1040,19 @@ function renderTopSwitcher() {
 }
 
 // =========================================================
-// 4. 画像の読み込み（ローカルFile ＆ GitHub URL両対応）と高さ再生成データ構築
+// 4. 画像の読み込み ＆ マスター譜面データからの高さ変更再生成
 // =========================================================
 function loadImageItemToViewer(imgItem) {
   activeImageName = imgItem.name;
   renderTopSwitcher();
+
+  // 同時処理などで既にマスターデータがメモリにある場合は即座に展開
+  if (imgItem.masterData) {
+    masterChartData = imgItem.masterData;
+    reLayoutBtn.disabled = false;
+    rebuildLayoutFromMaster();
+    return;
+  }
 
   const srcUrl = imgItem.file ? URL.createObjectURL(imgItem.file) : imgItem.url;
   const img = new Image();
@@ -1138,7 +1067,6 @@ function loadImageItemToViewer(imgItem) {
     playheadCanvas.height = img.height;
 
     currentViewFileName.textContent = `表示中: ${imgItem.name} (${img.width} x ${img.height} px)`;
-    resultArea.style.display = "block";
 
     extractMasterFromExternalImage(img, outCtx, imgItem.name);
     setupViewerAfterGenerate(chartMeta.numCols);
@@ -1163,7 +1091,7 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
   let calcCropW = W;
   let colMaxH = H;
 
-  if (W > H * 0.65 && expectedColMaxH > 400) {
+  if (W > H * 0.35 && expectedColMaxH > 400) {
     const scanY = headerH + colGap + Math.round(expectedColMaxH * 0.5);
     const rowData = ctx.getImageData(0, scanY, W, 1).data;
 
@@ -1183,7 +1111,7 @@ function extractMasterFromExternalImage(img, ctx, fileName) {
       }
     }
 
-    if (bestNumCols === 1) {
+    if (bestNumCols === 1 && W > H * 0.65) {
       let estCropW = currentColumnWidths || Math.round((video.videoWidth || 640) * ((parseFloat(cropRightSlider.value) - parseFloat(cropLeftSlider.value)) / 100));
       if (!estCropW || estCropW < 50) estCropW = 370;
       bestNumCols = Math.max(1, Math.round((W - colGap) / (estCropW + colGap)));
@@ -1271,7 +1199,7 @@ function rebuildLayoutFromMaster() {
   if (!masterChartData.hasData) return;
 
   const { cropW, totalHeight, chunks, tStart, tEnd, timeToYMap, sourceLabel } = masterChartData;
-  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 1800);
+  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
   const mode = layoutMode.value;
   const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
   const colGap = 14;
@@ -1369,8 +1297,7 @@ function rebuildLayoutFromMaster() {
     timeToYMap: timeToYMap
   };
 
-  currentViewFileName.textContent = `${sourceLabel || "再生成画像"} [1列の高さ: ${colMaxH}px / 全${numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
-  resultArea.style.display = "block";
+  currentViewFileName.textContent = `${sourceLabel || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列]`;
   setupViewerAfterGenerate(numCols);
   drawPlayheadOverlay();
 }
@@ -1389,10 +1316,12 @@ function loadVideoItem(vidItem) {
 
   const srcUrl = vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url;
   video.src = srcUrl;
+  video.muted = false;
+  video.volume = 1.0;
   video.load();
   video.onloadedmetadata = () => {
     previewCanvas.width = video.videoWidth || 640;
-    previewCanvas.height = video.videoHeight || 440;
+    previewCanvas.height = video.videoHeight || 360;
     const dur = video.duration;
     seekSlider.max = dur.toFixed(2);
 
@@ -1406,9 +1335,9 @@ function loadVideoItem(vidItem) {
       chartMeta.tEnd = defaultEnd;
     }
 
-    editorSection.style.opacity = "1";
     generateBtn.disabled = false;
     testGenerateBtn.disabled = false;
+    updateBatchButtonState();
 
     video.currentTime = defaultStart;
   };
@@ -1602,13 +1531,14 @@ seekSlider.addEventListener("input", () => {
   video.pause();
   video.currentTime = parseFloat(seekSlider.value);
 });
+
 function toggleVideoPlay() {
   if (!video.src) return;
+  video.muted = false;
   if (video.paused) video.play();
   else video.pause();
 }
 playPauseBtn.addEventListener("click", toggleVideoPlay);
-viewerPlayPauseBtn.addEventListener("click", toggleVideoPlay);
 
 setStartBtn.addEventListener("click", () => { startTimeInput.value = video.currentTime.toFixed(2); });
 setEndBtn.addEventListener("click", () => { endTimeInput.value = video.currentTime.toFixed(2); });
@@ -1653,19 +1583,19 @@ speedInput.addEventListener("input", () => {
   speedValLabel.textContent = `${v.toFixed(2)} %/秒`;
 });
 
-function seekTo(timeSec) {
+function seekVideoElementTo(vidElem, timeSec) {
   return new Promise((resolve) => {
-    const target = Math.min(Math.max(0, timeSec), video.duration || timeSec);
-    if (Math.abs(video.currentTime - target) < 0.0005) {
+    const target = Math.min(Math.max(0, timeSec), vidElem.duration || timeSec);
+    if (Math.abs(vidElem.currentTime - target) < 0.0005) {
       resolve();
       return;
     }
     const onSeeked = () => {
-      video.removeEventListener("seeked", onSeeked);
+      vidElem.removeEventListener("seeked", onSeeked);
       resolve();
     };
-    video.addEventListener("seeked", onSeeked);
-    video.currentTime = target;
+    vidElem.addEventListener("seeked", onSeeked);
+    vidElem.currentTime = target;
   });
 }
 
@@ -1719,6 +1649,8 @@ function matchFrameDisplacement(img1, img2, cw, h, minDy, maxDy) {
 autoSpeedBtn.addEventListener("click", async () => {
   if (!video.videoWidth) return;
   video.pause();
+  const prevMuted = video.muted;
+  video.muted = true;
   autoSpeedBtn.disabled = true;
   autoSpeedBtn.textContent = "計測中...";
 
@@ -1741,11 +1673,11 @@ autoSpeedBtn.addEventListener("click", async () => {
 
     for (let i = 0; i < 8; i++) {
       const t = tStart + ((tEnd - tStart) * (i + 1)) / 10;
-      await seekTo(t);
+      await seekVideoElementTo(video, t);
       ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
       const img1 = ctx.getImageData(0, 0, cw, h).data;
 
-      await seekTo(t + dt);
+      await seekVideoElementTo(video, t + dt);
       ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
       const img2 = ctx.getImageData(0, 0, cw, h).data;
 
@@ -1766,32 +1698,26 @@ autoSpeedBtn.addEventListener("click", async () => {
   } finally {
     autoSpeedBtn.disabled = false;
     autoSpeedBtn.textContent = "速度を自動計測する";
-    await seekTo(parseFloat(startTimeInput.value) || 2.0);
+    await seekVideoElementTo(video, parseFloat(startTimeInput.value) || 2.0);
+    video.muted = prevMuted;
   }
 });
 
 // =========================================================
-// 8. 高速マルチスライス＆マスターデータ保持型の譜面合成エンジン
+// 8. 単一動画 ＆ 複数動画同時処理（並列）対応の譜面合成エンジン
 // =========================================================
-async function generateChartImage(isTestMode = false) {
-  if (!video.videoWidth) return;
-  video.pause();
-
-  const startWallTime = performance.now();
-  generateBtn.disabled = true;
-  testGenerateBtn.disabled = true;
-  reLayoutBtn.disabled = true;
-  progressContainer.style.display = "block";
-
-  const w = video.videoWidth;
-  const h = video.videoHeight;
+async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, onStepProgress) {
+  const w = vidElem.videoWidth;
+  const h = vidElem.videoHeight;
   const x1 = Math.round(w * (parseFloat(cropLeftSlider.value) / 100));
   const x2 = Math.round(w * (parseFloat(cropRightSlider.value) / 100));
   const cropW = x2 - x1;
-  currentColumnWidths = cropW;
 
-  const tStart = parseFloat(startTimeInput.value) || 0;
-  const fullEnd = parseFloat(endTimeInput.value) || video.duration;
+  const dur = vidElem.duration || 120;
+  const userStart = parseFloat(startTimeInput.value);
+  const userEnd = parseFloat(endTimeInput.value);
+  const tStart = !isNaN(userStart) ? Math.min(userStart, dur * 0.5) : Math.min(2.1, dur * 0.1);
+  const fullEnd = (!isNaN(userEnd) && userEnd <= dur) ? userEnd : Math.max(tStart + 1, dur > 8 ? dur - 4.0 : dur);
   const tEnd = isTestMode ? Math.min(fullEnd, tStart + 12.0) : fullEnd;
   const duration = Math.max(0.5, tEnd - tStart);
 
@@ -1799,10 +1725,10 @@ async function generateChartImage(isTestMode = false) {
   const baseSpeedPxPerSec = h * (baseSpeedPct / 100);
 
   const qMode = qualitySelect.value;
-  let stepPx = 20;
-  let overlapPx = 3;
-  if (qMode === "fast_ultra") { stepPx = 20; overlapPx = 3; }
-  else if (qMode === "turbo") { stepPx = 38; overlapPx = 4; }
+  let stepPx = 38;
+  let overlapPx = 4;
+  if (qMode === "turbo") { stepPx = 38; overlapPx = 4; }
+  else if (qMode === "fast_ultra") { stepPx = 20; overlapPx = 3; }
   else if (qMode === "ultra") { stepPx = 4; overlapPx = 2; }
   else if (qMode === "high") { stepPx = 8; overlapPx = 2; }
   else if (qMode === "normal") { stepPx = 16; overlapPx = 2; }
@@ -1870,8 +1796,8 @@ async function generateChartImage(isTestMode = false) {
 
     for (let step = 0; step <= totalSteps; step++) {
       const exactTime = tStart + step * dtTrack;
-      await seekTo(exactTime);
-      fCtx.drawImage(video, x1, 0, cropW, h, 0, 0, cropW, h);
+      await seekVideoElementTo(vidElem, exactTime);
+      fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
       const currImgData = fCtx.getImageData(0, 0, cropW, h).data;
 
       if (step === 0) {
@@ -1879,7 +1805,7 @@ async function generateChartImage(isTestMode = false) {
           drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
           currentBottomY += bottomBaseH;
         }
-        timeToYMap.push({ time: video.currentTime, bottomY: currentBottomY });
+        timeToYMap.push({ time: vidElem.currentTime, bottomY: currentBottomY });
         prevImgData = currImgData;
         continue;
       }
@@ -1887,11 +1813,8 @@ async function generateChartImage(isTestMode = false) {
       const maxSearchDy = Math.min(Math.round(h * 0.25), Math.max(30, Math.round(lastValidDy * 2.5)));
       let trackedDy = matchFrameDisplacement(prevImgData, currImgData, cropW, h, 0, maxSearchDy);
 
-      if (trackedDy < 0) {
-        trackedDy = lastValidDy;
-      } else {
-        lastValidDy = trackedDy * 0.7 + lastValidDy * 0.3;
-      }
+      if (trackedDy < 0) trackedDy = lastValidDy;
+      else lastValidDy = trackedDy * 0.7 + lastValidDy * 0.3;
 
       if (trackedDy > 0.4) {
         const sy = Math.max(0, Math.min(h - trackedDy, capY - trackedDy));
@@ -1904,7 +1827,7 @@ async function generateChartImage(isTestMode = false) {
         currentBottomY += trackedDy;
       }
 
-      timeToYMap.push({ time: video.currentTime, bottomY: currentBottomY });
+      timeToYMap.push({ time: vidElem.currentTime, bottomY: currentBottomY });
       prevImgData = currImgData;
 
       if (step === totalSteps) {
@@ -1915,11 +1838,8 @@ async function generateChartImage(isTestMode = false) {
         }
       }
 
-      if (step % 5 === 0 || step === totalSteps) {
-        const pct = Math.round(((step + 1) / (totalSteps + 1)) * 100);
-        progressPercent.textContent = `${pct}%`;
-        progressBar.style.width = `${pct}%`;
-        progressText.textContent = `自動追跡で合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
+      if (onStepProgress && (step % 5 === 0 || step === totalSteps)) {
+        onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd);
       }
     }
   } else {
@@ -1929,12 +1849,12 @@ async function generateChartImage(isTestMode = false) {
 
     for (let step = 0; step <= totalSteps; step++) {
       const exactTime = tStart + (step * stepPx) / baseSpeedPxPerSec;
-      await seekTo(exactTime);
+      await seekVideoElementTo(vidElem, exactTime);
 
-      const timeDiff = video.currentTime - exactTime;
+      const timeDiff = vidElem.currentTime - exactTime;
       const subPixelShiftY = timeDiff * baseSpeedPxPerSec;
 
-      fCtx.drawImage(video, x1, 0, cropW, h, 0, 0, cropW, h);
+      fCtx.drawImage(vidElem, x1, 0, cropW, h, 0, 0, cropW, h);
 
       if (step === 0 && bottomBaseH > 0) {
         drawSliceToMaster(frameCanvas, capY + subPixelShiftY, bottomBaseH, 0, 1.0);
@@ -1958,11 +1878,8 @@ async function generateChartImage(isTestMode = false) {
         currentBottomY += topCapH;
       }
 
-      if (step % 8 === 0 || step === totalSteps) {
-        const pct = Math.round(((step + 1) / (totalSteps + 1)) * 100);
-        progressPercent.textContent = `${pct}%`;
-        progressBar.style.width = `${pct}%`;
-        progressText.textContent = `高速合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
+      if (onStepProgress && (step % 8 === 0 || step === totalSteps)) {
+        onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd);
       }
     }
   }
@@ -1970,14 +1887,12 @@ async function generateChartImage(isTestMode = false) {
   const totalHeight = Math.max(100, Math.round(currentBottomY));
 
   if (blackBgToggle.checked) {
-    progressText.textContent = "背景を黒に変換中...";
-    await new Promise(r => setTimeout(r, 10));
     for (let k = 0; k < masterChunks.length; k++) {
       applyBlackBackgroundFilter(masterCtxs[k], cropW, MASTER_CHUNK_H);
     }
   }
 
-  masterChartData = {
+  return {
     hasData: true,
     cropW: cropW,
     totalHeight: totalHeight,
@@ -1985,19 +1900,160 @@ async function generateChartImage(isTestMode = false) {
     tStart: tStart,
     tEnd: tEnd,
     timeToYMap: timeToYMap,
-    sourceLabel: activeVideoName ? `${activeVideoName} からの生成譜面` : "動画からの生成譜面"
+    sourceLabel: sourceName
   };
+}
 
-  rebuildLayoutFromMaster();
+async function generateChartImage(isTestMode = false) {
+  if (!video.videoWidth) return;
+  video.pause();
+  const prevMuted = video.muted;
+  video.muted = true;
 
-  const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-  progressText.textContent = `譜面静止画の作成が完了しました（処理時間: ${elapsedSec}秒）`;
-  generateBtn.disabled = false;
-  testGenerateBtn.disabled = false;
-  reLayoutBtn.disabled = false;
+  const startWallTime = performance.now();
+  generateBtn.disabled = true;
+  batchGenerateBtn.disabled = true;
+  testGenerateBtn.disabled = true;
+  reLayoutBtn.disabled = true;
+  progressContainer.style.display = "block";
+
+  try {
+    masterChartData = await buildMasterDataForVideoElement(
+      video,
+      activeVideoName ? `${activeVideoName} の生成譜面` : "生成譜面",
+      isTestMode,
+      (ratio, exactTime, tEnd) => {
+        const pct = Math.round(ratio * 100);
+        progressPercent.textContent = `${pct}%`;
+        progressBar.style.width = `${pct}%`;
+        progressText.textContent = `合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
+      }
+    );
+
+    rebuildLayoutFromMaster();
+
+    const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
+    progressText.textContent = `譜面静止画の作成が完了しました（処理時間: ${elapsedSec}秒）`;
+  } finally {
+    video.muted = prevMuted;
+    generateBtn.disabled = false;
+    updateBatchButtonState();
+    testGenerateBtn.disabled = false;
+    reLayoutBtn.disabled = false;
+  }
+}
+
+// 複数動画同時処理（並列ワーカー実行）
+async function processMultipleVideosConcurrently() {
+  const vids = getAllLoadedVideos();
+  if (vids.length === 0) return;
+  if (vids.length === 1) {
+    await generateChartImage(false);
+    return;
+  }
+
+  video.pause();
+  const startWallTime = performance.now();
+  generateBtn.disabled = true;
+  batchGenerateBtn.disabled = true;
+  testGenerateBtn.disabled = true;
+  reLayoutBtn.disabled = true;
+  progressContainer.style.display = "block";
+
+  const progressMap = new Float32Array(vids.length);
+  function updateBatchProgressUI() {
+    let sum = 0;
+    for (let i = 0; i < progressMap.length; i++) sum += progressMap[i];
+    const pct = Math.round((sum / vids.length) * 100);
+    progressPercent.textContent = `${pct}%`;
+    progressBar.style.width = `${pct}%`;
+    progressText.textContent = `複数動画 (${vids.length}本) を同時処理中... (${pct}%)`;
+  }
+
+  // 最大3本ずつ並列にデコード＆スティッチングを実行
+  const concurrency = Math.min(3, vids.length);
+  let cursor = 0;
+  const generatedEntries = [];
+
+  async function worker() {
+    while (cursor < vids.length) {
+      const idx = cursor++;
+      const vidItem = vids[idx];
+      const tempVid = document.createElement("video");
+      tempVid.playsInline = true;
+      tempVid.muted = true;
+      tempVid.crossOrigin = "anonymous";
+      const srcUrl = vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url;
+      tempVid.src = srcUrl;
+      tempVid.load();
+
+      await new Promise((resolve) => {
+        tempVid.onloadedmetadata = resolve;
+        tempVid.onerror = resolve;
+      });
+
+      if (tempVid.videoWidth) {
+        const baseName = vidItem.name.replace(/\.[^.]+$/, "");
+        const chartName = `${baseName}_譜面.png`;
+        const mData = await buildMasterDataForVideoElement(
+          tempVid,
+          chartName,
+          false,
+          (ratio) => {
+            progressMap[idx] = ratio;
+            updateBatchProgressUI();
+          }
+        );
+        progressMap[idx] = 1.0;
+        updateBatchProgressUI();
+        generatedEntries.push({
+          name: chartName,
+          file: null,
+          url: null,
+          masterData: mData,
+          pairedVideo: vidItem
+        });
+      }
+
+      if (vidItem.file) URL.revokeObjectURL(srcUrl);
+      tempVid.src = "";
+    }
+  }
+
+  try {
+    const workers = [];
+    for (let w = 0; w < concurrency; w++) workers.push(worker());
+    await Promise.all(workers);
+
+    // 生成されたすべての静止画を現在のフォルダの静止画リストに登録
+    if (generatedEntries.length > 0) {
+      if (!activeFolderName || !folderGroups.has(activeFolderName)) {
+        activeFolderName = "同時処理結果";
+        folderGroups.set(activeFolderName, { images: [], videos: vids });
+      }
+      const grp = folderGroups.get(activeFolderName);
+      for (const entry of generatedEntries) {
+        const existIdx = grp.images.findIndex(img => img.name === entry.name);
+        if (existIdx >= 0) grp.images[existIdx] = entry;
+        else grp.images.push(entry);
+      }
+
+      switcherContent.style.display = "block";
+      loadImageItemToViewer(generatedEntries[0]);
+    }
+
+    const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
+    progressText.textContent = `全 ${generatedEntries.length} 本の動画の同時処理が完了しました（処理時間: ${elapsedSec}秒） 上部のバーからワンクリックで切り替えられます`;
+  } finally {
+    generateBtn.disabled = false;
+    updateBatchButtonState();
+    testGenerateBtn.disabled = false;
+    reLayoutBtn.disabled = false;
+  }
 }
 
 generateBtn.addEventListener("click", () => generateChartImage(false));
+batchGenerateBtn.addEventListener("click", processMultipleVideosConcurrently);
 testGenerateBtn.addEventListener("click", () => generateChartImage(true));
 
 // =========================================================
@@ -2050,7 +2106,7 @@ function zoomAtCenter(factor) {
   const vh = viewerViewport.clientHeight;
   const cx = vw / 2;
   const cy = vh / 2;
-  const newScale = Math.min(4.0, Math.max(0.08, vScale * factor));
+  const newScale = Math.min(4.0, Math.max(0.05, vScale * factor));
   const ratio = newScale / vScale;
   vX = cx - (cx - vX) * ratio;
   vY = cy - (cy - vY) * ratio;
@@ -2072,7 +2128,7 @@ function setupViewerAfterGenerate(numCols) {
       btn.addEventListener("click", () => {
         const colGap = chartMeta.colGap || 14;
         const colX = colGap + c * (chartMeta.cropW + colGap);
-        vScale = Math.min(1.2, Math.max(0.6, viewerViewport.clientWidth / (chartMeta.cropW * 2.2)));
+        vScale = Math.min(1.2, Math.max(0.4, viewerViewport.clientWidth / (chartMeta.cropW * 2.2)));
         vX = 30 - colX * vScale;
         vY = 10;
         updateViewerTransform();
@@ -2118,7 +2174,7 @@ fullscreenBtn.addEventListener("click", () => {
   if (viewerBox.classList.contains("fullscreen")) {
     fullscreenBtn.textContent = "全画面を閉じる (Esc)";
   } else {
-    fullscreenBtn.textContent = "全画面で大きく見る";
+    fullscreenBtn.textContent = "全画面表示";
   }
   setTimeout(fitViewerAll, 50);
 });
@@ -2126,7 +2182,7 @@ fullscreenBtn.addEventListener("click", () => {
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && viewerBox.classList.contains("fullscreen")) {
     viewerBox.classList.remove("fullscreen");
-    fullscreenBtn.textContent = "全画面で大きく見る";
+    fullscreenBtn.textContent = "全画面表示";
     setTimeout(fitViewerAll, 50);
   }
 });
@@ -2137,7 +2193,7 @@ viewerViewport.addEventListener("wheel", (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
   const factor = e.deltaY < 0 ? 1.15 : 0.87;
-  const newScale = Math.min(4.5, Math.max(0.08, vScale * factor));
+  const newScale = Math.min(4.5, Math.max(0.05, vScale * factor));
   const ratio = newScale / vScale;
   vX = mx - (mx - vX) * ratio;
   vY = my - (my - vY) * ratio;
@@ -2166,13 +2222,15 @@ window.addEventListener("mouseup", () => {
 // 10. PNG画像＆ZIP一括ダウンロード保存
 // =========================================================
 downloadPngBtn.addEventListener("click", () => {
+  if (!outputCanvas.width) return;
   outputCanvas.toBlob((blob) => {
-    const hVal = parseInt(colHeightInput.value, 10) || 1800;
+    const hVal = parseInt(colHeightInput.value, 10) || 5400;
     downloadBlob(blob, `Proseka_Chart_${hVal}px.png`);
   }, "image/png");
 });
 
 downloadResultZipBtn.addEventListener("click", async () => {
+  if (!outputCanvas.width) return;
   downloadResultZipBtn.disabled = true;
   downloadResultZipBtn.textContent = "ZIPファイルを作成中...";
   try {
@@ -2190,7 +2248,7 @@ downloadResultZipBtn.addEventListener("click", async () => {
     downloadBlob(zipBlob, "Proseka_Chart_Images.zip");
   } finally {
     downloadResultZipBtn.disabled = false;
-    downloadResultZipBtn.textContent = "全体画像＋列ごとの分割画像をZIPで保存";
+    downloadResultZipBtn.textContent = "全体＋分割画像をZIPで保存";
   }
 });
 </script>

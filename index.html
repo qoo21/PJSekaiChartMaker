@@ -235,7 +235,7 @@
 <div class="container">
   <header>
     <div>
-      <h1>プロセカ譜面動画 静止画メーカー</h1>
+      <h1>プロセカ譜面動画 変換ソフト</h1>
     </div>
     <div id="headerControls" style="display:flex; gap:8px; flex-wrap:wrap; transition:opacity 0.2s;">
       <button class="btn" id="linkRootFolderBtn">同階層フォルダを登録（自動読み込み・自動保存設定）</button>
@@ -245,7 +245,6 @@
       <input type="file" id="videoInput" accept="video/*" multiple style="display:none;">
       <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
       <input type="file" id="imagesInput" accept="image/*" multiple style="display:none;">
-      <input type="file" id="settingsFileInput" accept=".json" style="display:none;">
     </div>
   </header>
 
@@ -320,7 +319,7 @@
       </div>
     </div>
 
-    <!-- 4. 詳細設定タブ（切り抜き範囲・黒背景フィルター・速度設定・設定ファイル管理） -->
+    <!-- 4. 詳細設定タブ（切り抜き範囲・解像度・黒背景フィルター・固定スクロール速度） -->
     <details class="details-tab-wrap" id="detailsTab">
       <summary class="details-tab-summary">
         <span>詳細設定を開く / 閉じる</span>
@@ -330,7 +329,7 @@
       <div class="details-tab-body">
         <div class="grid-2">
           <div>
-            <!-- 時間と左右切り抜き（デフォルト：動画全体 0秒〜終了秒 / 左0%〜右100%） -->
+            <!-- 時間と左右切り抜き（デフォルト：時間=動画全体 / 左右=左18%〜右78.5%） -->
             <div class="control-group">
               <label><span>合成する時間範囲 ＆ 左右の切り抜き範囲</span></label>
               <div class="inline-inputs">
@@ -344,22 +343,23 @@
                 <button class="btn btn-secondary" id="setEndBtn" style="padding:5px 9px; font-size:0.8rem;">今の位置を終了</button>
               </div>
               <div class="inline-inputs" style="margin-top:8px;">
-                <span style="width:65px; font-size:0.85rem;">左端 <span id="leftVal">0.0</span>%:</span>
-                <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="0" style="flex:1;">
-                <span style="width:72px; font-size:0.85rem;">右端 <span id="rightVal">100.0</span>%:</span>
-                <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="100" style="flex:1;">
+                <span style="width:65px; font-size:0.85rem;">左端 <span id="leftVal">18.0</span>%:</span>
+                <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="18" style="flex:1;">
+                <span style="width:72px; font-size:0.85rem;">右端 <span id="rightVal">78.5</span>%:</span>
+                <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
               </div>
             </div>
 
-            <!-- 設定ファイルの保存・読み込み管理 -->
+            <!-- 処理・出力の解像度設定 -->
             <div class="control-group">
-              <label>
-                <span>設定ファイル（pjsekai_settings.json）の保持</span>
-                <span class="hint" id="settingsSaveStatus">変更時に自動保存されます</span>
-              </label>
+              <label><span>処理・出力の解像度</span></label>
               <div class="inline-inputs">
-                <button class="btn btn-secondary" id="exportSettingsBtn" style="padding:6px 12px; font-size:0.84rem;">設定ファイルを保存 (.json)</button>
-                <button class="btn btn-secondary" id="importSettingsBtn" style="padding:6px 12px; font-size:0.84rem;">設定ファイルを読み込む</button>
+                <select id="resolutionSelect" class="num-input" style="width:100%;">
+                  <option value="original">原寸 100%（元動画の解像度のまま・最高画質）</option>
+                  <option value="1080">高画質（高さ最大 1080px 相当）</option>
+                  <option value="720" selected>標準（高さ最大 720px 相当・安定＆高精細）</option>
+                  <option value="560">軽量（高さ最大 560px 相当・メモリ節約）</option>
+                </select>
               </div>
             </div>
           </div>
@@ -385,25 +385,19 @@
               </div>
             </div>
 
-            <!-- スクロール速度＆自動キャリブレーション設定 -->
+            <!-- スクロール速度（1つの基準速度で固定） -->
             <div class="control-group">
-              <label class="checkbox-row" style="margin-bottom:6px;">
-                <input type="checkbox" id="autoCalibToggle" checked>
-                <span>動画ごとに基準速度を自動検出して合わせる（速度違いの動画に対応）</span>
+              <label>
+                <span>スクロール速度（画面高さに対する % / 秒）</span>
+                <span id="speedValLabel">47.50 %/秒</span>
               </label>
-              <div id="manualSpeedControls">
-                <label>
-                  <span>スクロール速度（画面高さに対する % / 秒）</span>
-                  <span id="speedValLabel">47.50 %/秒</span>
-                </label>
-                <input type="range" id="speedSlider" min="15" max="110" step="0.02" value="47.50">
-                <div class="inline-inputs" style="justify-content: space-between;">
-                  <div>
-                    <span>微調整:</span>
-                    <input type="number" id="speedInput" class="num-input" step="0.02" value="47.50">
-                  </div>
-                  <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">今すぐ速度を自動計測する</button>
+              <input type="range" id="speedSlider" min="15" max="110" step="0.02" value="47.50">
+              <div class="inline-inputs" style="justify-content: space-between;">
+                <div>
+                  <span>微調整:</span>
+                  <input type="number" id="speedInput" class="num-input" step="0.02" value="47.50">
                 </div>
+                <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">速度を自動計測する</button>
               </div>
             </div>
           </div>
@@ -463,6 +457,10 @@
     <div class="viewer-bottom-save-bar" id="bottomSaveBar">
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <button class="btn" id="downloadPngBtn">1枚の譜面画像 (.png) を保存</button>
+        <div style="display:flex; gap:6px; align-items:center; background:#0d121d; padding:4px 10px; border-radius:8px; border:1px solid #26314d;">
+          <input type="text" id="targetColInput" class="num-input" placeholder="例: 1" value="1" style="width:70px; padding:4px 8px; font-size:0.86rem;">
+          <button class="btn btn-secondary" id="downloadSingleColBtn" style="padding:5px 12px; font-size:0.86rem;">指定列のみ保存 (.png)</button>
+        </div>
         <button class="btn btn-secondary" id="downloadResultZipBtn">全体＋分割画像をZIPで保存</button>
       </div>
       <span class="hint" id="bottomSaveStatusLabel"></span>
@@ -601,7 +599,7 @@ async function canvasToUint8Array(canvas) {
 }
 
 // =========================================================
-// 2. 高速化された黒背景フィルター
+// 2. 【新改善1】ノーツの上下フチ削れ（極細化）を防ぐ黒背景フィルター
 // =========================================================
 const blackBgToggle = document.getElementById("blackBgToggle");
 const bgThreshSlider = document.getElementById("bgThreshSlider");
@@ -614,18 +612,16 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 
   const thresh = parseInt(bgThreshSlider.value, 10) || 36;
   const gridBoost = parseFloat(gridBoostSlider.value) || 0.5;
-  const threshPlus22 = thresh + 22;
-  const threshPlus6 = thresh + 6;
-  const threshMinus5 = thresh - 5;
-  const threshMinus15 = thresh - 15;
 
   const imgData = ctx.getImageData(0, 0, width, height);
   const data = imgData.data;
   const totalPixels = width * height;
-  const lum = new Float32Array(totalPixels);
 
+  // 16分線・縦レーン線検出用の明度配列（明るいノーツの隣で線が消えるのを防ぐため上限キャップ 85 を設ける）
+  const bgLum = new Float32Array(totalPixels);
   for (let i = 0, p = 0; p < totalPixels; i += 4, p++) {
-    lum[p] = data[i] * 0.25 + data[i + 1] * 0.45 + data[i + 2] * 0.30;
+    const l = data[i] * 0.25 + data[i + 1] * 0.45 + data[i + 2] * 0.30;
+    bgLum[p] = l > 85 ? 85 : l;
   }
 
   for (let y = 0; y < height; y++) {
@@ -646,30 +642,37 @@ function applyBlackBackgroundFilter(ctx, width, height) {
       const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
       const sat = maxC - minC;
 
-      const isNoteOrText = (maxC > threshPlus22) || (g > threshPlus6) || (sat > 38 && maxC > threshMinus5);
+      // 背景の透かしイラストは「暗い紺色〜赤紫（Gが低く、RとBがわずかに高い）」という特徴がある。
+      // 一方、ノーツ（水色・緑・黄色・ピンク・白）やノーツのアンチエイリアス境界は G が高いか彩度・明度が高い。
+      const isNoteOrEdge =
+        (maxC > thresh + 14) ||
+        (g > thresh - 2 && g >= r - 8) ||
+        (sat > 26 && maxC > thresh - 10);
 
-      if (isNoteOrText) {
-        let alpha = (maxC - threshMinus15) * 0.02857;
+      if (isNoteOrEdge) {
+        // ノーツの上下端のフチが削れて極細にならないよう、最低でも 0.55 以上の輝度維持率で滑らかに保護する
+        let alpha = (maxC - (thresh - 20)) * 0.035;
         if (alpha > 1.0) alpha = 1.0;
-        else if (alpha < 0.2) alpha = 0.2;
-        const factor = maxC < 120 ? alpha * 1.12 : alpha;
-        data[idx]     = r * factor > 255 ? 255 : r * factor;
-        data[idx + 1] = g * factor > 255 ? 255 : g * factor;
-        data[idx + 2] = b * factor > 255 ? 255 : b * factor;
+        else if (alpha < 0.55) alpha = 0.55;
+        const boost = maxC < 130 ? alpha * 1.12 : alpha;
+        data[idx]     = r * boost > 255 ? 255 : r * boost;
+        data[idx + 1] = g * boost > 255 ? 255 : g * boost;
+        data[idx + 2] = b * boost > 255 ? 255 : b * boost;
       } else {
-        const vBg = (lum[yUp + x] + lum[yDown + x]) * 0.5;
-        const h1 = lum[p] - vBg;
-        const h2 = (lum[yUp1 + x] + lum[yDown1 + x]) * 0.5 - vBg;
+        const rawLum = r * 0.25 + g * 0.45 + b * 0.30;
+        const vBg = (bgLum[yUp + x] + bgLum[yDown + x]) * 0.5;
+        const h1 = rawLum - vBg;
+        const h2 = (bgLum[yUp1 + x] + bgLum[yDown1 + x]) * 0.5 - vBg;
         const hLinePeak = h1 > h2 ? (h1 > 0 ? h1 : 0) : (h2 > 0 ? h2 : 0);
 
         const xLeft = x > 1 ? x - 2 : 0;
         const xRight = x < width - 2 ? x + 2 : width - 1;
-        const hBg = (lum[rowOffset + xLeft] + lum[rowOffset + xRight]) * 0.5;
-        const vLinePeak = (lum[p] - hBg) * 0.9;
+        const hBg = (bgLum[rowOffset + xLeft] + bgLum[rowOffset + xRight]) * 0.5;
+        const vLinePeak = (rawLum - hBg) * 0.9;
 
         const lineStrength = hLinePeak > vLinePeak ? hLinePeak : vLinePeak;
 
-        if (lineStrength > 2.2) {
+        if (lineStrength > 2.0) {
           let lineVal = (lineStrength * 8.5 * gridBoost) | 0;
           if (lineVal > 220) lineVal = 220;
           data[idx]     = (lineVal * 0.78) | 0;
@@ -688,7 +691,7 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 }
 
 // =========================================================
-// 3. UI要素・設定ファイル自動保存/読み込み・フォルダ管理
+// 3. UI要素・裏での自動設定保存/読み込み・フォルダ管理
 // =========================================================
 const video = document.getElementById("videoPreview");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -700,7 +703,6 @@ const headerControls = document.getElementById("headerControls");
 const videoInput = document.getElementById("videoInput");
 const folderInput = document.getElementById("folderInput");
 const imagesInput = document.getElementById("imagesInput");
-const settingsFileInput = document.getElementById("settingsFileInput");
 const linkRootFolderBtn = document.getElementById("linkRootFolderBtn");
 const selectVideoBtn = document.getElementById("selectVideoBtn");
 const selectFolderBtn = document.getElementById("selectFolderBtn");
@@ -729,16 +731,12 @@ const cropLeftSlider = document.getElementById("cropLeftSlider");
 const cropRightSlider = document.getElementById("cropRightSlider");
 const leftVal = document.getElementById("leftVal");
 const rightVal = document.getElementById("rightVal");
+const resolutionSelect = document.getElementById("resolutionSelect");
 
-const autoCalibToggle = document.getElementById("autoCalibToggle");
 const speedSlider = document.getElementById("speedSlider");
 const speedInput = document.getElementById("speedInput");
 const speedValLabel = document.getElementById("speedValLabel");
 const autoSpeedBtn = document.getElementById("autoSpeedBtn");
-
-const exportSettingsBtn = document.getElementById("exportSettingsBtn");
-const importSettingsBtn = document.getElementById("importSettingsBtn");
-const settingsSaveStatus = document.getElementById("settingsSaveStatus");
 
 const genActionGroup = document.getElementById("genActionGroup");
 const reLayoutActionGroup = document.getElementById("reLayoutActionGroup");
@@ -774,31 +772,32 @@ const playheadOffsetInput = document.getElementById("playheadOffsetInput");
 const resetOffsetBtn = document.getElementById("resetOffsetBtn");
 
 const SETTINGS_FILE_NAME = "pjsekai_settings.json";
-const LOCAL_STORAGE_SETTINGS_KEY = "PJSekaiChartMaker_Settings_v2";
+const LOCAL_STORAGE_SETTINGS_KEY = "PJSekaiChartMaker_Settings_AutoV9";
 
 let currentColumnWidths = 0;
 let activeVideoName = "";
 let cancelGenerationRequested = false;
 let isGenerating = false;
 
-// フォルダごとのセット管理マップ: folderName -> { images: [entry], videos: [entry], dirHandle: FileSystemDirectoryHandle|null }
+const activeSeekResolvers = new Set();
+
 const folderGroups = new Map();
 let activeFolderName = "";
 let savedDirectoryHandle = null;
 
 // =========================================================
-// 設定ファイル (pjsekai_settings.json) の収集・反映・自動保存/自動読込
+// 設定ファイル (pjsekai_settings.json) のバックグラウンド自動保存/自動読込
 // =========================================================
 function collectCurrentSettings() {
   const cLeft = parseFloat(cropLeftSlider.value);
   const cRight = parseFloat(cropRightSlider.value);
   return {
-    cropLeft: isNaN(cLeft) ? 0 : cLeft,
-    cropRight: isNaN(cRight) ? 100 : cRight,
+    cropLeft: isNaN(cLeft) ? 18 : cLeft,
+    cropRight: isNaN(cRight) ? 78.5 : cRight,
+    resolution: resolutionSelect.value || "720",
     blackBg: blackBgToggle.checked,
     bgThresh: parseInt(bgThreshSlider.value, 10) || 36,
     gridBoost: parseFloat(gridBoostSlider.value) || 0.5,
-    autoCalib: autoCalibToggle.checked,
     speed: parseFloat(speedInput.value) || 47.50,
     colHeight: parseInt(colHeightInput.value, 10) || 5400,
     layoutMode: layoutMode.value || "grid",
@@ -810,6 +809,10 @@ function collectCurrentSettings() {
 
 function applySettingsObject(s) {
   if (!s || typeof s !== "object") return;
+  if (s.cropLeft === 0 && s.cropRight === 100) {
+    s.cropLeft = 18;
+    s.cropRight = 78.5;
+  }
   if (typeof s.cropLeft === "number") {
     cropLeftSlider.value = s.cropLeft;
     leftVal.textContent = s.cropLeft.toFixed(1);
@@ -817,6 +820,9 @@ function applySettingsObject(s) {
   if (typeof s.cropRight === "number") {
     cropRightSlider.value = s.cropRight;
     rightVal.textContent = s.cropRight.toFixed(1);
+  }
+  if (typeof s.resolution === "string" && ["original", "1080", "720", "560"].includes(s.resolution)) {
+    resolutionSelect.value = s.resolution;
   }
   if (typeof s.blackBg === "boolean") blackBgToggle.checked = s.blackBg;
   if (typeof s.bgThresh === "number") {
@@ -827,7 +833,6 @@ function applySettingsObject(s) {
     gridBoostSlider.value = s.gridBoost;
     gridBoostLabel.textContent = `${s.gridBoost.toFixed(1)}倍`;
   }
-  if (typeof s.autoCalib === "boolean") autoCalibToggle.checked = s.autoCalib;
   if (typeof s.speed === "number") {
     speedSlider.value = s.speed.toFixed(2);
     speedInput.value = s.speed.toFixed(2);
@@ -859,29 +864,22 @@ function scheduleSaveSettings() {
   clearTimeout(saveSettingsTimer);
   saveSettingsTimer = setTimeout(async () => {
     await saveSettingsFileToRootFolder();
-  }, 350);
+  }, 300);
 }
 
 async function saveSettingsFileToRootFolder() {
-  const s = collectCurrentSettings();
-  const jsonText = JSON.stringify(s, null, 2);
-
-  if (!savedDirectoryHandle) {
-    settingsSaveStatus.textContent = "ブラウザ内に設定を自動保存しました";
-    return;
-  }
+  if (!savedDirectoryHandle) return;
   try {
     const perm = await savedDirectoryHandle.queryPermission({ mode: "readwrite" });
     if (perm === "granted") {
+      const s = collectCurrentSettings();
+      const jsonText = JSON.stringify(s, null, 2);
       const fileHandle = await savedDirectoryHandle.getFileHandle(SETTINGS_FILE_NAME, { create: true });
       const writable = await fileHandle.createWritable();
       await writable.write(jsonText);
       await writable.close();
-      settingsSaveStatus.textContent = `設定ファイル (${SETTINGS_FILE_NAME}) に自動保存しました`;
     }
-  } catch (e) {
-    settingsSaveStatus.textContent = "ブラウザ内に設定を自動保存しました";
-  }
+  } catch (e) {}
 }
 
 async function loadSettingsFileFromRootHandle(dirHandle) {
@@ -893,53 +891,27 @@ async function loadSettingsFileFromRootHandle(dirHandle) {
     const parsed = JSON.parse(text);
     applySettingsObject(parsed);
     localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(parsed));
-    settingsSaveStatus.textContent = `${SETTINGS_FILE_NAME} から設定を自動読み込みしました`;
     return true;
   } catch (e) {
     return false;
   }
 }
 
-exportSettingsBtn.addEventListener("click", () => {
-  const s = collectCurrentSettings();
-  const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
-  downloadBlob(blob, SETTINGS_FILE_NAME);
-});
-
-importSettingsBtn.addEventListener("click", () => {
-  settingsFileInput.click();
-});
-
-settingsFileInput.addEventListener("change", async (e) => {
-  if (e.target.files && e.target.files[0]) {
-    try {
-      const text = await e.target.files[0].text();
-      const parsed = JSON.parse(text);
-      applySettingsObject(parsed);
-      scheduleSaveSettings();
-      if (masterChartData.hasData) rebuildLayoutFromMaster(false);
-    } catch (err) {}
-  }
-});
-
 // =========================================================
 // 生成した静止画をその動画のフォルダへ自動保存する関数
 // =========================================================
 async function autoSaveCanvasToFolder(folderName, targetCanvas) {
-  if (!folderName || !targetCanvas || !targetCanvas.width) return false;
+  if (!folderName || !targetCanvas || !targetCanvas.width || cancelGenerationRequested) return false;
   const grp = folderGroups.get(folderName);
   const dirHandle = (grp && grp.dirHandle) ? grp.dirHandle : savedDirectoryHandle;
   if (!dirHandle) return false;
 
   try {
     let perm = await dirHandle.queryPermission({ mode: "readwrite" });
-    if (perm !== "granted") {
-      perm = await dirHandle.requestPermission({ mode: "readwrite" });
-    }
     if (perm !== "granted") return false;
 
     const blob = await canvasToBlobSafe(targetCanvas);
-    if (!blob) return false;
+    if (!blob || cancelGenerationRequested) return false;
 
     const fileName = `${folderName}_譜面.png`;
     const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
@@ -968,7 +940,7 @@ async function autoSaveCanvasToFolder(folderName, targetCanvas) {
   }
 }
 
-// 画像生成中に「静止画プレビューの操作」と「停止ボタン」以外のすべてのUIをロックする関数
+// 画像生成中のロック制御
 function setGeneratingLock(locked) {
   isGenerating = locked;
   const lockTargets = [
@@ -988,9 +960,14 @@ function setGeneratingLock(locked) {
 
   viewerPlayPauseBtn.disabled = locked;
   stopGenerateBtn.disabled = !locked;
+
+  const tabBtns = folderTabs.querySelectorAll("button");
+  tabBtns.forEach(b => { b.disabled = locked; });
+
   if (!locked) {
-    generateBtn.disabled = !video.videoWidth;
-    testGenerateBtn.disabled = !video.videoWidth;
+    const hasVid = Boolean(video.src && video.videoWidth > 0);
+    generateBtn.disabled = !hasVid;
+    testGenerateBtn.disabled = !hasVid;
     updateBatchButtonState();
     reLayoutBtn.disabled = !masterChartData.hasData;
   }
@@ -1036,6 +1013,7 @@ let chartMeta = {
   tEnd: 120.0,
   scale: 1,
   renderScale: 1,
+  colRects: [],
   timeToYMap: []
 };
 
@@ -1232,7 +1210,6 @@ async function handleIncomingFiles(files) {
       try {
         const text = await f.text();
         applySettingsObject(JSON.parse(text));
-        settingsSaveStatus.textContent = `${SETTINGS_FILE_NAME} から設定を自動読み込みしました`;
       } catch (e) {}
     }
   }
@@ -1352,8 +1329,124 @@ function renderTopSwitcher() {
 }
 
 // =========================================================
-// 4. 画像の読み込み ＆ マスター譜面データからの高さ変更再生成
+// 4. 画像内の列領域を実測する検出エンジン ＆ 外部画像の読み込み
 // =========================================================
+function detectColumnRectsFromCanvas(ctx, W, H) {
+  const sampleYs = [
+    Math.round(H * 0.20),
+    Math.round(H * 0.35),
+    Math.round(H * 0.50),
+    Math.round(H * 0.65),
+    Math.round(H * 0.80)
+  ];
+
+  const refPixel = ctx.getImageData(Math.min(2, W - 1), Math.round(H * 0.5), 1, 1).data;
+  const refR = refPixel[0], refG = refPixel[1], refB = refPixel[2];
+
+  function isGapBgColor(r, g, b) {
+    const dRef = Math.abs(r - refR) + Math.abs(g - refG) + Math.abs(b - refB);
+    const dDark = Math.abs(r - 5) + Math.abs(g - 7) + Math.abs(b - 11);
+    const dNavy = Math.abs(r - 22) + Math.abs(g - 28) + Math.abs(b - 46);
+    return dRef <= 18 || dDark <= 18 || dNavy <= 22;
+  }
+
+  const rowDatas = sampleYs.map(y => ctx.getImageData(0, y, W, 1).data);
+  const isContentX = new Uint8Array(W);
+
+  for (let x = 0; x < W; x++) {
+    const idx = x * 4;
+    let allGap = true;
+    for (let s = 0; s < rowDatas.length; s++) {
+      const rd = rowDatas[s];
+      if (!isGapBgColor(rd[idx], rd[idx + 1], rd[idx + 2])) {
+        allGap = false;
+        break;
+      }
+    }
+    if (!allGap) isContentX[x] = 1;
+  }
+
+  const rawSpans = [];
+  let inSpan = false;
+  let startX = 0;
+  for (let x = 0; x < W; x++) {
+    if (isContentX[x] && !inSpan) {
+      inSpan = true;
+      startX = x;
+    } else if (!isContentX[x] && inSpan) {
+      inSpan = false;
+      rawSpans.push({ x1: startX, x2: x - 1 });
+    }
+  }
+  if (inSpan) rawSpans.push({ x1: startX, x2: W - 1 });
+
+  const mergedSpans = [];
+  for (const sp of rawSpans) {
+    if (mergedSpans.length === 0) {
+      mergedSpans.push({ ...sp });
+    } else {
+      const prev = mergedSpans[mergedSpans.length - 1];
+      const gapWidth = sp.x1 - prev.x2 - 1;
+      if (gapWidth < 6) {
+        prev.x2 = sp.x2;
+      } else {
+        mergedSpans.push({ ...sp });
+      }
+    }
+  }
+
+  const validSpans = mergedSpans.filter(sp => (sp.x2 - sp.x1 + 1) >= 60);
+
+  if (validSpans.length >= 2) {
+    const midX = Math.round((validSpans[0].x1 + validSpans[0].x2) * 0.5);
+    const colLineData = ctx.getImageData(midX, 0, 1, H).data;
+
+    let topY = 0;
+    for (let y = Math.min(80, Math.round(H * 0.15)); y >= 0; y--) {
+      const idx = y * 4;
+      if (Math.abs(colLineData[idx] - 43) < 25 && Math.abs(colLineData[idx + 2] - 86) < 30) {
+        topY = y;
+        break;
+      }
+    }
+    if (topY === 0) {
+      const estGap = validSpans[0].x1 > 0 ? validSpans[0].x1 : 14;
+      topY = Math.round(estGap * (50 / 14));
+    }
+
+    let bottomY = H - 1;
+    for (let y = H - 1; y >= H - Math.min(50, Math.round(H * 0.1)); y--) {
+      const idx = y * 4;
+      if (!isGapBgColor(colLineData[idx], colLineData[idx + 1], colLineData[idx + 2])) {
+        bottomY = y;
+        break;
+      }
+    }
+
+    const colH = Math.max(100, bottomY - topY + 1);
+    const rects = validSpans.map(sp => ({
+      x: sp.x1,
+      y: topY,
+      w: sp.x2 - sp.x1 + 1,
+      h: colH
+    }));
+    return { mode: "grid", rects };
+  }
+
+  if (validSpans.length === 1) {
+    const sp = validSpans[0];
+    return {
+      mode: "single",
+      rects: [{ x: sp.x1, y: 0, w: sp.x2 - sp.x1 + 1, h: H }]
+    };
+  }
+
+  return {
+    mode: "single",
+    rects: [{ x: 0, y: 0, w: W, h: H }]
+  };
+}
+
 function loadImageItemToViewer(imgItem) {
   if (imgItem.masterData && imgItem.masterData.hasData) {
     masterChartData = imgItem.masterData;
@@ -1391,47 +1484,14 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
   const tStart = !isNaN(parsedStart) ? parsedStart : 0.0;
   const tEnd = (!isNaN(parsedEnd) && parsedEnd > tStart) ? parsedEnd : (video.duration || 120.0);
 
-  const colGap = 14;
-  const headerH = 36;
-  const expectedColMaxH = H - headerH - colGap * 2;
-
-  let mode = "single";
-  let numCols = 1;
-  let calcCropW = W;
-  let colMaxH = H;
-
-  if (W > H * 0.22 && expectedColMaxH > 400) {
-    const scanY = headerH + colGap + Math.round(expectedColMaxH * 0.5);
-    const rowData = ctx.getImageData(0, scanY, W, 1).data;
-
-    let bestNumCols = 1;
-    for (let candCols = 2; candCols <= 40; candCols++) {
-      const cwFloat = (W - (candCols + 1) * colGap) / candCols;
-      if (cwFloat < 100 || cwFloat > 1200) continue;
-      if (Math.abs(cwFloat - Math.round(cwFloat)) < 0.2) {
-        const cw = Math.round(cwFloat);
-        const borderX = colGap + cw + 1;
-        const idx = borderX * 4;
-        if (Math.abs(rowData[idx] - 43) < 28 && Math.abs(rowData[idx + 2] - 86) < 32) {
-          bestNumCols = candCols;
-          calcCropW = cw;
-          break;
-        }
-      }
-    }
-
-    if (bestNumCols === 1 && W > H * 0.65) {
-      let estCropW = currentColumnWidths || 380;
-      bestNumCols = Math.max(1, Math.round((W - colGap) / (estCropW + colGap)));
-      calcCropW = Math.round((W - (bestNumCols + 1) * colGap) / bestNumCols);
-    }
-
-    if (bestNumCols > 1 && calcCropW >= 80) {
-      mode = "grid";
-      numCols = bestNumCols;
-      colMaxH = expectedColMaxH;
-    }
-  }
+  const detected = detectColumnRectsFromCanvas(ctx, W, H);
+  const colRects = detected.rects;
+  const mode = detected.mode;
+  const numCols = colRects.length;
+  const calcCropW = Math.round(colRects[0].w);
+  const colMaxH = Math.round(colRects[0].h);
+  const estColGap = numCols > 1 ? Math.max(0, colRects[1].x - (colRects[0].x + colRects[0].w)) : 0;
+  const estHeaderH = mode === "grid" ? Math.max(0, colRects[0].y - estColGap) : 0;
 
   currentColumnWidths = calcCropW;
   const totalHeight = numCols * colMaxH;
@@ -1452,8 +1512,9 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
   }
 
   for (let c = 0; c < numCols; c++) {
-    const sx = mode === "grid" ? colGap + c * (calcCropW + colGap) : 0;
-    const sy = mode === "grid" ? headerH + colGap : 0;
+    const rect = colRects[c];
+    const sx = rect.x;
+    const sy = rect.y;
 
     const colBottomStart = c * colMaxH;
     const startChunk = Math.floor(colBottomStart / MASTER_CHUNK_H);
@@ -1467,7 +1528,7 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
 
       const srcY = sy + (colMaxH - (overlapBottom - colBottomStart) - copyH);
       const dstY = MASTER_CHUNK_H - (overlapBottom - chunkBottomStart) - copyH;
-      chunks[k].getContext("2d").drawImage(img, sx, srcY, calcCropW, copyH, 0, dstY, calcCropW, copyH);
+      chunks[k].getContext("2d").drawImage(img, sx, srcY, rect.w, copyH, 0, dstY, calcCropW, copyH);
     }
   }
 
@@ -1491,8 +1552,8 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     numCols: numCols,
     cropW: calcCropW,
     colMaxH: colMaxH,
-    colGap: mode === "grid" ? colGap : 0,
-    headerH: mode === "grid" ? headerH : 0,
+    colGap: estColGap,
+    headerH: estHeaderH,
     totalHeight: totalHeight,
     bottomBaseH: estBottomBaseH,
     topCapH: estTopCapH,
@@ -1500,6 +1561,7 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     tEnd: tEnd,
     scale: 1,
     renderScale: 1,
+    colRects: colRects,
     timeToYMap: []
   };
 }
@@ -1548,6 +1610,7 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
   const MAX_DIM = 14000;
   const MAX_AREA = 60000000;
   let renderScale = 1;
+  const colRects = [];
 
   if (mode === "single") {
     const rawW = cropW;
@@ -1571,6 +1634,13 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
       drawColumnFromMaster(outCtx, c, colMaxH, 0, destY);
     }
     outCtx.restore();
+
+    colRects.push({
+      x: 0,
+      y: 0,
+      w: outputCanvas.width,
+      h: outputCanvas.height
+    });
   } else {
     const rawW = numCols * cropW + (numCols + 1) * colGap;
     const rawH = colMaxH + headerH + colGap * 2;
@@ -1595,12 +1665,19 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
 
       outCtx.fillStyle = "#00e6e6";
       outCtx.font = "bold 15px 'Segoe UI', 'Meiryo', sans-serif";
-      outCtx.fillText(`列 ${c + 1} / ${numCols} （下から上へ進行）`, x + 6, headerH - 4);
+      outCtx.fillText(`列 ${c + 1} / ${numCols}`, x + 6, headerH - 4);
 
       drawColumnFromMaster(outCtx, c, colMaxH, x, y);
       outCtx.strokeStyle = "#2b3856";
       outCtx.lineWidth = 2;
       outCtx.strokeRect(x, y, cropW, colMaxH);
+
+      colRects.push({
+        x: x * renderScale,
+        y: y * renderScale,
+        w: cropW * renderScale,
+        h: colMaxH * renderScale
+      });
     }
     outCtx.restore();
   }
@@ -1620,6 +1697,7 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
     tEnd: tEnd,
     scale: renderScale,
     renderScale: renderScale,
+    colRects: colRects,
     timeToYMap: timeToYMap
   };
 
@@ -1629,7 +1707,7 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
   setupViewerAfterGenerate(numCols);
   drawPlayheadOverlay();
 
-  if (shouldAutoSave && activeFolderName) {
+  if (shouldAutoSave && activeFolderName && !cancelGenerationRequested) {
     await autoSaveCanvasToFolder(activeFolderName, outputCanvas);
   }
 }
@@ -1645,8 +1723,10 @@ colHeightInput.addEventListener("change", () => {
   scheduleSaveSettings();
   if (!isGenerating && masterChartData.hasData) rebuildLayoutFromMaster(true);
 });
+resolutionSelect.addEventListener("change", () => {
+  scheduleSaveSettings();
+});
 
-// 動画読み込み時にデフォルトで「動画全体（0.0秒 〜 動画の長さ）」をセット
 function loadVideoItem(vidItem) {
   if (isGenerating) return;
   activeVideoName = vidItem.name;
@@ -1677,6 +1757,7 @@ function loadVideoItem(vidItem) {
     updateBatchButtonState();
 
     video.currentTime = defaultStart;
+    drawPlayheadOverlay();
   };
 }
 
@@ -1721,7 +1802,7 @@ function drawPreview(forceFilter = false) {
 }
 
 // =========================================================
-// 6. 遅延解消 ＆ 遅延微調整対応の「再生位置バー」描画エンジン
+// 6. 実測列座標 (colRects) に基づく「再生位置バー」描画エンジン
 // =========================================================
 function getBottomYForTime(t) {
   const { tStart, tEnd, totalHeight, bottomBaseH, topCapH, timeToYMap } = chartMeta;
@@ -1739,13 +1820,13 @@ function getBottomYForTime(t) {
     const p2 = timeToYMap[Math.min(timeToYMap.length - 1, low)];
     const ratio = (p2.time - p1.time) > 0.0001 ? (t - p1.time) / (p2.time - p1.time) : 0;
     return p1.bottomY + ratio * (p2.bottomY - p1.bottomY);
-  } else {
-    const dur = Math.max(0.1, tEnd - tStart);
-    const startY = bottomBaseH || 0;
-    const endY = Math.max(startY + 100, totalHeight - (topCapH || 0));
-    const ratio = Math.max(0, Math.min(1, (t - tStart) / dur));
-    return startY + ratio * (endY - startY);
   }
+
+  const dur = Math.max(0.1, tEnd - tStart);
+  const startY = bottomBaseH || 0;
+  const endY = Math.max(startY + 100, totalHeight - (topCapH || 0));
+  const ratio = Math.max(0, Math.min(1, (t - tStart) / dur));
+  return startY + ratio * (endY - startY);
 }
 
 function getTimeForBottomY(targetBottomY) {
@@ -1781,28 +1862,29 @@ function drawPlayheadOverlay() {
   const offsetSec = parseFloat(playheadOffsetInput.value) || 0;
   const effectiveTime = rawTime + offsetSec;
   const bottomY = getBottomYForTime(effectiveTime);
-  const rs = chartMeta.renderScale || 1;
 
-  let barX = 0, barY = 0, barW = chartMeta.cropW * rs;
-  let colIndex = 0;
+  const { colMaxH, numCols, totalHeight, colRects } = chartMeta;
+  let barX = 0, barY = 0, barW = outputCanvas.width;
 
-  if (chartMeta.mode === "single") {
-    barX = 0;
-    barW = outputCanvas.width;
-    barY = outputCanvas.height - bottomY * rs;
+  if (chartMeta.mode === "single" || !colRects || colRects.length <= 1) {
+    const rect = (colRects && colRects[0]) ? colRects[0] : { x: 0, y: 0, w: outputCanvas.width, h: outputCanvas.height };
+    barX = rect.x;
+    barW = rect.w;
+    const ratio = Math.max(0, Math.min(1, bottomY / Math.max(1, totalHeight)));
+    barY = rect.y + rect.h * (1 - ratio);
     playheadColHighlight.style.display = "none";
   } else {
-    const { colMaxH, cropW, colGap, headerH, numCols } = chartMeta;
-    colIndex = Math.min(numCols - 1, Math.max(0, Math.floor(bottomY / colMaxH)));
-    const relBottom = bottomY - colIndex * colMaxH;
-    barX = (colGap + colIndex * (cropW + colGap)) * rs;
-    barY = (headerH + colGap + (colMaxH - relBottom)) * rs;
-    barW = cropW * rs;
+    const colIndex = Math.min(numCols - 1, Math.max(0, Math.floor(bottomY / colMaxH)));
+    const relBottom = Math.max(0, Math.min(colMaxH, bottomY - colIndex * colMaxH));
+    const rect = colRects[colIndex] || colRects[0];
+    barX = rect.x;
+    barW = rect.w;
+    barY = rect.y + rect.h * (1 - relBottom / Math.max(1, colMaxH));
 
     playheadColHighlight.style.display = "block";
-    playheadColHighlight.style.width = `${barW}px`;
-    playheadColHighlight.style.height = `${colMaxH * rs}px`;
-    playheadColHighlight.style.transform = `translate3d(${barX}px, ${(headerH + colGap) * rs}px, 0)`;
+    playheadColHighlight.style.width = `${rect.w}px`;
+    playheadColHighlight.style.height = `${rect.h}px`;
+    playheadColHighlight.style.transform = `translate3d(${rect.x}px, ${rect.y}px, 0)`;
   }
 
   playheadBar.style.display = "block";
@@ -1834,7 +1916,9 @@ function startPlaybackLoop() {
   animFrameId = requestAnimationFrame(tick);
 }
 
-video.addEventListener("play", startPlaybackLoop);
+video.addEventListener("play", () => {
+  if (!isGenerating) startPlaybackLoop();
+});
 video.addEventListener("pause", () => {
   cancelAnimationFrame(animFrameId);
   if (!isGenerating) {
@@ -1898,11 +1982,20 @@ seekSlider.addEventListener("input", () => {
   video.currentTime = parseFloat(seekSlider.value);
 });
 
+let shouldRestartFromBeginning = false;
+
 function toggleVideoPlay() {
   if (!video.src || isGenerating) return;
   video.muted = false;
-  if (video.paused) video.play();
-  else video.pause();
+  if (video.paused) {
+    if (shouldRestartFromBeginning || video.ended || (video.duration && video.currentTime >= video.duration - 0.1)) {
+      video.currentTime = 0;
+      shouldRestartFromBeginning = false;
+    }
+    video.play();
+  } else {
+    video.pause();
+  }
 }
 playPauseBtn.addEventListener("click", toggleVideoPlay);
 viewerPlayPauseBtn.addEventListener("click", toggleVideoPlay);
@@ -1941,9 +2034,6 @@ gridBoostSlider.addEventListener("input", () => {
   drawPreview(true);
   scheduleSaveSettings();
 });
-autoCalibToggle.addEventListener("change", () => {
-  scheduleSaveSettings();
-});
 
 speedSlider.addEventListener("input", () => {
   const v = parseFloat(speedSlider.value).toFixed(2);
@@ -1958,11 +2048,16 @@ speedInput.addEventListener("input", () => {
   scheduleSaveSettings();
 });
 
+// 【新改善4】デコード完了後のフレームバッファ更新を確実に待ってから解決する安定シーク関数
 function seekVideoElementTo(vidElem, timeSec) {
   return new Promise((resolve) => {
+    if (cancelGenerationRequested) {
+      resolve();
+      return;
+    }
     const maxSafeTime = vidElem.duration ? Math.max(0, vidElem.duration - 0.04) : timeSec;
     const target = Math.min(Math.max(0, timeSec), maxSafeTime);
-    if (Math.abs(vidElem.currentTime - target) < 0.001) {
+    if (Math.abs(vidElem.currentTime - target) < 0.0008) {
       resolve();
       return;
     }
@@ -1971,12 +2066,22 @@ function seekVideoElementTo(vidElem, timeSec) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      vidElem.removeEventListener("seeked", finish);
+      activeSeekResolvers.delete(finish);
+      vidElem.removeEventListener("seeked", onSeeked);
       vidElem.removeEventListener("error", finish);
       resolve();
     };
-    const timer = setTimeout(finish, 400);
-    vidElem.addEventListener("seeked", finish);
+    const onSeeked = () => {
+      // seeked直後にGPUテクスチャが更新されるのを確実に同期させる
+      if (!document.hidden && window.requestAnimationFrame) {
+        requestAnimationFrame(finish);
+      } else {
+        setTimeout(finish, 4);
+      }
+    };
+    activeSeekResolvers.add(finish);
+    const timer = setTimeout(finish, 350);
+    vidElem.addEventListener("seeked", onSeeked);
     vidElem.addEventListener("error", finish);
     try {
       vidElem.currentTime = target;
@@ -1987,211 +2092,103 @@ function seekVideoElementTo(vidElem, timeSec) {
 }
 
 // =========================================================
-// 7. 速度が違う動画に対する高精度ハイブリッド移動量検出エンジン
+// 7. 基準スクロール速度の自動計測（0.15秒間隔・停止区間を自動除外）
 // =========================================================
-function computeFrameRowFeatures(imgData, cw, h) {
-  const edgeProfile = new Float32Array(h);
-  const brightProfile = new Float32Array(h);
-
-  for (let y = 2; y < h - 2; y++) {
-    const rowCurr = y * cw;
-    const rowUp = (y - 2) * cw;
-    const rowDown = (y + 2) * cw;
-    let eSum = 0;
-    let bSum = 0;
-
-    for (let x = 0; x < cw; x += 2) {
-      const iCurr = (rowCurr + x) << 2;
-      const iUp = (rowUp + x) << 2;
-      const iDown = (rowDown + x) << 2;
-
-      const r = imgData[iCurr], g = imgData[iCurr + 1], b = imgData[iCurr + 2];
-      const lumCurr = r * 0.25 + g * 0.45 + b * 0.30;
-      const lumBg = (
-        (imgData[iUp] * 0.25 + imgData[iUp + 1] * 0.45 + imgData[iUp + 2] * 0.30) +
-        (imgData[iDown] * 0.25 + imgData[iDown + 1] * 0.45 + imgData[iDown + 2] * 0.30)
-      ) * 0.5;
-
-      const edge = lumCurr - lumBg;
-      if (edge > 2.0) eSum += edge;
-
-      const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
-      const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
-      if (maxC > 75 || (maxC - minC) > 35) {
-        bSum += maxC;
-      }
-    }
-    edgeProfile[y] = eSum / (cw * 0.5);
-    brightProfile[y] = bSum / (cw * 0.5);
-  }
-  return { edgeProfile, brightProfile };
-}
-
-function matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, minDy, maxDy, expectedDy = -1) {
-  const yStart = Math.round(h * 0.16);
-  const yEnd = Math.round(h * 0.66);
-  const searchMin = Math.max(0, Math.floor(minDy));
-  const searchMax = Math.min(Math.round(h * 0.45), Math.ceil(maxDy));
-
-  if (searchMax <= searchMin) return expectedDy > 0 ? expectedDy : -1;
-
-  const scores = new Float64Array(searchMax + 2);
-  scores.fill(Infinity);
-  let bestDy = -1;
-  let minScore = Infinity;
-
-  const e1 = feat1.edgeProfile, b1 = feat1.brightProfile;
-  const e2 = feat2.edgeProfile, b2 = feat2.brightProfile;
-
-  for (let dy = searchMin; dy <= searchMax; dy++) {
-    let profDiff = 0;
-    let validRows = 0;
-    let activeSignal = 0;
-
-    for (let y = yStart; y < yEnd; y++) {
-      const y2 = y + dy;
-      if (y2 >= h - 2) break;
-      const de = Math.abs(e1[y] - e2[y2]);
-      const db = Math.abs(b1[y] - b2[y2]) * 0.25;
-      profDiff += de + db;
-      activeSignal += e1[y] + b1[y] * 0.1;
-      validRows++;
-    }
-
-    if (validRows < 20 || activeSignal < 8) continue;
-
-    let pixDiff = 0;
-    let pixCount = 0;
-    for (let y = yStart; y < yEnd; y += 3) {
-      const y2 = y + dy;
-      if (y2 >= h - 2) break;
-      const row1 = y * cw;
-      const row2 = y2 * cw;
-      for (let x = 0; x < cw; x += 4) {
-        const idx1 = (row1 + x) << 2;
-        const idx2 = (row2 + x) << 2;
-        const sum1 = img1[idx1] + img1[idx1 + 1] + img1[idx1 + 2];
-        const sum2 = img2[idx2] + img2[idx2 + 1] + img2[idx2 + 2];
-        if (sum1 > 115 || sum2 > 115) {
-          pixDiff += Math.abs(img1[idx1] - img2[idx2]) +
-                     Math.abs(img1[idx1 + 1] - img2[idx2 + 1]) +
-                     Math.abs(img1[idx1 + 2] - img2[idx2 + 2]);
-          pixCount++;
-        }
-      }
-    }
-
-    const normProf = profDiff / validRows;
-    const normPix = pixCount > 15 ? (pixDiff / pixCount) * 0.18 : 12.0;
-    let totalScore = normProf + normPix;
-
-    if (expectedDy >= 0) {
-      const dev = Math.abs(dy - expectedDy);
-      totalScore += dev * 0.035;
-    }
-
-    scores[dy] = totalScore;
-    if (totalScore < minScore) {
-      minScore = totalScore;
-      bestDy = dy;
-    }
-  }
-
-  if (bestDy >= searchMin && bestDy <= searchMax && minScore < 45) {
-    if (bestDy > searchMin && bestDy < searchMax) {
-      const sPrev = scores[bestDy - 1];
-      const sCurr = scores[bestDy];
-      const sNext = scores[bestDy + 1];
-      if (isFinite(sPrev) && isFinite(sNext)) {
-        const denom = 2 * (sPrev - 2 * sCurr + sNext);
-        const subOffset = denom !== 0 ? (sPrev - sNext) / denom : 0;
-        return bestDy + Math.max(-0.5, Math.min(0.5, subOffset));
-      }
-    }
-    return bestDy;
-  }
-  return -1;
-}
-
-async function calibrateVideoSpeed(vidElem, cropLeftPct, cropRightPct, tStart, tEnd) {
-  const rawW = vidElem.videoWidth;
-  const rawH = vidElem.videoHeight;
-  if (!rawW || !rawH) return null;
-
-  const workScale = rawH > 560 ? (560 / rawH) : 1.0;
-  const h = Math.max(120, Math.round(rawH * workScale));
-  const x1 = Math.round(rawW * cropLeftPct);
-  const x2 = Math.round(rawW * cropRightPct);
-  const srcCropW = Math.max(10, x2 - x1);
-  const cw = Math.max(40, Math.round(srcCropW * workScale));
-
-  const tmpC = document.createElement("canvas");
-  tmpC.width = cw;
-  tmpC.height = h;
-  const ctx = tmpC.getContext("2d", { willReadFrequently: true });
-
-  const samples = [];
-  const sampleCount = 8;
-  const span = Math.min(30.0, Math.max(1.0, tEnd - tStart));
-
-  for (let i = 0; i < sampleCount; i++) {
-    if (cancelGenerationRequested) break;
-    const dt = (i % 2 === 0) ? 0.08 : 0.12;
-    const t = tStart + (span * (i + 1)) / (sampleCount + 2);
-    if (t + dt >= (vidElem.duration || tEnd)) continue;
-
-    await seekVideoElementTo(vidElem, t);
-    ctx.drawImage(vidElem, x1, 0, srcCropW, rawH, 0, 0, cw, h);
-    const img1 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
-    const feat1 = computeFrameRowFeatures(img1, cw, h);
-
-    await seekVideoElementTo(vidElem, t + dt);
-    ctx.drawImage(vidElem, x1, 0, srcCropW, rawH, 0, 0, cw, h);
-    const img2 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
-    const feat2 = computeFrameRowFeatures(img2, cw, h);
-
-    const actualDt = Math.max(0.01, vidElem.currentTime - t);
-    const minDy = Math.max(1, Math.round(h * 0.08 * actualDt));
-    const maxDy = Math.round(h * 1.35 * actualDt);
-
-    const exactDy = matchFrameDisplacementHighPrecision(img1, img2, feat1, feat2, cw, h, minDy, maxDy, -1);
-    if (exactDy > 0) {
-      const pctPerSec = (exactDy / h / actualDt) * 100;
-      if (pctPerSec >= 10 && pctPerSec <= 130) {
-        samples.push(pctPerSec);
-      }
-    }
-  }
-
-  if (samples.length === 0) return null;
-  samples.sort((a, b) => a - b);
-  const mid = Math.floor(samples.length / 2);
-  let sum = 0, cnt = 0;
-  for (let i = Math.max(0, mid - 1); i <= Math.min(samples.length - 1, mid + 1); i++) {
-    sum += samples[i];
-    cnt++;
-  }
-  return sum / cnt;
-}
-
 autoSpeedBtn.addEventListener("click", async () => {
   if (!video.videoWidth || isGenerating) return;
   video.pause();
   const prevMuted = video.muted;
   video.muted = true;
   autoSpeedBtn.disabled = true;
-  autoSpeedBtn.textContent = "高精度計測中...";
+  autoSpeedBtn.textContent = "計測中...";
   cancelGenerationRequested = false;
 
   try {
-    const leftPct = parseFloat(cropLeftSlider.value) / 100;
-    const rightPct = parseFloat(cropRightSlider.value) / 100;
-    const tStart = parseFloat(startTimeInput.value) || 0.0;
-    const tEnd = parseFloat(endTimeInput.value) || video.duration || 15.0;
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    const x1 = Math.round(w * (parseFloat(cropLeftSlider.value) / 100));
+    const x2 = Math.round(w * (parseFloat(cropRightSlider.value) / 100));
+    const cw = Math.max(10, x2 - x1);
 
-    const measured = await calibrateVideoSpeed(video, leftPct, rightPct, tStart, tEnd);
-    if (measured !== null) {
-      const rounded = (Math.round(measured * 50) / 50).toFixed(2);
+    const tmpC = document.createElement("canvas");
+    tmpC.width = cw;
+    tmpC.height = h;
+    const ctx = tmpC.getContext("2d", { willReadFrequently: true });
+
+    const dur = video.duration || 30;
+    // 冒頭の停止時間を避けるため、開始位置から少し進んだ区間（3秒〜35秒付近）からサンプリング
+    const tStart = Math.min(dur * 0.2, Math.max(2.5, (parseFloat(startTimeInput.value) || 0) + 2.5));
+    const tEnd = Math.min(dur - 2.0, tStart + 25.0);
+    const dt = 0.15;
+    const samples = [];
+
+    for (let i = 0; i < 8; i++) {
+      if (cancelGenerationRequested) break;
+      const t = tStart + ((tEnd - tStart) * (i + 1)) / 10;
+      await seekVideoElementTo(video, t);
+      const t1 = video.currentTime;
+      ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
+      const img1 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
+
+      await seekVideoElementTo(video, t1 + dt);
+      const t2 = video.currentTime;
+      const realDt = t2 - t1;
+      if (realDt <= 0.02) continue;
+
+      ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
+      const img2 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
+
+      const yStart = Math.round(h * 0.25);
+      const yEnd = Math.round(h * 0.55);
+      const minDy = Math.max(2, Math.round(h * 0.12 * realDt));
+      const maxDy = Math.round(h * 1.10 * realDt);
+
+      let bestDy = 0;
+      const scores = new Float64Array(maxDy + 2);
+      scores.fill(Infinity);
+      let minScore = Infinity;
+
+      for (let dy = minDy; dy <= maxDy; dy++) {
+        let diffSum = 0, count = 0;
+        for (let y = yStart; y < yEnd; y += 2) {
+          const y2 = y + dy;
+          if (y2 >= h) continue;
+          for (let x = 0; x < cw; x += 4) {
+            const idx1 = (y * cw + x) * 4;
+            const idx2 = (y2 * cw + x) * 4;
+            if (img1[idx1] + img1[idx1 + 1] + img1[idx1 + 2] > 180) {
+              diffSum += Math.abs(img1[idx1] - img2[idx2]) +
+                         Math.abs(img1[idx1 + 1] - img2[idx2 + 1]) +
+                         Math.abs(img1[idx1 + 2] - img2[idx2 + 2]);
+              count++;
+            }
+          }
+        }
+        if (count > 40) {
+          const s = diffSum / count;
+          scores[dy] = s;
+          if (s < minScore) { minScore = s; bestDy = dy; }
+        }
+      }
+
+      if (bestDy > minDy && bestDy < maxDy && minScore < 55) {
+        const sPrev = scores[bestDy - 1];
+        const sCurr = scores[bestDy];
+        const sNext = scores[bestDy + 1];
+        const denom = 2 * (sPrev - 2 * sCurr + sNext);
+        const subOffset = denom !== 0 ? (sPrev - sNext) / denom : 0;
+        const exactDy = bestDy + Math.max(-0.5, Math.min(0.5, subOffset));
+        samples.push((exactDy / h / realDt) * 100);
+      }
+    }
+
+    tmpC.width = 0;
+    tmpC.height = 0;
+
+    if (samples.length > 0) {
+      samples.sort((a, b) => a - b);
+      const median = samples[Math.floor(samples.length / 2)];
+      const rounded = (Math.round(median * 50) / 50).toFixed(2);
       speedInput.value = rounded;
       speedSlider.value = rounded;
       speedValLabel.textContent = `${rounded} %/秒`;
@@ -2199,22 +2196,50 @@ autoSpeedBtn.addEventListener("click", async () => {
     }
   } finally {
     autoSpeedBtn.disabled = false;
-    autoSpeedBtn.textContent = "今すぐ速度を自動計測する";
+    autoSpeedBtn.textContent = "速度を自動計測する";
     await seekVideoElementTo(video, parseFloat(startTimeInput.value) || 0.0);
     video.muted = prevMuted;
   }
 });
 
 // =========================================================
-// 8. 譜面合成エンジン（デフォルトで動画全体 0秒〜終了秒を対象）
+// 8. 【新改善2＆3】実フレーム同期・停止区間自動スキップ・固定速度シーク合成エンジン
 // =========================================================
 function requestStopGeneration() {
   cancelGenerationRequested = true;
-  stopGenerateBtn.disabled = true;
-  progressText.textContent = "生成を停止しています...";
+  for (const fn of Array.from(activeSeekResolvers)) {
+    try { fn(); } catch (e) {}
+  }
+  activeSeekResolvers.clear();
+  setGeneratingLock(false);
+  progressText.textContent = "静止画の生成を停止しました";
 }
 stopGenerateBtn.addEventListener("click", requestStopGeneration);
 progressStopBtn.addEventListener("click", requestStopGeneration);
+
+function computeWorkScale(rawH) {
+  const resMode = resolutionSelect.value || "720";
+  if (resMode === "original") return 1.0;
+  const maxH = parseInt(resMode, 10) || 720;
+  return rawH > maxH ? (maxH / rawH) : 1.0;
+}
+
+// 2フレームが完全に同一（重複ビデオフレーム、または再生前後の停止時間）であるかを高速判定する関数
+function computeBandDifference(img1, img2, cw, yStart, yEnd) {
+  let diffSum = 0;
+  let count = 0;
+  for (let y = yStart; y < yEnd; y += 2) {
+    const row = y * cw;
+    for (let x = 0; x < cw; x += 4) {
+      const idx = (row + x) << 2;
+      diffSum += Math.abs(img1[idx] - img2[idx]) +
+                 Math.abs(img1[idx + 1] - img2[idx + 1]) +
+                 Math.abs(img1[idx + 2] - img2[idx + 2]);
+      count++;
+    }
+  }
+  return count > 0 ? (diffSum / count) : 999;
+}
 
 async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, onStepProgress) {
   const rawW = vidElem.videoWidth;
@@ -2225,44 +2250,34 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   const srcX2 = Math.round(rawW * rightPct);
   const srcCropW = Math.max(10, srcX2 - srcX1);
 
-  const workScale = rawH > 560 ? (560 / rawH) : 1.0;
+  const workScale = computeWorkScale(rawH);
   const h = Math.max(160, Math.round(rawH * workScale));
   const cropW = Math.max(60, Math.round(srcCropW * workScale));
 
   const dur = vidElem.duration || 120;
   let tStart = 0.0;
-  let fullEnd = Math.max(0.5, dur - 0.05);
+  let fullEnd = Math.max(0.5, dur - 0.04);
 
-  // 現在プレビュー中の動画単体を処理する場合は入力欄の開始・終了秒数を反映し、複数動画一括処理では各動画全体(0〜dur)を対象にする
   if (vidElem === video) {
     const userStart = parseFloat(startTimeInput.value);
     const userEnd = parseFloat(endTimeInput.value);
     tStart = !isNaN(userStart) ? Math.min(Math.max(0, userStart), Math.max(0, dur - 0.5)) : 0.0;
     fullEnd = (!isNaN(userEnd) && userEnd > tStart)
-      ? Math.min(userEnd, Math.max(tStart + 0.5, dur - 0.05))
-      : Math.max(tStart + 0.5, dur - 0.05);
+      ? Math.min(userEnd, Math.max(tStart + 0.5, dur - 0.04))
+      : Math.max(tStart + 0.5, dur - 0.04);
   }
 
   const tEnd = isTestMode ? Math.min(fullEnd, tStart + 12.0) : fullEnd;
   const duration = Math.max(0.5, tEnd - tStart);
 
-  let baseSpeedPct = parseFloat(speedInput.value) || 47.50;
-  if (autoCalibToggle.checked && !cancelGenerationRequested) {
-    const calibrated = await calibrateVideoSpeed(vidElem, leftPct, rightPct, tStart, tEnd);
-    if (calibrated !== null) {
-      baseSpeedPct = calibrated;
-      if (vidElem === video) {
-        const rounded = (Math.round(calibrated * 50) / 50).toFixed(2);
-        speedInput.value = rounded;
-        speedSlider.value = rounded;
-        speedValLabel.textContent = `${rounded} %/秒`;
-      }
-    }
-  }
-  const baseSpeedPxPerSec = Math.max(20, h * (baseSpeedPct / 100));
+  // 1つの基準スクロール速度（%/秒）で固定
+  const speedPctPerSec = parseFloat(speedInput.value) || 47.50;
+  const speedPxPerSec = Math.max(10, h * (speedPctPerSec / 100));
 
-  const stepPx = Math.max(16, Math.round(h * 0.075));
-  const overlapPx = Math.max(2, Math.round(stepPx * 0.12));
+  // スライドの曲線を滑らかに保ち、かつノーツが削れない細かさ（画面高さの約1.8%＝約8〜12px刻み）に設定
+  const nominalStepPx = Math.max(6, Math.min(14, Math.round(h * 0.018)));
+  const dt = Math.max(0.0167, nominalStepPx / speedPxPerSec);
+  const totalSteps = Math.max(1, Math.floor(duration / dt));
 
   const capY = Math.round(h * 0.70);
   const bottomBaseH = h - capY;
@@ -2286,25 +2301,19 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
     }
   }
 
-  function drawSliceToMaster(srcCanvas, srcY, srcH, bottomY, alpha = 1.0) {
-    if (srcH <= 0.1) return;
+  function drawSliceToMaster(srcCanvas, srcY, srcH, bottomY) {
+    if (srcH <= 0.05) return;
+    // 境界の隙間（黒い1pxライン）を防ぐため、上方向に 0.6px だけ微小にオーバーラップさせて不透明描画する
+    const drawH = srcH + 0.6;
     const startChunk = Math.floor(bottomY / MASTER_CHUNK_H);
-    const endChunk = Math.floor((bottomY + srcH - 0.001) / MASTER_CHUNK_H);
+    const endChunk = Math.floor((bottomY + drawH - 0.0001) / MASTER_CHUNK_H);
     for (let k = startChunk; k <= endChunk; k++) {
       if (k < 0) continue;
       ensureMasterChunkExists(k);
       const chunkBottomOffset = k * MASTER_CHUNK_H;
       const relBottom = bottomY - chunkBottomOffset;
-      const destY = MASTER_CHUNK_H - relBottom - srcH;
-      const ctx = masterCtxs[k];
-      if (alpha < 0.99) {
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.drawImage(srcCanvas, 0, srcY, cropW, srcH, 0, destY, cropW, srcH);
-        ctx.restore();
-      } else {
-        ctx.drawImage(srcCanvas, 0, srcY, cropW, srcH, 0, destY, cropW, srcH);
-      }
+      const destY = MASTER_CHUNK_H - relBottom - drawH;
+      masterCtxs[k].drawImage(srcCanvas, 0, Math.max(0, srcY - 0.6), cropW, drawH, 0, destY, cropW, drawH);
     }
   }
 
@@ -2316,105 +2325,100 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   fCtx.imageSmoothingQuality = "high";
 
   let currentBottomY = 0;
-  let finalTopCapH = 0;
   const timeToYMap = [];
 
-  const dt = stepPx / baseSpeedPxPerSec;
-  const totalSteps = Math.max(1, Math.floor(duration / dt));
+  await seekVideoElementTo(vidElem, tStart);
+  if (cancelGenerationRequested) return { hasData: false, chunks: [] };
 
-  let prevImgData = null;
-  let prevFeat = null;
-  let prevActualTime = tStart;
-  let lastSliceHeight = stepPx;
+  fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
+  let prevFrameData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
+  let prevValidTime = vidElem.currentTime;
 
-  for (let step = 0; step <= totalSteps; step++) {
+  if (bottomBaseH > 0) {
+    drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0);
+    currentBottomY += bottomBaseH;
+  }
+  timeToYMap.push({ time: prevValidTime, bottomY: currentBottomY });
+
+  let lastDrawnSliceH = nominalStepPx;
+  const checkY1 = Math.round(h * 0.25);
+  const checkY2 = Math.round(h * 0.72);
+
+  for (let step = 1; step <= totalSteps; step++) {
     if (cancelGenerationRequested) break;
 
-    const exactTime = Math.min(tEnd, tStart + (step * stepPx) / baseSpeedPxPerSec);
-    await seekVideoElementTo(vidElem, exactTime);
-    const currActualTime = vidElem.currentTime;
+    const targetTime = Math.min(tEnd, tStart + step * dt);
+    await seekVideoElementTo(vidElem, targetTime);
+    if (cancelGenerationRequested) break;
+
+    const actualTime = vidElem.currentTime;
+    const realDt = actualTime - prevValidTime;
+    if (realDt <= 0.001) continue;
 
     fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
-    const currImgData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-    const currFeat = computeFrameRowFeatures(currImgData, cropW, h);
+    const currFrameData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
 
-    if (step === 0) {
-      if (bottomBaseH > 0) {
-        drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0, 1.0);
-        currentBottomY += bottomBaseH;
-      }
-      timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
-      prevImgData = currImgData;
-      prevFeat = currFeat;
-      prevActualTime = currActualTime;
-      continue;
-    }
-
-    const realDt = currActualTime - prevActualTime;
-    if (realDt <= 0.0005) {
-      if (step === totalSteps) {
-        const topCapH = Math.max(0, (capY - lastSliceHeight) - topSafeY);
-        if (topCapH > 0) {
-          drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
-          currentBottomY += topCapH;
-          finalTopCapH = topCapH;
-        }
+    // 【新改善2＆3】前のフレームと絵が全く変わっていない場合：
+    // - 経過時間が短い（realDt < 0.045秒）場合は、ブラウザがまだ同じビデオフレームを返している（重複フレーム）ため、
+    //   prevValidTime を更新せずにスキップし、次の新しいフレームが来たときにまとめて正確な高さを切り出す！
+    // - 経過時間が長い（realDt >= 0.045秒）のに絵が全く動いていない場合は、動画の再生開始前または終了後の「停止時間」であるため、
+    //   画像を積み上げずに prevValidTime だけを進めて停止時間を綺麗にスキップする！
+    const frameDiff = computeBandDifference(prevFrameData, currFrameData, cropW, checkY1, checkY2);
+    if (frameDiff < 2.2) {
+      if (realDt >= 0.045) {
+        prevValidTime = actualTime;
+        prevFrameData = currFrameData;
+        timeToYMap.push({ time: actualTime, bottomY: currentBottomY });
       }
       continue;
     }
 
-    const nominalDy = realDt * baseSpeedPxPerSec;
-    let actualDy = nominalDy;
-
-    if (nominalDy >= 3 && nominalDy < h * 0.4) {
-      const lockMin = Math.max(1, Math.floor(nominalDy - 7));
-      const lockMax = Math.ceil(nominalDy + 7);
-      const lockedDy = matchFrameDisplacementHighPrecision(
-        prevImgData, currImgData, prevFeat, currFeat, cropW, h, lockMin, lockMax, nominalDy
-      );
-      if (lockedDy > 0 && Math.abs(lockedDy - nominalDy) <= 6.5) {
-        actualDy = lockedDy * 0.75 + nominalDy * 0.25;
-      }
+    // 実際に新しいフレームへ進んだ経過時間 realDt に固定速度を掛けた正確な移動ピクセル量 actualDy を切り出す
+    const actualDy = Math.min(capY - topSafeY, realDt * speedPxPerSec);
+    if (actualDy >= 0.5) {
+      const sy = Math.max(topSafeY, capY - actualDy);
+      drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY);
+      currentBottomY += actualDy;
+      lastDrawnSliceH = actualDy;
     }
 
-    if (actualDy > 0.2) {
-      const drawH = Math.min(capY, actualDy);
-      const sy = Math.max(0, Math.min(h - drawH, capY - drawH));
-      drawSliceToMaster(frameCanvas, sy, drawH, currentBottomY, 1.0);
+    prevValidTime = actualTime;
+    prevFrameData = currFrameData;
+    timeToYMap.push({ time: actualTime, bottomY: currentBottomY });
 
-      if (overlapPx > 0 && currentBottomY > overlapPx) {
-        const featherSy = Math.max(0, Math.min(h - overlapPx, sy + drawH - overlapPx * 0.5));
-        drawSliceToMaster(frameCanvas, featherSy, overlapPx, currentBottomY - overlapPx * 0.5, 0.45);
-      }
-
-      currentBottomY += drawH;
-      lastSliceHeight = drawH;
-    }
-
-    timeToYMap.push({ time: currActualTime, bottomY: currentBottomY });
-    prevImgData = currImgData;
-    prevFeat = currFeat;
-    prevActualTime = currActualTime;
-
-    if (step === totalSteps) {
-      const topCapH = Math.max(0, (capY - lastSliceHeight) - topSafeY);
-      if (topCapH > 0) {
-        drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY, 1.0);
-        currentBottomY += topCapH;
-        finalTopCapH = topCapH;
-      }
-    }
-
-    if (onStepProgress && (step % 6 === 0 || step === totalSteps)) {
-      onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd);
+    if (onStepProgress && (step % 8 === 0 || step === totalSteps)) {
+      onStepProgress((step + 1) / (totalSteps + 1), actualTime, tEnd);
       await new Promise((r) => setTimeout(r, 0));
     }
+  }
+
+  // 最終フレームの上部領域（topSafeY 〜 capY - lastDrawnSliceH）を描画して完結させる
+  let finalTopCapH = 0;
+  if (!cancelGenerationRequested) {
+    const topCapH = Math.max(0, (capY - lastDrawnSliceH) - topSafeY);
+    if (topCapH > 0) {
+      drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY);
+      currentBottomY += topCapH;
+      finalTopCapH = topCapH;
+    }
+  }
+
+  frameCanvas.width = 0;
+  frameCanvas.height = 0;
+
+  if (cancelGenerationRequested) {
+    for (const mc of masterChunks) {
+      mc.width = 0;
+      mc.height = 0;
+    }
+    return { hasData: false, chunks: [] };
   }
 
   const totalHeight = Math.max(100, Math.round(currentBottomY));
 
   if (blackBgToggle.checked && masterChunks.length > 0) {
     for (let k = 0; k < masterChunks.length; k++) {
+      if (cancelGenerationRequested) break;
       applyBlackBackgroundFilter(masterCtxs[k], cropW, MASTER_CHUNK_H);
     }
   }
@@ -2422,7 +2426,7 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   const actualLastTime = timeToYMap.length > 0 ? timeToYMap[timeToYMap.length - 1].time : tEnd;
 
   return {
-    hasData: masterChunks.length > 0,
+    hasData: masterChunks.length > 0 && !cancelGenerationRequested,
     cropW: cropW,
     totalHeight: totalHeight,
     bottomBaseH: bottomBaseH,
@@ -2513,15 +2517,19 @@ function renderMasterDataToTempCanvas(mData) {
       const y = headerH + colGap;
       ctx.fillStyle = "#00e6e6";
       ctx.font = "bold 15px 'Segoe UI', 'Meiryo', sans-serif";
-      ctx.fillText(`列 ${c + 1} / ${numCols} （下から上へ進行）`, x + 6, headerH - 4);
+      ctx.fillText(`列 ${c + 1} / ${numCols}`, x + 6, headerH - 4);
       drawCol(ctx, c, x, y);
       ctx.strokeStyle = "#2b3856";
       ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, cropW, colMaxH);
+      outCtxStroke(ctx, x, y, cropW, colMaxH);
     }
     ctx.restore();
   }
   return tempC;
+}
+
+function outCtxStroke(ctx, x, y, w, h) {
+  ctx.strokeRect(x, y, w, h);
 }
 
 async function generateChartImage(isTestMode = false) {
@@ -2536,48 +2544,50 @@ async function generateChartImage(isTestMode = false) {
   progressContainer.style.display = "block";
   progressPercent.textContent = "0%";
   progressBar.style.width = "0%";
-  progressText.textContent = "動画のスクロール速度を解析・合成準備中...";
+  progressText.textContent = "譜面を合成準備中...";
 
   try {
-    if (masterChartData.hasData) {
-      releaseMasterChunks(masterChartData);
-    }
-
     const label = activeFolderName || (activeVideoName ? activeVideoName.replace(/\.[^.]+$/, "") : "生成譜面");
     const resultData = await buildMasterDataForVideoElement(
       video,
       label,
       isTestMode,
       (ratio, exactTime, tEnd) => {
+        if (cancelGenerationRequested) return;
         const pct = Math.min(100, Math.round(ratio * 100));
         progressPercent.textContent = `${pct}%`;
         progressBar.style.width = `${pct}%`;
-        progressText.textContent = `高速合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
+        progressText.textContent = `高精度フレーム同期合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)`;
       }
     );
 
-    if (resultData.hasData) {
+    if (resultData.hasData && !cancelGenerationRequested) {
+      if (masterChartData.hasData) {
+        releaseMasterChunks(masterChartData);
+      }
       masterChartData = resultData;
       if (activeFolderName && folderGroups.has(activeFolderName)) {
         const grp = folderGroups.get(activeFolderName);
         grp.images = [{ name: `${activeFolderName}_譜面.png`, file: null, url: null, masterData: resultData }];
       }
-      await rebuildLayoutFromMaster(!isTestMode && !cancelGenerationRequested);
-    }
-
-    const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-    if (cancelGenerationRequested) {
-      progressText.textContent = `静止画の生成を停止しました（停止時点までの譜面を表示しています / ${elapsedSec}秒）`;
-    } else {
+      await rebuildLayoutFromMaster(!isTestMode);
+      const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
       progressText.textContent = `譜面静止画の作成とフォルダへの自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
+    } else if (cancelGenerationRequested) {
+      progressText.textContent = "静止画の生成を停止しました";
     }
   } catch (err) {
     progressText.textContent = `エラーが発生しました: ${err.message || err}`;
   } finally {
     video.muted = prevMuted;
+    shouldRestartFromBeginning = true;
+    await seekVideoElementTo(video, 0);
+    seekSlider.value = 0;
+    currentTimeLabel.textContent = `0.00 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
     setGeneratingLock(false);
     renderTopSwitcher();
     drawPreview(true);
+    drawPlayheadOverlay();
   }
 }
 
@@ -2636,7 +2646,7 @@ async function processMultipleVideosConcurrently() {
             updateBatchProgressUI();
           }
         );
-        if (mData.hasData) {
+        if (mData.hasData && !cancelGenerationRequested) {
           progressMap[idx] = 1.0;
           updateBatchProgressUI();
           completedCount++;
@@ -2652,12 +2662,10 @@ async function processMultipleVideosConcurrently() {
             }];
           }
 
-          if (!cancelGenerationRequested) {
-            const tempOutC = renderMasterDataToTempCanvas(mData);
-            await autoSaveCanvasToFolder(folderName, tempOutC);
-            tempOutC.width = 0;
-            tempOutC.height = 0;
-          }
+          const tempOutC = renderMasterDataToTempCanvas(mData);
+          await autoSaveCanvasToFolder(folderName, tempOutC);
+          tempOutC.width = 0;
+          tempOutC.height = 0;
         }
       }
 
@@ -2678,8 +2686,13 @@ async function processMultipleVideosConcurrently() {
       progressText.textContent = `未作成だった全 ${completedCount} フォルダの同時処理と自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
     }
   } finally {
+    shouldRestartFromBeginning = true;
+    if (video.src) {
+      await seekVideoElementTo(video, 0);
+      seekSlider.value = 0;
+    }
     setGeneratingLock(false);
-    if (firstCompletedFolder) {
+    if (firstCompletedFolder && !cancelGenerationRequested) {
       switcherContent.style.display = "block";
       selectFolderSet(firstCompletedFolder);
     } else {
@@ -2753,9 +2766,8 @@ function zoomAtCenter(factor) {
 
 function setupViewerAfterGenerate(numCols) {
   colJumpBar.innerHTML = `<span style="font-size:0.82rem; color:#9aa5b8; white-space:nowrap;">列へジャンプ:</span>`;
-  if (chartMeta.mode === "grid" && numCols > 1) {
+  if (chartMeta.mode === "grid" && numCols > 1 && chartMeta.colRects && chartMeta.colRects.length > 1) {
     colJumpBar.style.display = "flex";
-    const rs = chartMeta.renderScale || 1;
     for (let c = 0; c < numCols; c++) {
       const btn = document.createElement("button");
       btn.className = "btn btn-secondary";
@@ -2764,11 +2776,9 @@ function setupViewerAfterGenerate(numCols) {
       btn.style.whiteSpace = "nowrap";
       btn.textContent = `${c + 1}列目`;
       btn.addEventListener("click", () => {
-        const colGap = chartMeta.colGap || 14;
-        const colX = (colGap + c * (chartMeta.cropW + colGap)) * rs;
-        const colRenderedW = chartMeta.cropW * rs;
-        vScale = Math.min(1.2, Math.max(0.4, viewerViewport.clientWidth / (colRenderedW * 2.2)));
-        vX = 30 - colX * vScale;
+        const rect = chartMeta.colRects[c] || chartMeta.colRects[0];
+        vScale = Math.min(1.2, Math.max(0.4, viewerViewport.clientWidth / (rect.w * 2.2)));
+        vX = 30 - rect.x * vScale;
         vY = 10;
         updateViewerTransform();
       });
@@ -2786,19 +2796,31 @@ function setupViewerAfterGenerate(numCols) {
 viewerViewport.addEventListener("dblclick", (e) => {
   if (isGenerating || !video.src || !outputCanvas.width) return;
   const rect = viewerViewport.getBoundingClientRect();
-  const rs = chartMeta.renderScale || 1;
-  const canvasX = (e.clientX - rect.left - vX) / (vScale * rs);
-  const canvasY = (e.clientY - rect.top - vY) / (vScale * rs);
+  const canvasX = (e.clientX - rect.left - vX) / vScale;
+  const canvasY = (e.clientY - rect.top - vY) / vScale;
 
   let clickedBottomY = 0;
-  if (chartMeta.mode === "single") {
-    clickedBottomY = chartMeta.totalHeight - canvasY;
+  const { colMaxH, totalHeight, colRects } = chartMeta;
+
+  if (chartMeta.mode === "single" || !colRects || colRects.length <= 1) {
+    const r = (colRects && colRects[0]) ? colRects[0] : { x: 0, y: 0, w: outputCanvas.width, h: outputCanvas.height };
+    const ratio = Math.max(0, Math.min(1, 1 - (canvasY - r.y) / Math.max(1, r.h)));
+    clickedBottomY = ratio * totalHeight;
   } else {
-    const { colGap, cropW, headerH, colMaxH, numCols } = chartMeta;
-    const colIdx = Math.max(0, Math.min(numCols - 1, Math.floor((canvasX - colGap) / (cropW + colGap))));
-    const relY = Math.max(0, Math.min(colMaxH, canvasY - (headerH + colGap)));
-    const relBottom = colMaxH - relY;
-    clickedBottomY = colIdx * colMaxH + relBottom;
+    let bestCol = 0;
+    let minDist = Infinity;
+    for (let c = 0; c < colRects.length; c++) {
+      const cr = colRects[c];
+      const center = cr.x + cr.w * 0.5;
+      const d = Math.abs(canvasX - center);
+      if (d < minDist) {
+        minDist = d;
+        bestCol = c;
+      }
+    }
+    const cr = colRects[bestCol];
+    const relRatio = Math.max(0, Math.min(1, 1 - (canvasY - cr.y) / Math.max(1, cr.h)));
+    clickedBottomY = bestCol * colMaxH + relRatio * colMaxH;
   }
 
   const offsetSec = parseFloat(playheadOffsetInput.value) || 0;
@@ -2872,11 +2894,45 @@ window.addEventListener("mouseup", () => {
 // =========================================================
 // 10. PNG画像＆ZIP一括ダウンロード保存（省メモリ逐次切り出し方式）
 // =========================================================
+const targetColInput = document.getElementById("targetColInput");
+const downloadSingleColBtn = document.getElementById("downloadSingleColBtn");
+
 downloadPngBtn.addEventListener("click", async () => {
   if (isGenerating || !outputCanvas.width) return;
   const blob = await canvasToBlobSafe(outputCanvas);
   const prefix = activeFolderName || "Proseka_Chart";
   downloadBlob(blob, `${prefix}.png`);
+});
+
+downloadSingleColBtn.addEventListener("click", async () => {
+  if (isGenerating || !masterChartData.hasData) return;
+  const rawText = (targetColInput.value || "").trim();
+  const match = rawText.match(/\d+/);
+  const colNumber = match ? parseInt(match[0], 10) : NaN;
+
+  const { cropW, totalHeight } = masterChartData;
+  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
+  const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
+
+  if (isNaN(colNumber) || colNumber < 1 || colNumber > numCols) {
+    alert(`1 〜 ${numCols} の範囲で列番号を入力してください。`);
+    return;
+  }
+
+  const c = colNumber - 1;
+  const tmpColC = document.createElement("canvas");
+  tmpColC.width = cropW;
+  tmpColC.height = colMaxH;
+  const tmpColCtx = tmpColC.getContext("2d");
+
+  drawColumnFromMaster(tmpColCtx, c, colMaxH, 0, 0);
+  const blob = await canvasToBlobSafe(tmpColC);
+  tmpColC.width = 0;
+  tmpColC.height = 0;
+
+  const prefix = activeFolderName || "Proseka_Chart";
+  const numStr = String(colNumber).padStart(2, "0");
+  downloadBlob(blob, `${prefix}_列${numStr}.png`);
 });
 
 downloadResultZipBtn.addEventListener("click", async () => {

@@ -2341,8 +2341,6 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   timeToYMap.push({ time: prevValidTime, bottomY: currentBottomY });
 
   let lastDrawnSliceH = nominalStepPx;
-  const checkY1 = Math.round(h * 0.25);
-  const checkY2 = Math.round(h * 0.72);
 
   for (let step = 1; step <= totalSteps; step++) {
     if (cancelGenerationRequested) break;
@@ -2353,41 +2351,24 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
 
     const actualTime = vidElem.currentTime;
     const realDt = actualTime - prevValidTime;
-    if (realDt <= 0.001) continue;
 
-    fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
-    const currFrameData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
+    if (realDt > 0.001) {
+      fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
 
-    // 【新改善2＆3】前のフレームと絵が全く変わっていない場合：
-    // - 経過時間が短い（realDt < 0.045秒）場合は、ブラウザがまだ同じビデオフレームを返している（重複フレーム）ため、
-    //   prevValidTime を更新せずにスキップし、次の新しいフレームが来たときにまとめて正確な高さを切り出す！
-    // - 経過時間が長い（realDt >= 0.045秒）のに絵が全く動いていない場合は、動画の再生開始前または終了後の「停止時間」であるため、
-    //   画像を積み上げずに prevValidTime だけを進めて停止時間を綺麗にスキップする！
-    const frameDiff = computeBandDifference(prevFrameData, currFrameData, cropW, checkY1, checkY2);
-    if (frameDiff < 2.2) {
-      if (realDt >= 0.045) {
+      // 最初の数秒もスキップせず、実際に進んだ時間 realDt に固定速度を掛けた移動ピクセル量 actualDy を漏れなく切り出す
+      const actualDy = Math.min(capY - topSafeY, realDt * speedPxPerSec);
+      if (actualDy >= 0.5) {
+        const sy = Math.max(topSafeY, capY - actualDy);
+        drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY);
+        currentBottomY += actualDy;
+        lastDrawnSliceH = actualDy;
         prevValidTime = actualTime;
-        prevFrameData = currFrameData;
         timeToYMap.push({ time: actualTime, bottomY: currentBottomY });
       }
-      continue;
     }
-
-    // 実際に新しいフレームへ進んだ経過時間 realDt に固定速度を掛けた正確な移動ピクセル量 actualDy を切り出す
-    const actualDy = Math.min(capY - topSafeY, realDt * speedPxPerSec);
-    if (actualDy >= 0.5) {
-      const sy = Math.max(topSafeY, capY - actualDy);
-      drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY);
-      currentBottomY += actualDy;
-      lastDrawnSliceH = actualDy;
-    }
-
-    prevValidTime = actualTime;
-    prevFrameData = currFrameData;
-    timeToYMap.push({ time: actualTime, bottomY: currentBottomY });
 
     if (onStepProgress && (step % 8 === 0 || step === totalSteps)) {
-      onStepProgress((step + 1) / (totalSteps + 1), actualTime, tEnd);
+      onStepProgress(step / totalSteps, actualTime, tEnd);
       await new Promise((r) => setTimeout(r, 0));
     }
   }
@@ -2571,6 +2552,8 @@ async function generateChartImage(isTestMode = false) {
         grp.images = [{ name: `${activeFolderName}_譜面.png`, file: null, url: null, masterData: resultData }];
       }
       await rebuildLayoutFromMaster(!isTestMode);
+      progressPercent.textContent = "100%";
+      progressBar.style.width = "100%";
       const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
       progressText.textContent = `譜面静止画の作成とフォルダへの自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
     } else if (cancelGenerationRequested) {
@@ -2683,6 +2666,8 @@ async function processMultipleVideosConcurrently() {
     if (cancelGenerationRequested) {
       progressText.textContent = `同時処理を停止しました（完了分 ${completedCount} フォルダ / ${elapsedSec}秒）`;
     } else {
+      progressPercent.textContent = "100%";
+      progressBar.style.width = "100%";
       progressText.textContent = `未作成だった全 ${completedCount} フォルダの同時処理と自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
     }
   } finally {

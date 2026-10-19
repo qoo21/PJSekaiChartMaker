@@ -97,13 +97,13 @@
 
   /* 再生ボタン＆シークバー（常時表示） */
   .main-transport-bar {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 10px;
     background: #121724; padding: 10px 14px; border-radius: 8px;
     border: 1px solid #222b40; margin-top: 10px; flex-wrap: wrap;
     transition: opacity 0.2s;
   }
   .main-transport-bar input[type="range"] {
-    flex: 1; min-width: 160px; accent-color: var(--primary); cursor: pointer;
+    flex: 1; min-width: 140px; accent-color: var(--primary); cursor: pointer;
   }
 
   /* 常時表示パネル共通 */
@@ -235,7 +235,7 @@
 <div class="container">
   <header>
     <div>
-      <h1>プロセカ譜面動画 変換ツール</h1>
+      <h1>プロセカ譜面動画 静止画メーカー</h1>
     </div>
     <div id="headerControls" style="display:flex; gap:8px; flex-wrap:wrap; transition:opacity 0.2s;">
       <button class="btn" id="linkRootFolderBtn">同階層フォルダを登録（自動読み込み・自動保存設定）</button>
@@ -275,9 +275,21 @@
       <canvas id="previewCanvas" width="640" height="360"></canvas>
     </div>
 
-    <!-- 2. 再生ボタン ＆ シークバー（常時表示・生成中はロック） -->
+    <!-- 2. 再生ボタン・再生速度（倍速/低速）＆ シークバー（常時表示・生成中はロック） -->
     <div class="main-transport-bar" id="mainTransportBar">
       <button class="btn" id="playPauseBtn" style="padding:7px 16px;">再生 / 一時停止</button>
+      <div style="display:flex; align-items:center; gap:5px; background:#0b0f19; padding:4px 9px; border-radius:6px; border:1px solid #26314d;">
+        <span style="font-size:0.82rem; color:var(--muted); white-space:nowrap;">再生速度:</span>
+        <select id="playbackRateSelect" class="num-input" style="width:105px; padding:3px 6px; font-size:0.85rem;">
+          <option value="0.25">0.25倍 (極低速)</option>
+          <option value="0.5">0.5倍 (低速)</option>
+          <option value="0.75">0.75倍 (やや低速)</option>
+          <option value="1" selected>1.0倍 (標準)</option>
+          <option value="1.25">1.25倍</option>
+          <option value="1.5">1.5倍 (高速)</option>
+          <option value="2">2.0倍 (倍速)</option>
+        </select>
+      </div>
       <input type="range" id="seekSlider" min="0" max="100" step="0.02" value="0">
       <span id="currentTimeLabel" style="font-size:0.88rem; font-weight:bold; min-width:135px; text-align:right;">0.00 秒 / 0.00 秒</span>
     </div>
@@ -350,7 +362,7 @@
               </div>
             </div>
 
-            <!-- 処理・出力の解像度設定 -->
+            <!-- 処理・出力の解像度設定（精度最優先でデフォルトは原寸100%） -->
             <div class="control-group">
               <label>
                 <span>処理・出力の解像度</span>
@@ -358,9 +370,9 @@
               </label>
               <div class="inline-inputs">
                 <select id="resolutionSelect" class="num-input" style="width:100%;">
-                  <option value="original">原寸 100%（元動画の解像度のまま・最高画質）</option>
+                  <option value="original" selected>原寸 100%（元動画の解像度のまま・最高精度）</option>
                   <option value="1080">高画質（高さ最大 1080px 相当）</option>
-                  <option value="720" selected>標準（高さ最大 720px 相当・安定＆高精細）</option>
+                  <option value="720">標準（高さ最大 720px 相当）</option>
                   <option value="560">軽量（高さ最大 560px 相当・メモリ節約）</option>
                 </select>
               </div>
@@ -408,12 +420,21 @@
       </div>
     </details>
 
-    <!-- 5. 静止画プレビューの上：静止画ビューアー表示操作・再生ボタン・再生位置バー遅延調整（常時表示） -->
+    <!-- 5. 静止画プレビューの上：静止画ビューアー表示操作・再生ボタン・倍速/低速・バー遅延調整（常時表示） -->
     <div class="viewer-top-controls" id="viewerTopControls">
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
           <strong style="color:var(--primary); font-size:0.9rem; margin-right:2px;">ビューアー操作:</strong>
           <button class="btn" id="viewerPlayPauseBtn" style="padding:5px 14px; font-size:0.86rem;">再生 / 一時停止</button>
+          <select id="viewerPlaybackRateSelect" class="num-input" title="再生速度（倍速・低速）" style="width:96px; padding:4px 6px; font-size:0.82rem;">
+            <option value="0.25">0.25倍速</option>
+            <option value="0.5">0.5倍速</option>
+            <option value="0.75">0.75倍速</option>
+            <option value="1" selected>1.0倍速</option>
+            <option value="1.25">1.25倍速</option>
+            <option value="1.5">1.5倍速</option>
+            <option value="2">2.0倍速</option>
+          </select>
           <button class="btn btn-secondary" id="zoomOutBtn" style="padding:5px 10px;">ー 縮小</button>
           <span id="zoomLevelLabel" style="min-width:52px; text-align:center; font-weight:bold;">100%</span>
           <button class="btn btn-secondary" id="zoomInBtn" style="padding:5px 10px;">＋ 拡大</button>
@@ -474,53 +495,37 @@
 
 <script>
 // =========================================================
-// 0. 案⑨ ＋ 案①：端末スペックの自動取得と生成スピード（待機時間）の自動設定
+// 0. 端末スペックの自動取得と待機ペース自動設定
 // =========================================================
 const DEVICE_SPEC_PROFILE = (() => {
   const cores = navigator.hardwareConcurrency || 4;
-  const memory = navigator.deviceMemory || 4; // GB単位（未対応ブラウザは4GB扱い）
+  const memory = navigator.deviceMemory || 4;
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 
-  let tier = "standard";
-  let baseStepWaitMs = 28;      // 案①：毎ステップのデコード安定待機時間(ms)
-  let gcPauseEverySteps = 30;   // 案⑧：メモリ掃除・冷却小休止を入れるステップ間隔
-  let gcPauseDurationMs = 180;  // 案⑧：メモリ掃除の小休止時間(ms)
-  let maxRetryCount = 5;        // 案④：未更新フレームのリトライ最大回数
-  let retryWaitMs = 35;         // 案④：リトライ時の待機時間(ms)
-  let defaultResolution = "720";
-  let label = `自動設定: 標準ペース (${cores}コア)`;
+  let baseStepWaitMs = 10;
+  let gcPauseEverySteps = 55;
+  let gcPauseDurationMs = 80;
+  let label = `精度最優先・標準同期 (${cores}コア)`;
 
   if (!isMobile && cores >= 8 && memory >= 8) {
-    tier = "high";
-    baseStepWaitMs = 14;
-    gcPauseEverySteps = 45;
-    gcPauseDurationMs = 120;
-    maxRetryCount = 4;
-    retryWaitMs = 25;
-    defaultResolution = "1080";
-    label = `自動設定: 高速安定ペース (${cores}コア/${memory}GB)`;
+    baseStepWaitMs = 5;
+    gcPauseEverySteps = 75;
+    gcPauseDurationMs = 50;
+    label = `精度最優先・高速同期 (${cores}コア/${memory}GB)`;
   } else if (isMobile || cores <= 4 || memory <= 4) {
-    tier = "careful";
-    baseStepWaitMs = 55;
-    gcPauseEverySteps = 22;
-    gcPauseDurationMs = 240;
-    maxRetryCount = 6;
-    retryWaitMs = 45;
-    defaultResolution = "720";
-    label = `自動設定: ゆっくり確実ペース (${cores}コア)`;
+    baseStepWaitMs = 22;
+    gcPauseEverySteps = 35;
+    gcPauseDurationMs = 130;
+    label = `精度最優先・確実同期 (${cores}コア)`;
   }
 
   return {
-    tier,
     cores,
     memory,
     isMobile,
     baseStepWaitMs,
     gcPauseEverySteps,
     gcPauseDurationMs,
-    maxRetryCount,
-    retryWaitMs,
-    defaultResolution,
     label
   };
 })();
@@ -742,7 +747,7 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 }
 
 // =========================================================
-// 3. UI要素・裏での自動設定保存/読み込み・フォルダ管理
+// 3. UI要素・裏でのタイムスタンプ＆設定自動保存/読み込み管理
 // =========================================================
 const video = document.getElementById("videoPreview");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -773,6 +778,8 @@ const seekSlider = document.getElementById("seekSlider");
 const currentTimeLabel = document.getElementById("currentTimeLabel");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const viewerPlayPauseBtn = document.getElementById("viewerPlayPauseBtn");
+const playbackRateSelect = document.getElementById("playbackRateSelect");
+const viewerPlaybackRateSelect = document.getElementById("viewerPlaybackRateSelect");
 const setStartBtn = document.getElementById("setStartBtn");
 const setEndBtn = document.getElementById("setEndBtn");
 
@@ -828,10 +835,9 @@ const resetOffsetBtn = document.getElementById("resetOffsetBtn");
 if (deviceSpecBadge) {
   deviceSpecBadge.textContent = DEVICE_SPEC_PROFILE.label;
 }
-resolutionSelect.value = DEVICE_SPEC_PROFILE.defaultResolution;
 
 const SETTINGS_FILE_NAME = "pjsekai_settings.json";
-const LOCAL_STORAGE_SETTINGS_KEY = "PJSekaiChartMaker_Settings_AutoV10";
+const LOCAL_STORAGE_SETTINGS_KEY = "PJSekaiChartMaker_Settings_AutoV14";
 
 let currentColumnWidths = 0;
 let activeVideoName = "";
@@ -839,12 +845,325 @@ let activeVideoItem = null;
 let cancelGenerationRequested = false;
 let isGenerating = false;
 let shouldRestartFromBeginning = false;
+let currentPlaybackRate = 1.0;
+
+// フォルダごとの裏タイムスタンプマップ保持用: folderName -> { totalHeight, bottomBaseH, topCapH, tStart, tEnd, timeToYMap }
+let savedTimestampsByFolder = {};
+
+// 再生中のリアルタイム・オートシンクロ補正（動画と静止画のズレ検知＆滑らかなイージング修正）用状態
+let chartVisualSignature = null; // Float32Array (長さ = totalHeight)
+let smoothedDriftOffsetY = 0;    // 現在適用中の滑らかなバー補正量(px)
+let targetDriftOffsetY = 0;      // 照合で検出された目標バー補正量(px)
+let lastSyncCheckWallTime = 0;
+const liveSyncCanvas = document.createElement("canvas");
+const liveSyncCtx = liveSyncCanvas.getContext("2d", { willReadFrequently: true });
 
 const activeSeekResolvers = new Set();
 
 const folderGroups = new Map();
 let activeFolderName = "";
 let savedDirectoryHandle = null;
+
+function applyPlaybackRate(rateValue, save = true) {
+  const rate = parseFloat(rateValue) || 1.0;
+  currentPlaybackRate = rate;
+  const rateStr = String(rate);
+  if (playbackRateSelect.value !== rateStr) playbackRateSelect.value = rateStr;
+  if (viewerPlaybackRateSelect.value !== rateStr) viewerPlaybackRateSelect.value = rateStr;
+
+  if ("preservesPitch" in video) video.preservesPitch = true;
+  else if ("webkitPreservesPitch" in video) video.webkitPreservesPitch = true;
+
+  video.defaultPlaybackRate = rate;
+  video.playbackRate = rate;
+
+  if (save) scheduleSaveSettings();
+}
+
+playbackRateSelect.addEventListener("change", () => {
+  applyPlaybackRate(playbackRateSelect.value, true);
+});
+viewerPlaybackRateSelect.addEventListener("change", () => {
+  applyPlaybackRate(viewerPlaybackRateSelect.value, true);
+});
+
+// =========================================================
+// 静止画へのタイムスタンプ埋め込み（ステガノグラフィ）＆ 抽出エンジン
+// =========================================================
+// 生成した静止画の最後の1行に目に見えない形でタイムスタンプ配列を直接埋め込み、
+// 後からPNG画像を読み込んだだけでも裏でタイムスタンプが100%復元されるようにする
+const STEGO_MAGIC = "PJSK_TS1:";
+
+function embedTimestampsIntoCanvas(canvas, metaObj) {
+  if (!canvas || canvas.width < 64 || canvas.height < 10) return;
+  try {
+    const compactMap = [];
+    const srcMap = metaObj.timeToYMap || [];
+    const step = Math.max(1, Math.floor(srcMap.length / 350));
+    for (let i = 0; i < srcMap.length; i += step) {
+      compactMap.push([Number(srcMap[i].time.toFixed(3)), Math.round(srcMap[i].bottomY)]);
+    }
+    if (srcMap.length > 0) {
+      const last = srcMap[srcMap.length - 1];
+      compactMap.push([Number(last.time.toFixed(3)), Math.round(last.bottomY)]);
+    }
+
+    const payload = JSON.stringify({
+      th: Math.round(metaObj.totalHeight || 0),
+      bb: Math.round(metaObj.bottomBaseH || 0),
+      tc: Math.round(metaObj.topCapH || 0),
+      ts: Number((metaObj.tStart || 0).toFixed(3)),
+      te: Number((metaObj.tEnd || 0).toFixed(3)),
+      m: compactMap
+    });
+    const fullStr = STEGO_MAGIC + payload;
+    const bytes = new TextEncoder().encode(fullStr);
+    const totalLen = bytes.length;
+
+    const maxBytesCapacity = Math.floor((canvas.width * 3) / 4) - 4;
+    if (totalLen > maxBytesCapacity) return;
+
+    const ctx = canvas.getContext("2d");
+    const y = canvas.height - 1;
+    const rowImg = ctx.getImageData(0, y, canvas.width, 1);
+    const data = rowImg.data;
+
+    // 先頭16ピクセルにデータ長 (32bit) を2bitずつ埋め込む
+    for (let b = 0; b < 16; b++) {
+      const twoBits = (totalLen >>> (b * 2)) & 0x03;
+      const idx = b * 4;
+      data[idx] = (data[idx] & 0xFC) | twoBits;
+      data[idx + 3] = 255;
+    }
+
+    // 16ピクセル目以降にバイト列を1ピクセルあたり4bit（Rに2bit、Gに2bit）埋め込む
+    for (let i = 0; i < totalLen; i++) {
+      const byteVal = bytes[i];
+      const p1 = 16 + i * 2;
+      const p2 = p1 + 1;
+      const idx1 = p1 * 4;
+      const idx2 = p2 * 4;
+      data[idx1]     = (data[idx1] & 0xFC) | (byteVal & 0x03);
+      data[idx1 + 1] = (data[idx1 + 1] & 0xFC) | ((byteVal >>> 2) & 0x03);
+      data[idx1 + 3] = 255;
+      data[idx2]     = (data[idx2] & 0xFC) | ((byteVal >>> 4) & 0x03);
+      data[idx2 + 1] = (data[idx2 + 1] & 0xFC) | ((byteVal >>> 6) & 0x03);
+      data[idx2 + 3] = 255;
+    }
+
+    ctx.putImageData(rowImg, 0, y);
+  } catch (e) {}
+}
+
+function extractTimestampsFromCanvas(ctx, width, height) {
+  if (width < 64 || height < 10) return null;
+  try {
+    const y = height - 1;
+    const data = ctx.getImageData(0, y, width, 1).data;
+
+    let totalLen = 0;
+    for (let b = 0; b < 16; b++) {
+      const twoBits = data[b * 4] & 0x03;
+      totalLen |= (twoBits << (b * 2));
+    }
+
+    const maxBytesCapacity = Math.floor((width * 3) / 4) - 4;
+    if (totalLen <= STEGO_MAGIC.length || totalLen > maxBytesCapacity) return null;
+
+    const bytes = new Uint8Array(totalLen);
+    for (let i = 0; i < totalLen; i++) {
+      const p1 = 16 + i * 2;
+      const p2 = p1 + 1;
+      const idx1 = p1 * 4;
+      const idx2 = p2 * 4;
+      const b0 = data[idx1] & 0x03;
+      const b1 = data[idx1 + 1] & 0x03;
+      const b2 = data[idx2] & 0x03;
+      const b3 = data[idx2 + 1] & 0x03;
+      bytes[i] = b0 | (b1 << 2) | (b2 << 4) | (b3 << 6);
+    }
+
+    const str = new TextDecoder().decode(bytes);
+    if (!str.startsWith(STEGO_MAGIC)) return null;
+
+    const parsed = JSON.parse(str.slice(STEGO_MAGIC.length));
+    if (!parsed || !Array.isArray(parsed.m)) return null;
+
+    return {
+      totalHeight: parsed.th,
+      bottomBaseH: parsed.bb,
+      topCapH: parsed.tc,
+      tStart: parsed.ts,
+      tEnd: parsed.te,
+      timeToYMap: parsed.m.map(pair => ({ time: pair[0], bottomY: pair[1] }))
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveTimestampProfileForFolder(folderName, metaObj) {
+  if (!folderName || !metaObj || !metaObj.timeToYMap || metaObj.timeToYMap.length < 2) return;
+  const compact = [];
+  const src = metaObj.timeToYMap;
+  const step = Math.max(1, Math.floor(src.length / 400));
+  for (let i = 0; i < src.length; i += step) {
+    compact.push({ time: Number(src[i].time.toFixed(3)), bottomY: Math.round(src[i].bottomY) });
+  }
+  const last = src[src.length - 1];
+  if (compact[compact.length - 1].time !== Number(last.time.toFixed(3))) {
+    compact.push({ time: Number(last.time.toFixed(3)), bottomY: Math.round(last.bottomY) });
+  }
+
+  savedTimestampsByFolder[folderName] = {
+    totalHeight: Math.round(metaObj.totalHeight || 0),
+    bottomBaseH: Math.round(metaObj.bottomBaseH || 0),
+    topCapH: Math.round(metaObj.topCapH || 0),
+    tStart: Number((metaObj.tStart || 0).toFixed(3)),
+    tEnd: Number((metaObj.tEnd || 0).toFixed(3)),
+    timeToYMap: compact
+  };
+  scheduleSaveSettings();
+}
+
+// =========================================================
+// 再生中のリアルタイムズレ検知＆滑らかなバー位置修正用の「静止画視覚シグネチャ」構築関数
+// =========================================================
+function buildChartVisualSignatureFromMaster() {
+  if (!masterChartData.hasData || !masterChartData.chunks || masterChartData.chunks.length === 0) {
+    chartVisualSignature = null;
+    return;
+  }
+  const { cropW, totalHeight, chunks } = masterChartData;
+  const sig = new Float32Array(totalHeight);
+  const xStart = Math.max(2, Math.floor(cropW * 0.08));
+  const xEnd = Math.min(cropW - 2, Math.floor(cropW * 0.92));
+  const sampleCount = Math.max(1, Math.floor((xEnd - xStart) / 4));
+
+  for (let k = 0; k < chunks.length; k++) {
+    const ch = chunks[k];
+    if (!ch || !ch.width || !ch.height) continue;
+    const ctx = ch.getContext("2d", { willReadFrequently: true });
+    const imgData = ctx.getImageData(0, 0, cropW, MASTER_CHUNK_H).data;
+    const chunkBottomStart = k * MASTER_CHUNK_H;
+
+    for (let localY = 0; localY < MASTER_CHUNK_H; localY++) {
+      const bottomY = chunkBottomStart + (MASTER_CHUNK_H - 1 - localY);
+      if (bottomY < 0 || bottomY >= totalHeight) continue;
+
+      const rowOff = localY * cropW;
+      let valSum = 0;
+      for (let x = xStart; x < xEnd; x += 4) {
+        const idx = (rowOff + x) << 2;
+        const r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
+        const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        // ノーツの彩度・輝度・小節線を強く反映した特徴値
+        valSum += maxC + (maxC - minC) * 1.2;
+      }
+      sig[bottomY] = valSum / sampleCount;
+    }
+  }
+  chartVisualSignature = sig;
+  smoothedDriftOffsetY = 0;
+  targetDriftOffsetY = 0;
+}
+
+// 再生中に現在の動画フレームと静止画のシグネチャを比較し、ズレ量 targetDriftOffsetY を算出する関数
+function updateLivePlayheadDriftCorrection(nominalBottomY) {
+  if (!chartVisualSignature || !video.videoWidth || isGenerating) return;
+  const now = performance.now();
+  // 負荷をかけないよう約85ms（秒間約12回）間隔で裏照合を実行
+  if (now - lastSyncCheckWallTime < 85) return;
+  lastSyncCheckWallTime = now;
+
+  const totalH = chartVisualSignature.length;
+  const bandHalfH = 28; // 基準ライン(capY)の上下28px（計56pxの帯）でパターン照合
+  const searchRange = 110; // ±110pxの範囲でズレを探索
+
+  const centerB = Math.round(nominalBottomY + smoothedDriftOffsetY);
+  if (centerB - searchRange - bandHalfH < 10 || centerB + searchRange + bandHalfH >= totalH - 10) {
+    return;
+  }
+
+  const rawW = video.videoWidth;
+  const rawH = video.videoHeight;
+  const leftPct = parseFloat(cropLeftSlider.value) / 100;
+  const rightPct = parseFloat(cropRightSlider.value) / 100;
+  const srcX1 = Math.round(rawW * leftPct);
+  const srcCropW = Math.max(10, Math.round(rawW * rightPct) - srcX1);
+
+  const scaleToChart = (chartMeta.cropW || srcCropW) / srcCropW;
+  const chartVideoH = Math.round(rawH * scaleToChart);
+  const chartCapY = Math.round(chartVideoH * 0.70);
+
+  const sampleW = 48;
+  const sampleH = bandHalfH * 2;
+  if (liveSyncCanvas.width !== sampleW || liveSyncCanvas.height !== sampleH) {
+    liveSyncCanvas.width = sampleW;
+    liveSyncCanvas.height = sampleH;
+  }
+
+  // 動画上の capY を中心とした上下 bandHalfH 相当の領域を切り出す
+  const vidCapY = rawH * 0.70;
+  const vidBandHalf = bandHalfH / Math.max(0.1, scaleToChart);
+  const sy = Math.max(0, Math.min(rawH - vidBandHalf * 2, vidCapY - vidBandHalf));
+  liveSyncCtx.drawImage(video, srcX1, sy, srcCropW, vidBandHalf * 2, 0, 0, sampleW, sampleH);
+
+  const vData = liveSyncCtx.getImageData(0, 0, sampleW, sampleH).data;
+  const vidProf = new Float32Array(sampleH);
+  let activeEnergy = 0;
+
+  for (let y = 0; y < sampleH; y++) {
+    const row = y * sampleW;
+    let sum = 0;
+    for (let x = 4; x < sampleW - 4; x++) {
+      const idx = (row + x) << 2;
+      const r = vData[idx], g = vData[idx + 1], b = vData[idx + 2];
+      const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
+      const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
+      // 動画の背景透かしイラスト（低彩度・暗部）を無視し、ノーツや小節線のみを抽出
+      if (maxC > 68 || (maxC - minC) > 32) {
+        sum += maxC + (maxC - minC) * 1.2;
+      }
+    }
+    // 動画の上側(y=0)は静止画のより高い bottomY に対応するため、下から順のインデックスに揃える
+    const revIdx = sampleH - 1 - y;
+    vidProf[revIdx] = sum / (sampleW - 8);
+    activeEnergy += vidProf[revIdx];
+  }
+
+  // 現在の画面にノーツや小節線がほとんどない空白区間の場合は、現在の補正量を維持する
+  if (activeEnergy < sampleH * 18) return;
+
+  let bestShift = 0;
+  let minScore = Infinity;
+  let baseZeroScore = Infinity;
+
+  for (let shift = -searchRange; shift <= searchRange; shift += 2) {
+    const candBottomY = Math.round(nominalBottomY) + shift;
+    if (candBottomY - bandHalfH < 2 || candBottomY + bandHalfH >= totalH - 2) continue;
+
+    let diffSum = 0;
+    for (let i = 0; i < sampleH; i += 2) {
+      const chartB = candBottomY - bandHalfH + i;
+      const d = Math.abs(vidProf[i] - chartVisualSignature[chartB]);
+      diffSum += d;
+    }
+    // 急激なジャンプを抑えるための微小な中心バイアス
+    const regScore = (diffSum / (sampleH * 0.5)) + Math.abs(shift - smoothedDriftOffsetY) * 0.12;
+    if (shift === 0) baseZeroScore = regScore;
+    if (regScore < minScore) {
+      minScore = regScore;
+      bestShift = shift;
+    }
+  }
+
+  // 明確に一致度が高いズレ位置が見つかった場合のみ目標オフセットを更新
+  if (minScore < baseZeroScore * 0.88 && minScore < 65) {
+    targetDriftOffsetY = targetDriftOffsetY * 0.55 + bestShift * 0.45;
+  }
+}
 
 // =========================================================
 // 設定ファイル (pjsekai_settings.json) のバックグラウンド自動保存/自動読込
@@ -855,7 +1174,7 @@ function collectCurrentSettings() {
   return {
     cropLeft: isNaN(cLeft) ? 18 : cLeft,
     cropRight: isNaN(cRight) ? 78.5 : cRight,
-    resolution: resolutionSelect.value || DEVICE_SPEC_PROFILE.defaultResolution,
+    resolution: resolutionSelect.value || "original",
     blackBg: blackBgToggle.checked,
     bgThresh: parseInt(bgThreshSlider.value, 10) || 36,
     gridBoost: parseFloat(gridBoostSlider.value) || 0.5,
@@ -864,7 +1183,9 @@ function collectCurrentSettings() {
     layoutMode: layoutMode.value || "grid",
     showPlayhead: showPlayheadToggle.checked,
     followPlayhead: followPlayheadToggle.checked,
-    playheadOffsetSec: parseFloat(playheadOffsetInput.value) || 0.00
+    playheadOffsetSec: parseFloat(playheadOffsetInput.value) || 0.00,
+    playbackRate: currentPlaybackRate,
+    savedTimestampsByFolder: savedTimestampsByFolder
   };
 }
 
@@ -910,6 +1231,12 @@ function applySettingsObject(s) {
   if (typeof s.playheadOffsetSec === "number") {
     playheadOffsetInput.value = s.playheadOffsetSec.toFixed(2);
     playheadOffsetSlider.value = Math.max(-2, Math.min(2, s.playheadOffsetSec)).toFixed(2);
+  }
+  if (typeof s.playbackRate === "number" && [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].includes(s.playbackRate)) {
+    applyPlaybackRate(s.playbackRate, false);
+  }
+  if (s.savedTimestampsByFolder && typeof s.savedTimestampsByFolder === "object") {
+    savedTimestampsByFolder = s.savedTimestampsByFolder;
   }
   drawPreview(true);
   drawPlayheadOverlay();
@@ -994,7 +1321,7 @@ async function autoSaveCanvasToFolder(folderName, targetCanvas) {
       else grp.images.unshift(entry);
     }
 
-    bottomSaveStatusLabel.textContent = `フォルダ「${folderName}」に ${fileName} を自動保存しました`;
+    bottomSaveStatusLabel.textContent = `フォルダ「${folderName}」に ${fileName} （タイムスタンプ記録済）を自動保存しました`;
     return true;
   } catch (e) {
     return false;
@@ -1020,6 +1347,7 @@ function setGeneratingLock(locked) {
   }
 
   viewerPlayPauseBtn.disabled = locked;
+  viewerPlaybackRateSelect.disabled = locked;
   stopGenerateBtn.disabled = !locked;
 
   const tabBtns = folderTabs.querySelectorAll("button");
@@ -1334,6 +1662,8 @@ function selectFolderSet(folderName) {
   const grp = folderGroups.get(folderName);
   if (!grp) return;
   activeFolderName = folderName;
+  smoothedDriftOffsetY = 0;
+  targetDriftOffsetY = 0;
   renderTopSwitcher();
 
   if (grp.videos.length > 0) {
@@ -1390,7 +1720,7 @@ function renderTopSwitcher() {
 }
 
 // =========================================================
-// 4. 画像内の列領域を実測する検出エンジン ＆ 外部画像の読み込み
+// 4. 画像内の列領域を実測する検出エンジン ＆ 外部画像の読み込み（埋め込みタイムスタンプ復元対応）
 // =========================================================
 function detectColumnRectsFromCanvas(ctx, W, H) {
   const sampleYs = [
@@ -1471,8 +1801,8 @@ function detectColumnRectsFromCanvas(ctx, W, H) {
       }
     }
 
-    let bottomY = H - 1;
-    for (let y = H - 1; y >= H - Math.min(50, Math.round(H * 0.1)); y--) {
+    let bottomY = H - 2;
+    for (let y = H - 2; y >= H - Math.min(50, Math.round(H * 0.1)); y--) {
       const idx = y * 4;
       if (!isGapBgColor(colLineData[idx], colLineData[idx + 1], colLineData[idx + 2])) {
         bottomY = y;
@@ -1518,7 +1848,7 @@ function loadImageItemToViewer(imgItem) {
   img.onload = () => {
     outputCanvas.width = img.width;
     outputCanvas.height = img.height;
-    const outCtx = outputCanvas.getContext("2d");
+    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
     outCtx.drawImage(img, 0, 0);
 
     const infoText = `表示中: ${activeFolderName} / ${imgItem.name} (${img.width} x ${img.height} px)`;
@@ -1538,8 +1868,8 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
   const H = img.height;
   const parsedStart = parseFloat(startTimeInput.value);
   const parsedEnd = parseFloat(endTimeInput.value);
-  const tStart = !isNaN(parsedStart) ? parsedStart : 0.0;
-  const tEnd = (!isNaN(parsedEnd) && parsedEnd > tStart) ? parsedEnd : (video.duration || 120.0);
+  let tStart = !isNaN(parsedStart) ? parsedStart : 0.0;
+  let tEnd = (!isNaN(parsedEnd) && parsedEnd > tStart) ? parsedEnd : (video.duration || 120.0);
 
   const detected = detectColumnRectsFromCanvas(ctx, W, H);
   const colRects = detected.rects;
@@ -1556,8 +1886,35 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
   const cropRatio = Math.max(0.2, (parseFloat(cropRightSlider.value) - parseFloat(cropLeftSlider.value)) / 100);
   const estVideoW = calcCropW / cropRatio;
   const estH = estVideoW * 0.68;
-  const estBottomBaseH = Math.round(estH * 0.30);
-  const estTopCapH = Math.round(estH * 0.56);
+  let estBottomBaseH = Math.round(estH * 0.30);
+  let estTopCapH = Math.round(estH * 0.63);
+  let restoredTimeMap = [];
+
+  // 1) まずPNG画像の最下端行に埋め込まれたタイムスタンプ（ステガノグラフィ）があれば優先復元
+  const embeddedMeta = extractTimestampsFromCanvas(ctx, W, H);
+  if (embeddedMeta && embeddedMeta.timeToYMap && embeddedMeta.timeToYMap.length >= 2) {
+    const scaleY = embeddedMeta.totalHeight > 0 ? (totalHeight / embeddedMeta.totalHeight) : 1.0;
+    estBottomBaseH = Math.round((embeddedMeta.bottomBaseH || estBottomBaseH) * scaleY);
+    estTopCapH = Math.round((embeddedMeta.topCapH || estTopCapH) * scaleY);
+    tStart = embeddedMeta.tStart ?? tStart;
+    tEnd = embeddedMeta.tEnd ?? tEnd;
+    restoredTimeMap = embeddedMeta.timeToYMap.map(pt => ({
+      time: pt.time,
+      bottomY: pt.bottomY * scaleY
+    }));
+  } else if (savedTimestampsByFolder[labelName] && savedTimestampsByFolder[labelName].timeToYMap) {
+    // 2) 設定ファイルに記録されていたフォルダ別の裏タイムスタンプがあれば復元
+    const savedProf = savedTimestampsByFolder[labelName];
+    const scaleY = savedProf.totalHeight > 0 ? (totalHeight / savedProf.totalHeight) : 1.0;
+    estBottomBaseH = Math.round((savedProf.bottomBaseH || estBottomBaseH) * scaleY);
+    estTopCapH = Math.round((savedProf.topCapH || estTopCapH) * scaleY);
+    tStart = savedProf.tStart ?? tStart;
+    tEnd = savedProf.tEnd ?? tEnd;
+    restoredTimeMap = savedProf.timeToYMap.map(pt => ({
+      time: pt.time,
+      bottomY: pt.bottomY * scaleY
+    }));
+  }
 
   const numChunks = Math.ceil(totalHeight / MASTER_CHUNK_H);
   const chunks = [];
@@ -1598,7 +1955,7 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     chunks: chunks,
     tStart: tStart,
     tEnd: tEnd,
-    timeToYMap: [],
+    timeToYMap: restoredTimeMap,
     sourceLabel: labelName
   };
   reLayoutBtn.disabled = isGenerating;
@@ -1619,12 +1976,15 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     scale: 1,
     renderScale: 1,
     colRects: colRects,
-    timeToYMap: []
+    timeToYMap: restoredTimeMap
   };
+
+  // 再生時のリアルタイム・オートシンクロ補正のために静止画の視覚シグネチャを裏で構築
+  buildChartVisualSignatureFromMaster();
 }
 
 // =========================================================
-// 5. マスター譜面データから「1列の高さ」を変更して即時再生成（上部の青い文字なし）
+// 5. マスター譜面データから「1列の高さ」を変更して即時再生成（タイムスタンプ埋め込み対応）
 // =========================================================
 function drawColumnFromMaster(targetCtx, c, colMaxH, destX, destY) {
   const { cropW, totalHeight, chunks } = masterChartData;
@@ -1660,7 +2020,7 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
   const mode = layoutMode.value;
   const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
   const colGap = 14;
-  const headerH = 0; // 上部の青い文字（「（下から上へ進行）」等）をなくしスッキリ配置
+  const headerH = 0;
 
   currentColumnWidths = cropW;
 
@@ -1678,7 +2038,7 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
 
     outputCanvas.width = Math.max(1, Math.round(rawW * renderScale));
     outputCanvas.height = Math.max(1, Math.round(rawH * renderScale));
-    const outCtx = outputCanvas.getContext("2d");
+    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
     outCtx.imageSmoothingEnabled = true;
     outCtx.imageSmoothingQuality = "high";
     outCtx.fillStyle = "#000000";
@@ -1707,7 +2067,7 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
 
     outputCanvas.width = Math.max(1, Math.round(rawW * renderScale));
     outputCanvas.height = Math.max(1, Math.round(rawH * renderScale));
-    const outCtx = outputCanvas.getContext("2d");
+    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
     outCtx.imageSmoothingEnabled = true;
     outCtx.imageSmoothingQuality = "high";
 
@@ -1754,6 +2114,13 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
     timeToYMap: timeToYMap
   };
 
+  // 裏で静止画の視覚シグネチャを構築し、さらにCanvas最下端行にタイムスタンプを埋め込む
+  buildChartVisualSignatureFromMaster();
+  embedTimestampsIntoCanvas(outputCanvas, chartMeta);
+  if (activeFolderName) {
+    saveTimestampProfileForFolder(activeFolderName, chartMeta);
+  }
+
   const infoText = `${sourceLabel || activeFolderName || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
   currentViewFileName.textContent = infoText;
   bottomSaveStatusLabel.textContent = infoText;
@@ -1780,7 +2147,7 @@ resolutionSelect.addEventListener("change", () => {
   scheduleSaveSettings();
 });
 
-// 案⑪：動画ファイルをメモリ（ArrayBuffer -> Blob）に完全プリロードしてディスクI/O待ちの引っかかりをゼロにする関数
+// 動画ファイルをメモリ（RAM）に完全プリロードしてディスクI/O待ちの引っかかりをゼロにする関数
 async function ensureVideoPreloadedInMemory(vidItem) {
   if (!vidItem) return null;
   if (vidItem.ramBlobUrl) return vidItem.ramBlobUrl;
@@ -1813,6 +2180,7 @@ function loadVideoItem(vidItem) {
   video.volume = 1.0;
   video.load();
   video.onloadedmetadata = () => {
+    applyPlaybackRate(currentPlaybackRate, false);
     previewCanvas.width = video.videoWidth || 640;
     previewCanvas.height = video.videoHeight || 360;
     const dur = video.duration || 0;
@@ -1823,7 +2191,7 @@ function loadVideoItem(vidItem) {
     startTimeInput.value = defaultStart.toFixed(1);
     endTimeInput.value = defaultEnd.toFixed(1);
 
-    if (!chartMeta.isGenerated) {
+    if (!chartMeta.isGenerated && (!chartMeta.timeToYMap || chartMeta.timeToYMap.length === 0)) {
       chartMeta.tStart = defaultStart;
       chartMeta.tEnd = defaultEnd;
     }
@@ -1837,7 +2205,6 @@ function loadVideoItem(vidItem) {
   };
 }
 
-// 案⑩：生成中（isGenerating === true）は上部プレビューの再描画を止めてGPU負荷を軽減
 function drawPreview(forceFilter = false) {
   if (isGenerating && !forceFilter) return;
   if (!video.videoWidth) return;
@@ -1880,9 +2247,9 @@ function drawPreview(forceFilter = false) {
 }
 
 // =========================================================
-// 6. 実測列座標 (colRects) に基づく「再生位置バー」描画エンジン
+// 6. 裏タイムスタンプ記録 ＆ リアルタイム・オートシンクロ補正による「再生位置バー」描画エンジン
 // =========================================================
-function getBottomYForTime(t) {
+function getNominalBottomYForTime(t) {
   const { tStart, tEnd, totalHeight, bottomBaseH, topCapH, timeToYMap } = chartMeta;
   if (timeToYMap && timeToYMap.length >= 2) {
     if (t <= timeToYMap[0].time) return timeToYMap[0].bottomY;
@@ -1909,23 +2276,24 @@ function getBottomYForTime(t) {
 
 function getTimeForBottomY(targetBottomY) {
   const { tStart, tEnd, totalHeight, bottomBaseH, topCapH, timeToYMap } = chartMeta;
+  const unshiftedY = targetBottomY - smoothedDriftOffsetY;
   if (timeToYMap && timeToYMap.length >= 2) {
-    if (targetBottomY <= timeToYMap[0].bottomY) return timeToYMap[0].time;
+    if (unshiftedY <= timeToYMap[0].bottomY) return timeToYMap[0].time;
     const last = timeToYMap[timeToYMap.length - 1];
-    if (targetBottomY >= last.bottomY) return last.time;
+    if (unshiftedY >= last.bottomY) return last.time;
     for (let i = 1; i < timeToYMap.length; i++) {
-      if (timeToYMap[i].bottomY >= targetBottomY) {
+      if (timeToYMap[i].bottomY >= unshiftedY) {
         const p1 = timeToYMap[i - 1];
         const p2 = timeToYMap[i];
         const dy = p2.bottomY - p1.bottomY;
-        const r = dy > 0.001 ? (targetBottomY - p1.bottomY) / dy : 0;
+        const r = dy > 0.001 ? (unshiftedY - p1.bottomY) / dy : 0;
         return p1.time + r * (p2.time - p1.time);
       }
     }
   }
   const startY = bottomBaseH || 0;
   const endY = Math.max(startY + 100, totalHeight - (topCapH || 0));
-  const ratio = Math.max(0, Math.min(1, (targetBottomY - startY) / Math.max(1, endY - startY)));
+  const ratio = Math.max(0, Math.min(1, (unshiftedY - startY) / Math.max(1, endY - startY)));
   return tStart + ratio * (tEnd - tStart);
 }
 
@@ -1939,9 +2307,20 @@ function drawPlayheadOverlay() {
   const rawTime = video.currentTime || 0;
   const offsetSec = parseFloat(playheadOffsetInput.value) || 0;
   const effectiveTime = rawTime + offsetSec;
-  const bottomY = getBottomYForTime(effectiveTime);
+
+  // 1) 裏で記録されたタイムスタンプから基本のY位置を取得
+  const nominalBottomY = getNominalBottomYForTime(effectiveTime);
+
+  // 2) 動画再生中（またはシーク時）に動画フレームと静止画を裏で照合し、画像の歪みや速度誤差によるズレを検出
+  updateLivePlayheadDriftCorrection(nominalBottomY);
+
+  // 3) 検出されたズレ量 targetDriftOffsetY に向かって、カクつかないようイージング補間で滑らかにバー位置を修正！
+  smoothedDriftOffsetY += (targetDriftOffsetY - smoothedDriftOffsetY) * 0.14;
+  if (Math.abs(smoothedDriftOffsetY) < 0.05) smoothedDriftOffsetY = 0;
 
   const { colMaxH, numCols, totalHeight, colRects } = chartMeta;
+  const bottomY = Math.max(0, Math.min(totalHeight, nominalBottomY + smoothedDriftOffsetY));
+
   let barX = 0, barY = 0, barW = outputCanvas.width;
 
   if (chartMeta.mode === "single" || !colRects || colRects.length <= 1) {
@@ -1968,7 +2347,7 @@ function drawPlayheadOverlay() {
   playheadBar.style.display = "block";
   playheadBar.style.width = `${barW}px`;
   playheadBar.style.transform = `translate3d(${barX}px, ${barY}px, 0)`;
-  playheadTimeBadge.textContent = `${rawTime.toFixed(2)}s`;
+  playheadTimeBadge.textContent = `${rawTime.toFixed(2)}s (${currentPlaybackRate}x)`;
 
   if (followPlayheadToggle.checked && !isDragging) {
     const vw = viewerViewport.clientWidth;
@@ -1995,7 +2374,10 @@ function startPlaybackLoop() {
 }
 
 video.addEventListener("play", () => {
-  if (!isGenerating) startPlaybackLoop();
+  if (!isGenerating) {
+    applyPlaybackRate(currentPlaybackRate, false);
+    startPlaybackLoop();
+  }
 });
 video.addEventListener("pause", () => {
   cancelAnimationFrame(animFrameId);
@@ -2037,6 +2419,8 @@ playheadOffsetInput.addEventListener("input", () => {
 resetOffsetBtn.addEventListener("click", () => {
   playheadOffsetSlider.value = "0.00";
   playheadOffsetInput.value = "0.00";
+  smoothedDriftOffsetY = 0;
+  targetDriftOffsetY = 0;
   drawPlayheadOverlay();
   scheduleSaveSettings();
 });
@@ -2061,13 +2445,15 @@ seekSlider.addEventListener("input", () => {
   video.currentTime = parseFloat(seekSlider.value);
 });
 
-// 画像生成後に再生ボタンを押した場合は一番最初（0秒）から再生する
 function toggleVideoPlay() {
   if (!video.src || isGenerating) return;
   video.muted = false;
+  applyPlaybackRate(currentPlaybackRate, false);
   if (video.paused) {
     if (shouldRestartFromBeginning || video.ended || (video.duration && video.currentTime >= video.duration - 0.1)) {
       video.currentTime = 0;
+      smoothedDriftOffsetY = 0;
+      targetDriftOffsetY = 0;
       shouldRestartFromBeginning = false;
     }
     video.play();
@@ -2127,7 +2513,7 @@ speedInput.addEventListener("input", () => {
 });
 
 // =========================================================
-// 案③・案⑤・案⑥：見切り発車をなくし、readyState確認＋2フレーム描画待機を行う確実なシーク関数
+// メディアスレッドの実フレーム時刻 (mediaTime) と完全同期するシーク関数
 // =========================================================
 function waitTwoAnimationFrames() {
   return new Promise((resolve) => {
@@ -2144,33 +2530,52 @@ function waitTwoAnimationFrames() {
 function seekVideoElementTo(vidElem, timeSec) {
   return new Promise((resolve) => {
     if (cancelGenerationRequested) {
-      resolve(0);
+      resolve({ elapsedMs: 0, mediaTime: timeSec });
       return;
     }
     const startWall = performance.now();
     const maxSafeTime = vidElem.duration ? Math.max(0, vidElem.duration - 0.04) : timeSec;
     const target = Math.min(Math.max(0, timeSec), maxSafeTime);
-    if (Math.abs(vidElem.currentTime - target) < 0.0008 && !vidElem.seeking && vidElem.readyState >= 2) {
-      resolve(0);
+
+    if (Math.abs(vidElem.currentTime - target) < 0.0005 && !vidElem.seeking && vidElem.readyState >= 2) {
+      resolve({ elapsedMs: 0, mediaTime: vidElem.currentTime });
       return;
     }
 
     let settled = false;
+    let rvfcId = null;
+    let capturedMediaTime = null;
+
+    if ("requestVideoFrameCallback" in vidElem) {
+      try {
+        rvfcId = vidElem.requestVideoFrameCallback((now, metadata) => {
+          if (metadata && typeof metadata.mediaTime === "number") {
+            capturedMediaTime = metadata.mediaTime;
+          }
+        });
+      } catch (e) {}
+    }
+
     const finish = () => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (rvfcId !== null && vidElem.cancelVideoFrameCallback) {
+        try { vidElem.cancelVideoFrameCallback(rvfcId); } catch (e) {}
+      }
       activeSeekResolvers.delete(finish);
       vidElem.removeEventListener("seeked", onSeeked);
       vidElem.removeEventListener("error", finish);
-      resolve(performance.now() - startWall);
+      resolve({
+        elapsedMs: performance.now() - startWall,
+        mediaTime: capturedMediaTime !== null ? capturedMediaTime : vidElem.currentTime
+      });
     };
 
-    // 案⑥：seeking === false かつ readyState >= 2 になるまで確実に待ってから、案⑤の2フレーム連続待機を実行
     const waitUntilReadyAndPainted = async () => {
       let guard = 0;
       while ((vidElem.seeking || vidElem.readyState < 2) && guard < 40 && !cancelGenerationRequested) {
-        await new Promise(r => setTimeout(r, 15));
+        await new Promise(r => setTimeout(r, 12));
         guard++;
       }
       await waitTwoAnimationFrames();
@@ -2182,7 +2587,6 @@ function seekVideoElementTo(vidElem, timeSec) {
     };
 
     activeSeekResolvers.add(finish);
-    // 案③：低スペック端末でも見切り発車しないよう、タイムアウトを 2500ms（2.5秒）に延長
     const timer = setTimeout(finish, 2500);
     vidElem.addEventListener("seeked", onSeeked);
     vidElem.addEventListener("error", finish);
@@ -2227,13 +2631,13 @@ autoSpeedBtn.addEventListener("click", async () => {
     for (let i = 0; i < 8; i++) {
       if (cancelGenerationRequested) break;
       const t = tStart + ((tEnd - tStart) * (i + 1)) / 10;
-      await seekVideoElementTo(video, t);
-      const t1 = video.currentTime;
+      const s1 = await seekVideoElementTo(video, t);
+      const t1 = s1.mediaTime;
       ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
       const img1 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
 
-      await seekVideoElementTo(video, t1 + dt);
-      const t2 = video.currentTime;
+      const s2 = await seekVideoElementTo(video, t1 + dt);
+      const t2 = s2.mediaTime;
       const realDt = t2 - t1;
       if (realDt <= 0.02) continue;
 
@@ -2305,7 +2709,7 @@ autoSpeedBtn.addEventListener("click", async () => {
 });
 
 // =========================================================
-// 8. 案①〜⑪を統合した端末スペック適応型の確実・高安定合成エンジン
+// 8. 浮動小数点スライス ＋ キーフレーム遅延ガード ＋ 精密タイムスタンプ記録合成エンジン
 // =========================================================
 function requestStopGeneration() {
   cancelGenerationRequested = true;
@@ -2320,29 +2724,10 @@ stopGenerateBtn.addEventListener("click", requestStopGeneration);
 progressStopBtn.addEventListener("click", requestStopGeneration);
 
 function computeWorkScale(rawH) {
-  const resMode = resolutionSelect.value || DEVICE_SPEC_PROFILE.defaultResolution;
+  const resMode = resolutionSelect.value || "original";
   if (resMode === "original") return 1.0;
-  const maxH = parseInt(resMode, 10) || 720;
+  const maxH = parseInt(resMode, 10) || 1080;
   return rawH > maxH ? (maxH / rawH) : 1.0;
-}
-
-// 案④用：切り出し対象領域のピクセルが直前のフレームから更新されたか（同一画像のまま固まっていないか）をチェックする関数
-function isSliceRegionIdentical(img1, img2, cw, yStart, yEnd) {
-  let diffSum = 0;
-  let count = 0;
-  for (let y = yStart; y < yEnd; y += 2) {
-    const row = y * cw;
-    for (let x = 0; x < cw; x += 3) {
-      const idx = (row + x) << 2;
-      diffSum += Math.abs(img1[idx] - img2[idx]) +
-                 Math.abs(img1[idx + 1] - img2[idx + 1]) +
-                 Math.abs(img1[idx + 2] - img2[idx + 2]);
-      count++;
-    }
-  }
-  if (count === 0) return false;
-  // 平均差分が 0.35 未満なら「GPUテクスチャがまだ前のコマと完全に同一（未更新）」と判定
-  return (diffSum / count) < 0.35;
 }
 
 async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, onStepProgress) {
@@ -2378,14 +2763,17 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
   const speedPctPerSec = parseFloat(speedInput.value) || 47.50;
   const speedPxPerSec = Math.max(10, h * (speedPctPerSec / 100));
 
-  // 1ステップあたりの切り出し高さ（画面高さの約3.2%＝シーク回数を適度に抑えて1回あたりのデコード余裕を確保）
-  const nominalStepPx = Math.max(10, Math.min(24, Math.round(h * 0.032)));
-  const dt = Math.max(0.025, nominalStepPx / speedPxPerSec);
+  // 【改良1】60fpsのフレーム周期（1/30秒 = 0.033333...秒）に完全固定し、
+  // 切り出し幅 stepPx を整数に丸めず浮動小数点のまま計算することで、周期的なうなり歪みを解消する
+  const dt = 2 / 60;
+  const stepPx = dt * speedPxPerSec;
+  const overlapPx = 2.0;
   const totalSteps = Math.max(1, Math.floor(duration / dt));
 
   const capY = Math.round(h * 0.70);
   const bottomBaseH = h - capY;
   const topSafeY = Math.round(h * 0.07);
+  const topCapH = Math.max(0, (capY - stepPx) - topSafeY);
 
   const masterChunks = [];
   const masterCtxs = [];
@@ -2405,132 +2793,143 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
     }
   }
 
-  function drawSliceToMaster(srcCanvas, srcY, srcH, bottomY) {
+  function drawSliceToMaster(srcCanvas, srcY, srcH, bottomY, alpha = 1.0) {
     if (srcH <= 0.05) return;
-    const drawH = srcH + 0.6;
     const startChunk = Math.floor(bottomY / MASTER_CHUNK_H);
-    const endChunk = Math.floor((bottomY + drawH - 0.0001) / MASTER_CHUNK_H);
+    const endChunk = Math.floor((bottomY + srcH - 0.0001) / MASTER_CHUNK_H);
     for (let k = startChunk; k <= endChunk; k++) {
       if (k < 0) continue;
       ensureMasterChunkExists(k);
       const chunkBottomOffset = k * MASTER_CHUNK_H;
       const relBottom = bottomY - chunkBottomOffset;
-      const destY = MASTER_CHUNK_H - relBottom - drawH;
-      masterCtxs[k].drawImage(srcCanvas, 0, Math.max(0, srcY - 0.6), cropW, drawH, 0, destY, cropW, drawH);
+      const destY = MASTER_CHUNK_H - relBottom - srcH;
+      const ctx = masterCtxs[k];
+      if (alpha < 0.99) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(srcCanvas, 0, srcY, cropW, srcH, 0, destY, cropW, srcH);
+        ctx.restore();
+      } else {
+        ctx.drawImage(srcCanvas, 0, srcY, cropW, srcH, 0, destY, cropW, srcH);
+      }
     }
   }
 
   const frameCanvas = document.createElement("canvas");
   frameCanvas.width = cropW;
   frameCanvas.height = h;
-  const fCtx = frameCanvas.getContext("2d", { willReadFrequently: true });
+  const fCtx = frameCanvas.getContext("2d");
   fCtx.imageSmoothingEnabled = true;
   fCtx.imageSmoothingQuality = "high";
+
+  // 【改良2】キーフレーム跨ぎ等の高負荷区間で「前のコマの絵が残っている（デコード遅延）」ことだけを
+  // CPU負荷ゼロ（0.01ms未満）で検知するための極小（24x16px）センサーキャンバス
+  const tinyCheckC = document.createElement("canvas");
+  tinyCheckC.width = 24;
+  tinyCheckC.height = 16;
+  const tinyCheckCtx = tinyCheckC.getContext("2d", { willReadFrequently: true });
+  let prevTinyData = null;
 
   let currentBottomY = 0;
   const timeToYMap = [];
 
-  await seekVideoElementTo(vidElem, tStart);
-  if (cancelGenerationRequested) return { hasData: false, chunks: [] };
-
-  // 初回フレームの安定待機（案①）
-  await new Promise(r => setTimeout(r, DEVICE_SPEC_PROFILE.baseStepWaitMs));
-
-  fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
-  let prevFrameData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-  let prevValidTime = vidElem.currentTime;
-
-  if (bottomBaseH > 0) {
-    drawSliceToMaster(frameCanvas, capY, bottomBaseH, 0);
-    currentBottomY += bottomBaseH;
-  }
-  timeToYMap.push({ time: prevValidTime, bottomY: currentBottomY });
-
-  let lastDrawnSliceH = nominalStepPx;
-  const checkY1 = Math.max(0, capY - nominalStepPx * 2);
-  const checkY2 = Math.min(h, capY + 10);
-
-  // 案②：オートブレーキ用の平均シーク時間トラッカー
   let avgSeekMs = DEVICE_SPEC_PROFILE.baseStepWaitMs;
   let lastProgressUpdateWall = 0;
 
-  for (let step = 1; step <= totalSteps; step++) {
+  for (let step = 0; step <= totalSteps; step++) {
     if (cancelGenerationRequested) break;
 
-    const targetTime = Math.min(tEnd, tStart + step * dt);
-    const seekElapsedMs = await seekVideoElementTo(vidElem, targetTime);
+    const exactTime = Math.min(tEnd, tStart + step * dt);
+    const seekResult = await seekVideoElementTo(vidElem, exactTime);
     if (cancelGenerationRequested) break;
 
-    // 案① ＋ 案②：端末スペックに応じた基本待機時間 ＋ 端末が重くなっている場合の自動減速（オートブレーキ）
-    avgSeekMs = avgSeekMs * 0.8 + seekElapsedMs * 0.2;
-    const autoBrakeExtraMs = avgSeekMs > 45 ? Math.min(140, Math.round((avgSeekMs - 45) * 0.85)) : 0;
+    avgSeekMs = avgSeekMs * 0.8 + seekResult.elapsedMs * 0.2;
+    const autoBrakeExtraMs = avgSeekMs > 45 ? Math.min(100, Math.round((avgSeekMs - 45) * 0.75)) : 0;
     const totalWaitMs = DEVICE_SPEC_PROFILE.baseStepWaitMs + autoBrakeExtraMs;
     if (totalWaitMs > 0) {
       await new Promise(r => setTimeout(r, totalWaitMs));
     }
     if (cancelGenerationRequested) break;
 
-    // 案④：切り出したフレームがまだ前のコマと全く同じ（GPU描画遅れ）だった場合、待機して撮り直すリトライ機構
-    fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
-    let currFrameData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-
-    let retry = 0;
-    while (
-      retry < DEVICE_SPEC_PROFILE.maxRetryCount &&
-      !cancelGenerationRequested &&
-      isSliceRegionIdentical(prevFrameData, currFrameData, cropW, checkY1, checkY2)
-    ) {
-      await new Promise(r => setTimeout(r, DEVICE_SPEC_PROFILE.retryWaitMs));
-      await waitTwoAnimationFrames();
-      fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
-      currFrameData = new Uint8ClampedArray(fCtx.getImageData(0, 0, cropW, h).data);
-      retry++;
-    }
-
-    const actualTime = vidElem.currentTime;
-    const realDt = actualTime - prevValidTime;
-
-    // 最初の数秒もスキップせず、進んだ時間分のスライスを確実に切り出して繋ぐ
-    if (realDt > 0.001) {
-      const actualDy = Math.min(capY - topSafeY, realDt * speedPxPerSec);
-      if (actualDy >= 0.5) {
-        const sy = Math.max(topSafeY, capY - actualDy);
-        drawSliceToMaster(frameCanvas, sy, actualDy, currentBottomY);
-        currentBottomY += actualDy;
-        lastDrawnSliceH = actualDy;
-        prevValidTime = actualTime;
-        prevFrameData = currFrameData;
-        timeToYMap.push({ time: actualTime, bottomY: currentBottomY });
+    // キーフレーム跨ぎなどでデコーダが一瞬遅れて直前と全く同じフレームバッファを返している場合のみ、最大2回（18ms×2）だけ待つ
+    tinyCheckCtx.drawImage(vidElem, srcX1, Math.round(rawH * 0.55), srcCropW, Math.round(rawH * 0.15), 0, 0, 24, 16);
+    let currTinyData = new Uint8ClampedArray(tinyCheckCtx.getImageData(0, 0, 24, 16).data);
+    if (prevTinyData && step > 0) {
+      let retry = 0;
+      while (retry < 2 && !cancelGenerationRequested) {
+        let diff = 0, active = 0;
+        for (let i = 0; i < currTinyData.length; i += 4) {
+          const s = currTinyData[i] + currTinyData[i + 1] + currTinyData[i + 2];
+          if (s > 130) active++;
+          diff += Math.abs(currTinyData[i] - prevTinyData[i]) + Math.abs(currTinyData[i + 1] - prevTinyData[i + 1]);
+        }
+        // ノーツや線が存在する区間なのに差分がほぼ0（デコード未完了）なら少し待って再取得
+        if (active >= 8 && diff < 12) {
+          await new Promise(r => setTimeout(r, 18));
+          await waitTwoAnimationFrames();
+          tinyCheckCtx.drawImage(vidElem, srcX1, Math.round(rawH * 0.55), srcCropW, Math.round(rawH * 0.15), 0, 0, 24, 16);
+          currTinyData = new Uint8ClampedArray(tinyCheckCtx.getImageData(0, 0, 24, 16).data);
+          retry++;
+        } else {
+          break;
+        }
       }
     }
+    prevTinyData = currTinyData;
 
-    // 案⑧：一定ステップごとにメモリ掃除（GC）・GPU冷却用の小休止を入れる
-    if (step % DEVICE_SPEC_PROFILE.gcPauseEverySteps === 0) {
+    const actualMediaTime = seekResult.mediaTime;
+    const timeDiff = actualMediaTime - exactTime;
+    const rawShiftY = timeDiff * speedPxPerSec;
+    const maxShift = stepPx * 0.45;
+    const subPixelShiftY = Math.max(-maxShift, Math.min(maxShift, rawShiftY));
+
+    fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
+
+    if (step === 0 && bottomBaseH > 0) {
+      const baseSy = Math.max(0, Math.min(h - bottomBaseH, capY + subPixelShiftY));
+      drawSliceToMaster(frameCanvas, baseSy, bottomBaseH, 0, 1.0);
+      currentBottomY += bottomBaseH;
+    }
+
+    // 【改良3】時刻 exactTime において動画の基準ライン（capY）にあるノーツは、まさに今の currentBottomY に描かれるため、
+    // スライスを足す前の正確な基準座標をタイムスタンプとして記録する！（これにより初期ズレがゼロになる）
+    timeToYMap.push({ time: exactTime, bottomY: currentBottomY });
+
+    const sy = Math.max(0, Math.min(h - stepPx, (capY - stepPx) + subPixelShiftY));
+    drawSliceToMaster(frameCanvas, sy, stepPx, currentBottomY, 1.0);
+
+    if (step > 0 && overlapPx > 0 && currentBottomY > overlapPx) {
+      const halfOv = overlapPx * 0.5;
+      const featherSy1 = Math.max(0, Math.min(h - halfOv, sy + stepPx - halfOv));
+      const featherSy2 = Math.max(0, Math.min(h - halfOv, sy + stepPx));
+      drawSliceToMaster(frameCanvas, featherSy1, halfOv, currentBottomY - halfOv, 0.55);
+      drawSliceToMaster(frameCanvas, featherSy2, halfOv, currentBottomY - overlapPx, 0.25);
+    }
+
+    currentBottomY += stepPx;
+
+    if (step === totalSteps && topCapH > 0) {
+      const topSy = Math.max(0, Math.min(h - topCapH, topSafeY + subPixelShiftY));
+      drawSliceToMaster(frameCanvas, topSy, topCapH, currentBottomY, 1.0);
+      currentBottomY += topCapH;
+    }
+
+    if (step > 0 && step % DEVICE_SPEC_PROFILE.gcPauseEverySteps === 0) {
       await new Promise(r => setTimeout(r, DEVICE_SPEC_PROFILE.gcPauseDurationMs));
     }
 
-    // 案⑩：進捗表示のDOM更新頻度を間引いて（200ms以上経過時または最終ステップのみ）負荷を軽減
     const nowWall = performance.now();
-    if (onStepProgress && (nowWall - lastProgressUpdateWall > 200 || step === totalSteps)) {
+    if (onStepProgress && (nowWall - lastProgressUpdateWall > 180 || step === totalSteps)) {
       lastProgressUpdateWall = nowWall;
-      onStepProgress(step / totalSteps, actualTime, tEnd, autoBrakeExtraMs);
+      onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd, autoBrakeExtraMs);
       await new Promise((r) => setTimeout(r, 0));
-    }
-  }
-
-  // 最終フレームの上部領域（topSafeY 〜 capY - lastDrawnSliceH）を描画して完結させる
-  let finalTopCapH = 0;
-  if (!cancelGenerationRequested) {
-    const topCapH = Math.max(0, (capY - lastDrawnSliceH) - topSafeY);
-    if (topCapH > 0) {
-      drawSliceToMaster(frameCanvas, topSafeY, topCapH, currentBottomY);
-      currentBottomY += topCapH;
-      finalTopCapH = topCapH;
     }
   }
 
   frameCanvas.width = 0;
   frameCanvas.height = 0;
+  tinyCheckC.width = 0;
+  tinyCheckC.height = 0;
 
   if (cancelGenerationRequested) {
     for (const mc of masterChunks) {
@@ -2546,8 +2945,7 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
     for (let k = 0; k < masterChunks.length; k++) {
       if (cancelGenerationRequested) break;
       applyBlackBackgroundFilter(masterCtxs[k], cropW, MASTER_CHUNK_H);
-      // フィルター処理中も1チャンクごとに小休止を入れてブラウザのフリーズを防止
-      await new Promise(r => setTimeout(r, 20));
+      await new Promise(r => setTimeout(r, 15));
     }
   }
 
@@ -2557,8 +2955,8 @@ async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, o
     hasData: masterChunks.length > 0 && !cancelGenerationRequested,
     cropW: cropW,
     totalHeight: totalHeight,
-    bottomBaseH: bottomBaseH,
-    topCapH: finalTopCapH,
+    bottomBaseH: Math.round(bottomBaseH),
+    topCapH: Math.round(topCapH + stepPx),
     chunks: masterChunks,
     tStart: tStart,
     tEnd: actualLastTime,
@@ -2573,7 +2971,7 @@ function renderMasterDataToTempCanvas(mData) {
   const mode = layoutMode.value;
   const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
   const colGap = 14;
-  const headerH = 0; // 上部の青い文字なし
+  const headerH = 0;
 
   const MAX_DIM = 14000;
   const MAX_AREA = 60000000;
@@ -2611,7 +3009,7 @@ function renderMasterDataToTempCanvas(mData) {
     );
     tempC.width = Math.max(1, Math.round(rawW * renderScale));
     tempC.height = Math.max(1, Math.round(rawH * renderScale));
-    const ctx = tempC.getContext("2d");
+    const ctx = tempC.getContext("2d", { willReadFrequently: true });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = "#000000";
@@ -2633,7 +3031,7 @@ function renderMasterDataToTempCanvas(mData) {
     );
     tempC.width = Math.max(1, Math.round(rawW * renderScale));
     tempC.height = Math.max(1, Math.round(rawH * renderScale));
-    const ctx = tempC.getContext("2d");
+    const ctx = tempC.getContext("2d", { willReadFrequently: true });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.save();
@@ -2650,6 +3048,9 @@ function renderMasterDataToTempCanvas(mData) {
     }
     ctx.restore();
   }
+
+  // 一括作成時の保存画像にも裏でタイムスタンプを直接埋め込む
+  embedTimestampsIntoCanvas(tempC, mData);
   return tempC;
 }
 
@@ -2668,7 +3069,6 @@ async function generateChartImage(isTestMode = false) {
   progressText.textContent = "動画データをメモリへプリロード中...";
 
   try {
-    // 案⑪：生成開始前に動画全体をメモリ（RAM）へ完全展開してディスク待ちの歪みを防ぐ
     if (activeVideoItem && !activeVideoItem.ramBlobUrl) {
       const ramUrl = await ensureVideoPreloadedInMemory(activeVideoItem);
       if (ramUrl && !cancelGenerationRequested) {
@@ -2692,7 +3092,7 @@ async function generateChartImage(isTestMode = false) {
         progressPercent.textContent = `${pct}%`;
         progressBar.style.width = `${pct}%`;
         const paceNote = brakeExtraMs > 10 ? ` [負荷検知: 自動減速中 +${brakeExtraMs}ms]` : ` [${DEVICE_SPEC_PROFILE.label}]`;
-        progressText.textContent = `確実モードで合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)${paceNote}`;
+        progressText.textContent = `タイムスタンプ記録＆高精度フレーム同期で合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)${paceNote}`;
       }
     );
 
@@ -2709,7 +3109,7 @@ async function generateChartImage(isTestMode = false) {
       progressPercent.textContent = "100%";
       progressBar.style.width = "100%";
       const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-      progressText.textContent = `譜面静止画の作成とフォルダへの自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
+      progressText.textContent = `譜面静止画の作成・タイムスタンプ記録・フォルダ自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
     } else if (cancelGenerationRequested) {
       progressText.textContent = "静止画の生成を停止しました";
     }
@@ -2717,7 +3117,10 @@ async function generateChartImage(isTestMode = false) {
     progressText.textContent = `エラーが発生しました: ${err.message || err}`;
   } finally {
     video.muted = prevMuted;
+    applyPlaybackRate(currentPlaybackRate, false);
     shouldRestartFromBeginning = true;
+    smoothedDriftOffsetY = 0;
+    targetDriftOffsetY = 0;
     await seekVideoElementTo(video, 0);
     seekSlider.value = 0;
     currentTimeLabel.textContent = `0.00 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
@@ -2728,7 +3131,6 @@ async function generateChartImage(isTestMode = false) {
   }
 }
 
-// 案⑦：複数動画の一括作成はデコーダ競合を防ぐため「1本ずつ順番（直列）」に100%の力で確実に処理する
 async function processMultipleVideosConcurrently() {
   if (isGenerating) return;
   const vidEntries = getUnprocessedVideoEntries();
@@ -2752,7 +3154,6 @@ async function processMultipleVideosConcurrently() {
 
       progressText.textContent = `[${idx + 1}/${vidEntries.length}本目] 「${folderName}」の動画データをメモリへ展開中...`;
 
-      // 案⑪：動画データをメモリに完全プリロード
       const ramUrl = await ensureVideoPreloadedInMemory(videoEntry);
       if (cancelGenerationRequested) break;
 
@@ -2778,13 +3179,15 @@ async function processMultipleVideosConcurrently() {
             const pct = Math.min(100, Math.round(overallRatio * 100));
             progressPercent.textContent = `${pct}%`;
             progressBar.style.width = `${pct}%`;
-            progressText.textContent = `[${idx + 1}/${vidEntries.length}本目: ${folderName}] 確実モードで順番に合成中... (${exactTime.toFixed(1)}s / ${tEnd.toFixed(1)}s)`;
+            progressText.textContent = `[${idx + 1}/${vidEntries.length}本目: ${folderName}] タイムスタンプ記録＆高精度同期で合成中... (${exactTime.toFixed(1)}s / ${tEnd.toFixed(1)}s)`;
           }
         );
 
         if (mData.hasData && !cancelGenerationRequested) {
           completedCount++;
           if (!firstCompletedFolder) firstCompletedFolder = folderName;
+
+          saveTimestampProfileForFolder(folderName, mData);
 
           const grp = folderGroups.get(folderName);
           if (grp) {
@@ -2804,7 +3207,6 @@ async function processMultipleVideosConcurrently() {
       }
 
       tempVid.src = "";
-      // 次の動画に移る前に300msのメモリ冷却休止を入れる
       await new Promise(r => setTimeout(r, 300));
     }
 
@@ -2814,11 +3216,14 @@ async function processMultipleVideosConcurrently() {
     } else {
       progressPercent.textContent = "100%";
       progressBar.style.width = "100%";
-      progressText.textContent = `未作成だった全 ${completedCount} フォルダの順番処理と自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
+      progressText.textContent = `未作成だった全 ${completedCount} フォルダの順番処理・タイムスタンプ記録・自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
     }
   } finally {
     shouldRestartFromBeginning = true;
+    smoothedDriftOffsetY = 0;
+    targetDriftOffsetY = 0;
     if (video.src) {
+      applyPlaybackRate(currentPlaybackRate, false);
       await seekVideoElementTo(video, 0);
       seekSlider.value = 0;
       currentTimeLabel.textContent = `0.00 秒 / ${(video.duration || 0).toFixed(2)} 秒`;

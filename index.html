@@ -195,28 +195,29 @@
   }
   #outputCanvas { display: block; }
 
-  /* 軽量化されたGPUアクセラレーション再生位置バー */
+  /* 再生位置バー：静止画の拡大率に関係なく画面上で一定の太さのまま、GPU合成だけで滑らかに動かす */
   #playheadColHighlight {
-    position: absolute; top: 0; left: 0;
-    border: 3px solid rgba(255, 77, 136, 0.55);
+    position: absolute; top: 0; left: 0; z-index: 3;
+    border: 2px solid rgba(255, 77, 136, 0.6);
     pointer-events: none; display: none;
-    will-change: transform, width, height;
+    will-change: transform;
   }
   #playheadBar {
-    position: absolute; top: 0; left: 0; height: 16px; margin-top: -8px;
-    background: rgba(255, 50, 110, 0.22);
+    position: absolute; top: 0; left: 0; z-index: 4; height: 14px; margin-top: -7px;
+    background: rgba(255, 50, 110, 0.16);
     pointer-events: none; display: none;
-    will-change: transform, width;
+    will-change: transform;
   }
   #playheadBar::after {
     content: ""; position: absolute; left: 0; right: 0; top: 50%;
-    height: 3px; margin-top: -1.5px; background: #ff2a6d;
+    height: 2px; margin-top: -1px; background: #ff2a6d;
+    box-shadow: 0 0 6px rgba(255, 42, 109, 0.85);
   }
   #playheadTimeBadge {
-    position: absolute; left: 0; top: -4px;
+    position: absolute; left: 0; bottom: 100%; margin-bottom: 3px;
     background: #ff2a6d; color: #fff; font-weight: bold;
-    font-size: 12px; line-height: 22px; padding: 0 8px;
-    border-radius: 3px; white-space: nowrap; z-index: 2;
+    font-size: 12px; line-height: 20px; padding: 0 8px;
+    border-radius: 3px; white-space: nowrap;
   }
 
   /* 静止画プレビューの下：常時表示保存バー */
@@ -331,7 +332,7 @@
       </div>
     </div>
 
-    <!-- 4. 詳細設定タブ（切り抜き範囲・解像度・黒背景フィルター・固定スクロール速度） -->
+    <!-- 4. 詳細設定タブ（切り抜き範囲・解像度・黒背景フィルター・スクロール速度の目安） -->
     <details class="details-tab-wrap" id="detailsTab">
       <summary class="details-tab-summary">
         <span>詳細設定を開く / 閉じる</span>
@@ -360,6 +361,7 @@
                 <span style="width:72px; font-size:0.85rem;">右端 <span id="rightVal">78.5</span>%:</span>
                 <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
               </div>
+              <div class="hint" style="margin-top:6px;">プレビューのピンクの点線が切り出し基準ライン（再生位置バーが指す位置）です。譜面が止まっている時間（再生前・終了後）が含まれていても自動で判別します。</div>
             </div>
 
             <!-- 処理・出力の解像度設定（精度最優先でデフォルトは原寸100%） -->
@@ -387,8 +389,9 @@
                 <span>背景イラストを消して見やすくする</span>
               </label>
               <div id="blackBgControls">
+                <div class="hint" style="margin-bottom:6px;">動画全体から「動かない背景（イラスト・固定表示）」を推定し、動いている譜面要素だけを残します。</div>
                 <label>
-                  <span>背景消去しきい値（イラストの除去強度）</span>
+                  <span>背景消去しきい値（大きいほど薄い残りも消える）</span>
                   <span id="bgThreshLabel">36</span>
                 </label>
                 <input type="range" id="bgThreshSlider" min="25" max="110" step="1" value="36">
@@ -400,13 +403,13 @@
               </div>
             </div>
 
-            <!-- スクロール速度（1つの基準速度で固定） -->
+            <!-- スクロール速度（照合の初期目安） -->
             <div class="control-group">
               <label>
-                <span>スクロール速度（画面高さに対する % / 秒）</span>
+                <span>スクロール速度の目安（画面高さに対する % / 秒）</span>
                 <span id="speedValLabel">47.50 %/秒</span>
               </label>
-              <input type="range" id="speedSlider" min="15" max="110" step="0.02" value="47.50">
+              <input type="range" id="speedSlider" min="15" max="160" step="0.02" value="47.50">
               <div class="inline-inputs" style="justify-content: space-between;">
                 <div>
                   <span>微調整:</span>
@@ -414,6 +417,7 @@
                 </div>
                 <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">速度を自動計測する</button>
               </div>
+              <div class="hint" style="margin-top:6px;">生成時は各フレームの実際の移動量を画像照合で測るため、この値は照合の出発点として使われます（多少ずれていても結果は変わりません）。</div>
             </div>
           </div>
         </div>
@@ -471,9 +475,9 @@
       <div class="viewer-viewport" id="viewerViewport" title="マウスホイールで拡大縮小・ドラッグで移動・ダブルクリックでその位置の秒数へ動画をシークします">
         <div id="canvasStage">
           <canvas id="outputCanvas"></canvas>
-          <div id="playheadColHighlight"></div>
-          <div id="playheadBar"><span id="playheadTimeBadge">0.00s</span></div>
         </div>
+        <div id="playheadColHighlight"></div>
+        <div id="playheadBar"><span id="playheadTimeBadge">0.00s</span></div>
       </div>
     </div>
 
@@ -495,40 +499,15 @@
 
 <script>
 // =========================================================
-// 0. 端末スペックの自動取得と待機ペース自動設定
+// 0. 処理方式（端末の速さに依存しない全フレーム解析）
+//   旧方式は「シーク → 待機時間 → 切り出し」を繰り返していたため、端末が遅いと別のコマを切り出していた。
+//   現在は MP4/MOV を WebCodecs で先頭から全フレーム順番にデコードし、各フレームの正確な時刻と
+//   実際の移動量（画像照合）で合成するので、端末の速さは処理時間にしか影響しない。
 // =========================================================
-const DEVICE_SPEC_PROFILE = (() => {
-  const cores = navigator.hardwareConcurrency || 4;
-  const memory = navigator.deviceMemory || 4;
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
-
-  let baseStepWaitMs = 10;
-  let gcPauseEverySteps = 55;
-  let gcPauseDurationMs = 80;
-  let label = `精度最優先・標準同期 (${cores}コア)`;
-
-  if (!isMobile && cores >= 8 && memory >= 8) {
-    baseStepWaitMs = 5;
-    gcPauseEverySteps = 75;
-    gcPauseDurationMs = 50;
-    label = `精度最優先・高速同期 (${cores}コア/${memory}GB)`;
-  } else if (isMobile || cores <= 4 || memory <= 4) {
-    baseStepWaitMs = 22;
-    gcPauseEverySteps = 35;
-    gcPauseDurationMs = 130;
-    label = `精度最優先・確実同期 (${cores}コア)`;
-  }
-
-  return {
-    cores,
-    memory,
-    isMobile,
-    baseStepWaitMs,
-    gcPauseEverySteps,
-    gcPauseDurationMs,
-    label
-  };
-})();
+const WEBCODECS_AVAILABLE = typeof VideoDecoder !== "undefined" && typeof EncodedVideoChunk !== "undefined";
+const ENGINE_SUPPORT_LABEL = WEBCODECS_AVAILABLE
+  ? "MP4/MOV は全フレーム解析 (WebCodecs)"
+  : "互換モード: シーク解析（このブラウザは WebCodecs 非対応）";
 
 // =========================================================
 // 1. ZIPファイル生成エンジン（フォールバック安全機構付き）
@@ -624,7 +603,8 @@ function downloadBlob(blob, filename) {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  // 大きなファイルは保存の開始に時間がかかるため、URLの破棄は十分に待ってから行う
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 30000);
 }
 
 function canvasToBlobSafe(canvas) {
@@ -659,7 +639,9 @@ async function canvasToUint8Array(canvas) {
 }
 
 // =========================================================
-// 2. ノーツの上下フチ削れ（極細化）を防ぐ黒背景フィルター
+// 2. 黒背景フィルター（動画全体から推定した静止背景との差で、動く譜面要素だけを残す）
+//   旧方式は合成後の縦長画像に空間フィルターをかけていたため、毎フレーム同じ位置の背景が
+//   縦に引き伸ばされて「ノコギリ状・縦筋状」の残りが出ていた。現在はフレームごとに静止背景を除いてから合成する。
 // =========================================================
 const blackBgToggle = document.getElementById("blackBgToggle");
 const bgThreshSlider = document.getElementById("bgThreshSlider");
@@ -667,83 +649,86 @@ const bgThreshLabel = document.getElementById("bgThreshLabel");
 const gridBoostSlider = document.getElementById("gridBoostSlider");
 const gridBoostLabel = document.getElementById("gridBoostLabel");
 
-function applyBlackBackgroundFilter(ctx, width, height) {
-  if (!blackBgToggle.checked || width <= 0 || height <= 0) return;
-
+function getBlackFilterParams() {
   const thresh = parseInt(bgThreshSlider.value, 10) || 36;
   const gridBoost = parseFloat(gridBoostSlider.value) || 0.5;
+  return {
+    t0: Math.max(4, thresh * 0.3),   // 静止背景よりこれ以上明るい画素を譜面要素とみなす
+    invTw: 1 / 10,                   // そこから10段階かけて滑らかに残す
+    lineGain: 0.6 + 0.8 * gridBoost  // 0.5倍（初期値）で元の明るさのまま
+  };
+}
 
-  const imgData = ctx.getImageData(0, 0, width, height);
-  const data = imgData.data;
-  const totalPixels = width * height;
-
-  const bgLum = new Float32Array(totalPixels);
-  for (let i = 0, p = 0; p < totalPixels; i += 4, p++) {
-    const l = data[i] * 0.25 + data[i + 1] * 0.45 + data[i + 2] * 0.30;
-    bgLum[p] = l > 85 ? 85 : l;
-  }
-
-  for (let y = 0; y < height; y++) {
-    const yUp = (y > 1 ? y - 2 : 0) * width;
-    const yDown = (y < height - 2 ? y + 2 : height - 1) * width;
-    const yUp1 = (y > 0 ? y - 1 : 0) * width;
-    const yDown1 = (y < height - 1 ? y + 1 : height - 1) * width;
-    const rowOffset = y * width;
-
-    for (let x = 0; x < width; x++) {
-      const p = rowOffset + x;
-      const idx = p << 2;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-
-      const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
-      const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
-      const sat = maxC - minC;
-
-      const isNoteOrEdge =
-        (maxC > thresh + 14) ||
-        (g > thresh - 2 && g >= r - 8) ||
-        (sat > 26 && maxC > thresh - 10);
-
-      if (isNoteOrEdge) {
-        let alpha = (maxC - (thresh - 20)) * 0.035;
-        if (alpha > 1.0) alpha = 1.0;
-        else if (alpha < 0.55) alpha = 0.55;
-        const boost = maxC < 130 ? alpha * 1.12 : alpha;
-        data[idx]     = r * boost > 255 ? 255 : r * boost;
-        data[idx + 1] = g * boost > 255 ? 255 : g * boost;
-        data[idx + 2] = b * boost > 255 ? 255 : b * boost;
-      } else {
-        const rawLum = r * 0.25 + g * 0.45 + b * 0.30;
-        const vBg = (bgLum[yUp + x] + bgLum[yDown + x]) * 0.5;
-        const h1 = rawLum - vBg;
-        const h2 = (bgLum[yUp1 + x] + bgLum[yDown1 + x]) * 0.5 - vBg;
-        const hLinePeak = h1 > h2 ? (h1 > 0 ? h1 : 0) : (h2 > 0 ? h2 : 0);
-
-        const xLeft = x > 1 ? x - 2 : 0;
-        const xRight = x < width - 2 ? x + 2 : width - 1;
-        const hBg = (bgLum[rowOffset + xLeft] + bgLum[rowOffset + xRight]) * 0.5;
-        const vLinePeak = (rawLum - hBg) * 0.9;
-
-        const lineStrength = hLinePeak > vLinePeak ? hLinePeak : vLinePeak;
-
-        if (lineStrength > 2.0) {
-          let lineVal = (lineStrength * 8.5 * gridBoost) | 0;
-          if (lineVal > 220) lineVal = 220;
-          data[idx]     = (lineVal * 0.78) | 0;
-          data[idx + 1] = (lineVal * 0.88) | 0;
-          data[idx + 2] = lineVal;
-        } else {
-          data[idx]     = 0;
-          data[idx + 1] = 0;
-          data[idx + 2] = 0;
-        }
-      }
+// 静止背景の中で「縦方向にずっと続く細い線」（レーンの縦線）だけを列ごとに取り出す
+//   bg: 幅 bgW の静止背景（RGB）、x0〜x0+width の列を対象にする
+function extractStaticVerticalLines(bg, bgW, x0, width, h, topSafeY, gain) {
+  const lane = new Uint8Array(width * 3);
+  const rows = [];
+  for (let y = topSafeY; y < h - 2; y += 3) rows.push(y);
+  if (rows.length < 8) return lane;
+  const contrast = new Float32Array(rows.length);
+  const chan = [new Uint8Array(rows.length), new Uint8Array(rows.length), new Uint8Array(rows.length)];
+  const maxAt = (j) => {
+    const r = bg[j], g = bg[j + 1], b = bg[j + 2];
+    return r > g ? (r > b ? r : b) : (g > b ? g : b);
+  };
+  for (let lx = 0; lx < width; lx++) {
+    const x = x0 + lx;
+    if (x - 3 < 0 || x + 3 >= bgW) continue;
+    for (let k = 0; k < rows.length; k++) {
+      const j = (rows[k] * bgW + x) * 3;
+      const m = maxAt(j);
+      const ml = maxAt(j - 9);
+      const mr = maxAt(j + 9);
+      contrast[k] = m - (ml > mr ? ml : mr);
+      chan[0][k] = bg[j];
+      chan[1][k] = bg[j + 1];
+      chan[2][k] = bg[j + 2];
+    }
+    // 高さの75%以上で両隣より明るい列だけをレーン線とみなす（イラストの縦の輪郭は除外される）
+    const sorted = Array.from(contrast).sort((a, b) => a - b);
+    if (sorted[Math.floor(sorted.length * 0.25)] < 6) continue;
+    for (let c = 0; c < 3; c++) {
+      const vals = Array.from(chan[c]).sort((a, b) => a - b);
+      lane[lx * 3 + c] = Math.min(255, Math.round(vals[vals.length >> 1] * gain));
     }
   }
+  return lane;
+}
 
-  ctx.putImageData(imgData, 0, 0);
+// 静止背景との差で動いている譜面要素だけを残す（1行分）。lane はレーン線（列ごとの色）
+function maskRowAgainstBackground(src, srcOff, bg, bgOff, width, fp, lane, dst, dstOff) {
+  const { t0, invTw, lineGain } = fp;
+  for (let x = 0; x < width; x++) {
+    const i = srcOff + x * 4;
+    const j = bgOff + x * 3;
+    const r = src[i], g = src[i + 1], b = src[i + 2];
+    const dr = r - bg[j], dg = g - bg[j + 1], db = b - bg[j + 2];
+    const dmax = dr > dg ? (dr > db ? dr : db) : (dg > db ? dg : db);
+    let a = (dmax - t0) * invTw;
+    a = a < 0 ? 0 : (a > 1 ? 1 : a);
+    let or = r * a, og = g * a, ob = b * a;
+    if (lineGain !== 1 && a > 0) {
+      const mx = or > og ? (or > ob ? or : ob) : (og > ob ? og : ob);
+      const mn = or < og ? (or < ob ? or : ob) : (og < ob ? og : ob);
+      if (mx - mn < 40) {
+        or *= lineGain;
+        og *= lineGain;
+        ob *= lineGain;
+      }
+    }
+    if (lane) {
+      const l = x * 3;
+      if (lane[l] > or) or = lane[l];
+      if (lane[l + 1] > og) og = lane[l + 1];
+      if (lane[l + 2] > ob) ob = lane[l + 2];
+    }
+    const o = dstOff + x * 4;
+    dst[o] = or;
+    dst[o + 1] = og;
+    dst[o + 2] = ob;
+    dst[o + 3] = 255;
+  }
 }
 
 // =========================================================
@@ -751,7 +736,8 @@ function applyBlackBackgroundFilter(ctx, width, height) {
 // =========================================================
 const video = document.getElementById("videoPreview");
 const previewCanvas = document.getElementById("previewCanvas");
-const pCtx = previewCanvas.getContext("2d", { willReadFrequently: true });
+// 再生中は毎フレーム動画を描くだけなので GPU キャンバスのままにする（読み出し用のキャンバスとは分ける）
+const pCtx = previewCanvas.getContext("2d");
 const filterSubCanvas = document.createElement("canvas");
 const filterSubCtx = filterSubCanvas.getContext("2d", { willReadFrequently: true });
 
@@ -833,36 +819,44 @@ const playheadOffsetInput = document.getElementById("playheadOffsetInput");
 const resetOffsetBtn = document.getElementById("resetOffsetBtn");
 
 if (deviceSpecBadge) {
-  deviceSpecBadge.textContent = DEVICE_SPEC_PROFILE.label;
+  deviceSpecBadge.textContent = ENGINE_SUPPORT_LABEL;
 }
 
 const SETTINGS_FILE_NAME = "pjsekai_settings.json";
-const LOCAL_STORAGE_SETTINGS_KEY = "PJSekaiChartMaker_Settings_AutoV14";
+const LOCAL_STORAGE_SETTINGS_KEY = "PJSekaiChartMaker_Settings_AutoV16";
+const CHART_IMAGE_SUFFIX = "_譜面";
 
 let currentColumnWidths = 0;
 let activeVideoName = "";
 let activeVideoItem = null;
 let cancelGenerationRequested = false;
+let activeGenerationJob = null;
 let isGenerating = false;
 let shouldRestartFromBeginning = false;
 let currentPlaybackRate = 1.0;
 
-// フォルダごとの裏タイムスタンプマップ保持用: folderName -> { totalHeight, bottomBaseH, topCapH, tStart, tEnd, timeToYMap }
 let savedTimestampsByFolder = {};
-
-// 再生中のリアルタイム・オートシンクロ補正（動画と静止画のズレ検知＆滑らかなイージング修正）用状態
-let chartVisualSignature = null; // Float32Array (長さ = totalHeight)
-let smoothedDriftOffsetY = 0;    // 現在適用中の滑らかなバー補正量(px)
-let targetDriftOffsetY = 0;      // 照合で検出された目標バー補正量(px)
-let lastSyncCheckWallTime = 0;
-const liveSyncCanvas = document.createElement("canvas");
-const liveSyncCtx = liveSyncCanvas.getContext("2d", { willReadFrequently: true });
 
 const activeSeekResolvers = new Set();
 
 const folderGroups = new Map();
 let activeFolderName = "";
 let savedDirectoryHandle = null;
+
+// フォルダ名（"親/子" 形式もある）から、保存する静止画のファイル名を作る
+function chartImageFileName(folderName) {
+  const base = String(folderName || "").split("/").pop() || "Proseka_Chart";
+  return `${base}${CHART_IMAGE_SUFFIX}.png`;
+}
+
+// フォルダに入っていない動画と静止画を同じ組にまとめる（「xxx_譜面.png」は「xxx.mp4」と同じ組）
+function rootGroupNameForFile(fileName, isImage) {
+  let base = String(fileName || "").replace(/\.[^.]+$/, "");
+  if (isImage && base.endsWith(CHART_IMAGE_SUFFIX) && base.length > CHART_IMAGE_SUFFIX.length) {
+    base = base.slice(0, -CHART_IMAGE_SUFFIX.length);
+  }
+  return base;
+}
 
 function applyPlaybackRate(rateValue, save = true) {
   const rate = parseFloat(rateValue) || 1.0;
@@ -888,99 +882,185 @@ viewerPlaybackRateSelect.addEventListener("change", () => {
 });
 
 // =========================================================
-// 静止画へのタイムスタンプ埋め込み（ステガノグラフィ）＆ 抽出エンジン
+// 時刻→位置マップ（保存用の間引き・再生位置バー用の平滑化）
 // =========================================================
-// 生成した静止画の最後の1行に目に見えない形でタイムスタンプ配列を直接埋め込み、
-// 後からPNG画像を読み込んだだけでも裏でタイムスタンプが100%復元されるようにする
+// 誤差 tol(px) 以内で点数を減らす（録画の停止フレームによる段差は残る）
+function simplifyTimeMap(map, tol = 2.0, maxPoints = 1500) {
+  if (!map || map.length <= 2) return (map || []).map(p => ({ time: p.time, bottomY: p.bottomY }));
+  let t = tol;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const keep = new Uint8Array(map.length);
+    keep[0] = 1;
+    keep[map.length - 1] = 1;
+    const stack = [[0, map.length - 1]];
+    while (stack.length > 0) {
+      const [a, b] = stack.pop();
+      if (b - a < 2) continue;
+      const pa = map[a], pb = map[b];
+      const dt = pb.time - pa.time;
+      let maxErr = -1, idx = -1;
+      for (let i = a + 1; i < b; i++) {
+        const r = dt > 1e-9 ? (map[i].time - pa.time) / dt : 0;
+        const e = Math.abs(map[i].bottomY - (pa.bottomY + r * (pb.bottomY - pa.bottomY)));
+        if (e > maxErr) { maxErr = e; idx = i; }
+      }
+      if (maxErr > t) {
+        keep[idx] = 1;
+        stack.push([a, idx], [idx, b]);
+      }
+    }
+    const out = [];
+    for (let i = 0; i < map.length; i++) if (keep[i]) out.push({ time: map[i].time, bottomY: map[i].bottomY });
+    if (out.length <= maxPoints) return out;
+    t *= 1.8;
+  }
+  const step = Math.ceil(map.length / maxPoints);
+  const out = [];
+  for (let i = 0; i < map.length; i += step) out.push({ time: map[i].time, bottomY: map[i].bottomY });
+  const last = map[map.length - 1];
+  if (out[out.length - 1].time !== last.time) out.push({ time: last.time, bottomY: last.bottomY });
+  return out;
+}
+
+function boxSmooth(src, r) {
+  const n = src.length;
+  const out = new Float64Array(n);
+  const prefix = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) prefix[i + 1] = prefix[i] + src[i];
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - r), b = Math.min(n - 1, i + r);
+    out[i] = (prefix[b + 1] - prefix[a]) / (b - a + 1);
+  }
+  return out;
+}
+
+// 再生位置バー用：1/60秒刻みに並べ直し、±0.1秒でならす
+// （録画の停止フレームによる段差や、ゲーム側のフレームごとの揺らぎでバーがカクつかないようにする）
+function buildDisplayTimeMap(map) {
+  if (!map || map.length < 2) return null;
+  const t0 = map[0].time;
+  const t1 = map[map.length - 1].time;
+  if (!(t1 > t0)) return null;
+  const dt = 1 / 60;
+  const n = Math.min(600000, Math.max(2, Math.ceil((t1 - t0) / dt) + 1));
+  const ys = new Float64Array(n);
+  let j = 0;
+  for (let i = 0; i < n; i++) {
+    const t = t0 + i * dt;
+    while (j < map.length - 2 && map[j + 1].time < t) j++;
+    const a = map[j], b = map[j + 1];
+    const span = b.time - a.time;
+    const r = span > 1e-9 ? Math.max(0, Math.min(1, (t - a.time) / span)) : 1;
+    ys[i] = a.bottomY + r * (b.bottomY - a.bottomY);
+  }
+  return { t0, dt, ys: boxSmooth(boxSmooth(ys, 6), 6) };
+}
+
+function displayMapY(dm, t) {
+  const n = dm.ys.length;
+  const f = (t - dm.t0) / dm.dt;
+  if (!(f > 0)) return dm.ys[0];
+  if (f >= n - 1) return dm.ys[n - 1];
+  const i = Math.floor(f);
+  return dm.ys[i] + (dm.ys[i + 1] - dm.ys[i]) * (f - i);
+}
+
+function displayMapTime(dm, Y) {
+  const ys = dm.ys;
+  const n = ys.length;
+  if (Y <= ys[0]) return dm.t0;
+  if (Y >= ys[n - 1]) return dm.t0 + (n - 1) * dm.dt;
+  let lo = 0, hi = n - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (ys[mid] < Y) lo = mid;
+    else hi = mid;
+  }
+  const span = ys[hi] - ys[lo];
+  const r = span > 1e-9 ? (Y - ys[lo]) / span : 0;
+  return dm.t0 + (lo + r) * dm.dt;
+}
+
+// =========================================================
+// 静止画へのタイムスタンプ埋め込み（ステガノグラフィ）＆ 抽出エンジン
+//   画像の最下行から上へ、R/G の下位2ビットに書き込む（容量が足りなければ複数行を使う）
+// =========================================================
 const STEGO_MAGIC = "PJSK_TS1:";
+const STEGO_MAX_ROWS = 32;
+
+function stegoPixelIndex(k, W, rows) {
+  // ストリームの k 番目の画素：最下行の左端から右へ、次は1つ上の行へ
+  return (((rows - 1 - Math.floor(k / W)) * W) + (k % W)) * 4;
+}
 
 function embedTimestampsIntoCanvas(canvas, metaObj) {
-  if (!canvas || canvas.width < 64 || canvas.height < 10) return;
+  if (!canvas || canvas.width < 64 || canvas.height < 10) return false;
   try {
-    const compactMap = [];
-    const srcMap = metaObj.timeToYMap || [];
-    const step = Math.max(1, Math.floor(srcMap.length / 350));
-    for (let i = 0; i < srcMap.length; i += step) {
-      compactMap.push([Number(srcMap[i].time.toFixed(3)), Math.round(srcMap[i].bottomY)]);
-    }
-    if (srcMap.length > 0) {
-      const last = srcMap[srcMap.length - 1];
-      compactMap.push([Number(last.time.toFixed(3)), Math.round(last.bottomY)]);
-    }
-
+    const map = simplifyTimeMap(metaObj.timeToYMap || [], 2.0, 1500);
     const payload = JSON.stringify({
+      v: 2,
       th: Math.round(metaObj.totalHeight || 0),
       bb: Math.round(metaObj.bottomBaseH || 0),
       tc: Math.round(metaObj.topCapH || 0),
       ts: Number((metaObj.tStart || 0).toFixed(3)),
       te: Number((metaObj.tEnd || 0).toFixed(3)),
-      m: compactMap
+      fh: Math.round(metaObj.frameH || 0),
+      cy: Math.round(metaObj.captureY || 0),
+      lay: metaObj.layout || undefined,
+      m: map.map(p => [Number(p.time.toFixed(3)), Math.round(p.bottomY)])
     });
-    const fullStr = STEGO_MAGIC + payload;
-    const bytes = new TextEncoder().encode(fullStr);
+    const bytes = new TextEncoder().encode(STEGO_MAGIC + payload);
     const totalLen = bytes.length;
-
-    const maxBytesCapacity = Math.floor((canvas.width * 3) / 4) - 4;
-    if (totalLen > maxBytesCapacity) return;
+    const W = canvas.width;
+    // 1バイトに2画素を使うので、必要な画素数は 16（長さ） + 2 × バイト数
+    const rows = Math.ceil((16 + totalLen * 2) / W);
+    if (rows > Math.min(STEGO_MAX_ROWS, Math.floor(canvas.height / 4))) return false;
 
     const ctx = canvas.getContext("2d");
-    const y = canvas.height - 1;
-    const rowImg = ctx.getImageData(0, y, canvas.width, 1);
-    const data = rowImg.data;
-
-    // 先頭16ピクセルにデータ長 (32bit) を2bitずつ埋め込む
+    const y0 = canvas.height - rows;
+    const img = ctx.getImageData(0, y0, W, rows);
+    const data = img.data;
     for (let b = 0; b < 16; b++) {
-      const twoBits = (totalLen >>> (b * 2)) & 0x03;
-      const idx = b * 4;
-      data[idx] = (data[idx] & 0xFC) | twoBits;
-      data[idx + 3] = 255;
+      const i = stegoPixelIndex(b, W, rows);
+      data[i] = (data[i] & 0xFC) | ((totalLen >>> (b * 2)) & 0x03);
+      data[i + 3] = 255;
     }
-
-    // 16ピクセル目以降にバイト列を1ピクセルあたり4bit（Rに2bit、Gに2bit）埋め込む
     for (let i = 0; i < totalLen; i++) {
-      const byteVal = bytes[i];
-      const p1 = 16 + i * 2;
-      const p2 = p1 + 1;
-      const idx1 = p1 * 4;
-      const idx2 = p2 * 4;
-      data[idx1]     = (data[idx1] & 0xFC) | (byteVal & 0x03);
-      data[idx1 + 1] = (data[idx1 + 1] & 0xFC) | ((byteVal >>> 2) & 0x03);
-      data[idx1 + 3] = 255;
-      data[idx2]     = (data[idx2] & 0xFC) | ((byteVal >>> 4) & 0x03);
-      data[idx2 + 1] = (data[idx2 + 1] & 0xFC) | ((byteVal >>> 6) & 0x03);
-      data[idx2 + 3] = 255;
+      const v = bytes[i];
+      const i1 = stegoPixelIndex(16 + i * 2, W, rows);
+      const i2 = stegoPixelIndex(17 + i * 2, W, rows);
+      data[i1] = (data[i1] & 0xFC) | (v & 0x03);
+      data[i1 + 1] = (data[i1 + 1] & 0xFC) | ((v >>> 2) & 0x03);
+      data[i1 + 3] = 255;
+      data[i2] = (data[i2] & 0xFC) | ((v >>> 4) & 0x03);
+      data[i2 + 1] = (data[i2 + 1] & 0xFC) | ((v >>> 6) & 0x03);
+      data[i2 + 3] = 255;
     }
-
-    ctx.putImageData(rowImg, 0, y);
-  } catch (e) {}
+    ctx.putImageData(img, 0, y0);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function extractTimestampsFromCanvas(ctx, width, height) {
   if (width < 64 || height < 10) return null;
   try {
-    const y = height - 1;
-    const data = ctx.getImageData(0, y, width, 1).data;
-
+    const lastRow = ctx.getImageData(0, height - 1, width, 1).data;
     let totalLen = 0;
     for (let b = 0; b < 16; b++) {
-      const twoBits = data[b * 4] & 0x03;
-      totalLen |= (twoBits << (b * 2));
+      totalLen = (totalLen | ((lastRow[b * 4] & 0x03) << (b * 2))) >>> 0;
     }
-
-    const maxBytesCapacity = Math.floor((width * 3) / 4) - 4;
-    if (totalLen <= STEGO_MAGIC.length || totalLen > maxBytesCapacity) return null;
+    if (totalLen <= STEGO_MAGIC.length) return null;
+    const rows = Math.ceil((16 + totalLen * 2) / width);
+    if (rows > Math.min(STEGO_MAX_ROWS, Math.floor(height / 4))) return null;
+    const data = rows === 1 ? lastRow : ctx.getImageData(0, height - rows, width, rows).data;
 
     const bytes = new Uint8Array(totalLen);
     for (let i = 0; i < totalLen; i++) {
-      const p1 = 16 + i * 2;
-      const p2 = p1 + 1;
-      const idx1 = p1 * 4;
-      const idx2 = p2 * 4;
-      const b0 = data[idx1] & 0x03;
-      const b1 = data[idx1 + 1] & 0x03;
-      const b2 = data[idx2] & 0x03;
-      const b3 = data[idx2 + 1] & 0x03;
-      bytes[i] = b0 | (b1 << 2) | (b2 << 4) | (b3 << 6);
+      const i1 = stegoPixelIndex(16 + i * 2, width, rows);
+      const i2 = stegoPixelIndex(17 + i * 2, width, rows);
+      bytes[i] = (data[i1] & 0x03) | ((data[i1 + 1] & 0x03) << 2) | ((data[i2] & 0x03) << 4) | ((data[i2 + 1] & 0x03) << 6);
     }
 
     const str = new TextDecoder().decode(bytes);
@@ -990,11 +1070,15 @@ function extractTimestampsFromCanvas(ctx, width, height) {
     if (!parsed || !Array.isArray(parsed.m)) return null;
 
     return {
+      version: parsed.v || 1,
       totalHeight: parsed.th,
       bottomBaseH: parsed.bb,
       topCapH: parsed.tc,
       tStart: parsed.ts,
       tEnd: parsed.te,
+      frameH: parsed.fh || 0,
+      captureY: parsed.cy || 0,
+      layout: parsed.lay || null,
       timeToYMap: parsed.m.map(pair => ({ time: pair[0], bottomY: pair[1] }))
     };
   } catch (e) {
@@ -1004,16 +1088,10 @@ function extractTimestampsFromCanvas(ctx, width, height) {
 
 function saveTimestampProfileForFolder(folderName, metaObj) {
   if (!folderName || !metaObj || !metaObj.timeToYMap || metaObj.timeToYMap.length < 2) return;
-  const compact = [];
-  const src = metaObj.timeToYMap;
-  const step = Math.max(1, Math.floor(src.length / 400));
-  for (let i = 0; i < src.length; i += step) {
-    compact.push({ time: Number(src[i].time.toFixed(3)), bottomY: Math.round(src[i].bottomY) });
-  }
-  const last = src[src.length - 1];
-  if (compact[compact.length - 1].time !== Number(last.time.toFixed(3))) {
-    compact.push({ time: Number(last.time.toFixed(3)), bottomY: Math.round(last.bottomY) });
-  }
+  const compact = simplifyTimeMap(metaObj.timeToYMap, 2.0, 1500).map(p => ({
+    time: Number(p.time.toFixed(3)),
+    bottomY: Math.round(p.bottomY)
+  }));
 
   savedTimestampsByFolder[folderName] = {
     totalHeight: Math.round(metaObj.totalHeight || 0),
@@ -1021,148 +1099,13 @@ function saveTimestampProfileForFolder(folderName, metaObj) {
     topCapH: Math.round(metaObj.topCapH || 0),
     tStart: Number((metaObj.tStart || 0).toFixed(3)),
     tEnd: Number((metaObj.tEnd || 0).toFixed(3)),
+    frameH: Math.round(metaObj.frameH || 0),
+    captureY: Math.round(metaObj.captureY || 0),
+    layout: metaObj.layout || null,
+    engine: 2,
     timeToYMap: compact
   };
   scheduleSaveSettings();
-}
-
-// =========================================================
-// 再生中のリアルタイムズレ検知＆滑らかなバー位置修正用の「静止画視覚シグネチャ」構築関数
-// =========================================================
-function buildChartVisualSignatureFromMaster() {
-  if (!masterChartData.hasData || !masterChartData.chunks || masterChartData.chunks.length === 0) {
-    chartVisualSignature = null;
-    return;
-  }
-  const { cropW, totalHeight, chunks } = masterChartData;
-  const sig = new Float32Array(totalHeight);
-  const xStart = Math.max(2, Math.floor(cropW * 0.08));
-  const xEnd = Math.min(cropW - 2, Math.floor(cropW * 0.92));
-  const sampleCount = Math.max(1, Math.floor((xEnd - xStart) / 4));
-
-  for (let k = 0; k < chunks.length; k++) {
-    const ch = chunks[k];
-    if (!ch || !ch.width || !ch.height) continue;
-    const ctx = ch.getContext("2d", { willReadFrequently: true });
-    const imgData = ctx.getImageData(0, 0, cropW, MASTER_CHUNK_H).data;
-    const chunkBottomStart = k * MASTER_CHUNK_H;
-
-    for (let localY = 0; localY < MASTER_CHUNK_H; localY++) {
-      const bottomY = chunkBottomStart + (MASTER_CHUNK_H - 1 - localY);
-      if (bottomY < 0 || bottomY >= totalHeight) continue;
-
-      const rowOff = localY * cropW;
-      let valSum = 0;
-      for (let x = xStart; x < xEnd; x += 4) {
-        const idx = (rowOff + x) << 2;
-        const r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
-        const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
-        const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
-        // ノーツの彩度・輝度・小節線を強く反映した特徴値
-        valSum += maxC + (maxC - minC) * 1.2;
-      }
-      sig[bottomY] = valSum / sampleCount;
-    }
-  }
-  chartVisualSignature = sig;
-  smoothedDriftOffsetY = 0;
-  targetDriftOffsetY = 0;
-}
-
-// 再生中に現在の動画フレームと静止画のシグネチャを比較し、ズレ量 targetDriftOffsetY を算出する関数
-function updateLivePlayheadDriftCorrection(nominalBottomY) {
-  if (!chartVisualSignature || !video.videoWidth || isGenerating) return;
-  const now = performance.now();
-  // 負荷をかけないよう約85ms（秒間約12回）間隔で裏照合を実行
-  if (now - lastSyncCheckWallTime < 85) return;
-  lastSyncCheckWallTime = now;
-
-  const totalH = chartVisualSignature.length;
-  const bandHalfH = 28; // 基準ライン(capY)の上下28px（計56pxの帯）でパターン照合
-  const searchRange = 110; // ±110pxの範囲でズレを探索
-
-  const centerB = Math.round(nominalBottomY + smoothedDriftOffsetY);
-  if (centerB - searchRange - bandHalfH < 10 || centerB + searchRange + bandHalfH >= totalH - 10) {
-    return;
-  }
-
-  const rawW = video.videoWidth;
-  const rawH = video.videoHeight;
-  const leftPct = parseFloat(cropLeftSlider.value) / 100;
-  const rightPct = parseFloat(cropRightSlider.value) / 100;
-  const srcX1 = Math.round(rawW * leftPct);
-  const srcCropW = Math.max(10, Math.round(rawW * rightPct) - srcX1);
-
-  const scaleToChart = (chartMeta.cropW || srcCropW) / srcCropW;
-  const chartVideoH = Math.round(rawH * scaleToChart);
-  const chartCapY = Math.round(chartVideoH * 0.70);
-
-  const sampleW = 48;
-  const sampleH = bandHalfH * 2;
-  if (liveSyncCanvas.width !== sampleW || liveSyncCanvas.height !== sampleH) {
-    liveSyncCanvas.width = sampleW;
-    liveSyncCanvas.height = sampleH;
-  }
-
-  // 動画上の capY を中心とした上下 bandHalfH 相当の領域を切り出す
-  const vidCapY = rawH * 0.70;
-  const vidBandHalf = bandHalfH / Math.max(0.1, scaleToChart);
-  const sy = Math.max(0, Math.min(rawH - vidBandHalf * 2, vidCapY - vidBandHalf));
-  liveSyncCtx.drawImage(video, srcX1, sy, srcCropW, vidBandHalf * 2, 0, 0, sampleW, sampleH);
-
-  const vData = liveSyncCtx.getImageData(0, 0, sampleW, sampleH).data;
-  const vidProf = new Float32Array(sampleH);
-  let activeEnergy = 0;
-
-  for (let y = 0; y < sampleH; y++) {
-    const row = y * sampleW;
-    let sum = 0;
-    for (let x = 4; x < sampleW - 4; x++) {
-      const idx = (row + x) << 2;
-      const r = vData[idx], g = vData[idx + 1], b = vData[idx + 2];
-      const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
-      const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
-      // 動画の背景透かしイラスト（低彩度・暗部）を無視し、ノーツや小節線のみを抽出
-      if (maxC > 68 || (maxC - minC) > 32) {
-        sum += maxC + (maxC - minC) * 1.2;
-      }
-    }
-    // 動画の上側(y=0)は静止画のより高い bottomY に対応するため、下から順のインデックスに揃える
-    const revIdx = sampleH - 1 - y;
-    vidProf[revIdx] = sum / (sampleW - 8);
-    activeEnergy += vidProf[revIdx];
-  }
-
-  // 現在の画面にノーツや小節線がほとんどない空白区間の場合は、現在の補正量を維持する
-  if (activeEnergy < sampleH * 18) return;
-
-  let bestShift = 0;
-  let minScore = Infinity;
-  let baseZeroScore = Infinity;
-
-  for (let shift = -searchRange; shift <= searchRange; shift += 2) {
-    const candBottomY = Math.round(nominalBottomY) + shift;
-    if (candBottomY - bandHalfH < 2 || candBottomY + bandHalfH >= totalH - 2) continue;
-
-    let diffSum = 0;
-    for (let i = 0; i < sampleH; i += 2) {
-      const chartB = candBottomY - bandHalfH + i;
-      const d = Math.abs(vidProf[i] - chartVisualSignature[chartB]);
-      diffSum += d;
-    }
-    // 急激なジャンプを抑えるための微小な中心バイアス
-    const regScore = (diffSum / (sampleH * 0.5)) + Math.abs(shift - smoothedDriftOffsetY) * 0.12;
-    if (shift === 0) baseZeroScore = regScore;
-    if (regScore < minScore) {
-      minScore = regScore;
-      bestShift = shift;
-    }
-  }
-
-  // 明確に一致度が高いズレ位置が見つかった場合のみ目標オフセットを更新
-  if (minScore < baseZeroScore * 0.88 && minScore < 65) {
-    targetDriftOffsetY = targetDriftOffsetY * 0.55 + bestShift * 0.45;
-  }
 }
 
 // =========================================================
@@ -1242,18 +1185,37 @@ function applySettingsObject(s) {
   drawPlayheadOverlay();
 }
 
+// スライダー操作のたびに大きな設定（タイムスタンプ込み）を書き込むと重くなるため、まとめて保存する
 let saveSettingsTimer = null;
 function scheduleSaveSettings() {
-  try {
-    const s = collectCurrentSettings();
-    localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(s));
-  } catch (e) {}
-
   clearTimeout(saveSettingsTimer);
-  saveSettingsTimer = setTimeout(async () => {
-    await saveSettingsFileToRootFolder();
+  saveSettingsTimer = setTimeout(() => {
+    saveSettingsTimer = null;
+    flushSettingsToLocalStorage();
+    saveSettingsFileToRootFolder();
   }, 300);
 }
+
+function flushSettingsToLocalStorage() {
+  const s = collectCurrentSettings();
+  try {
+    localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(s));
+  } catch (e) {
+    // 容量オーバー時はタイムスタンプを除いて保存（タイムスタンプは設定ファイルと静止画側に残る）
+    try {
+      const lite = Object.assign({}, s, { savedTimestampsByFolder: {} });
+      localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(lite));
+    } catch (e2) {}
+  }
+}
+
+window.addEventListener("beforeunload", () => {
+  if (saveSettingsTimer) {
+    clearTimeout(saveSettingsTimer);
+    saveSettingsTimer = null;
+    flushSettingsToLocalStorage();
+  }
+});
 
 async function saveSettingsFileToRootFolder() {
   if (!savedDirectoryHandle) return;
@@ -1278,7 +1240,7 @@ async function loadSettingsFileFromRootHandle(dirHandle) {
     const text = await file.text();
     const parsed = JSON.parse(text);
     applySettingsObject(parsed);
-    localStorage.setItem(LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(parsed));
+    flushSettingsToLocalStorage();
     return true;
   } catch (e) {
     return false;
@@ -1301,7 +1263,8 @@ async function autoSaveCanvasToFolder(folderName, targetCanvas) {
     const blob = await canvasToBlobSafe(targetCanvas);
     if (!blob || cancelGenerationRequested) return false;
 
-    const fileName = `${folderName}_譜面.png`;
+    // 入れ子フォルダ（"親/子"）でも、ファイル名には末尾のフォルダ名だけを使う
+    const fileName = chartImageFileName(folderName);
     const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(blob);
@@ -1362,7 +1325,7 @@ function setGeneratingLock(locked) {
   }
 }
 
-// マスター譜面データ保持構造
+// マスター譜面データ保持構造（下から上へ1本に繋がった譜面を、高さ2048pxごとのキャンバスに分けて持つ）
 const MASTER_CHUNK_H = 2048;
 let masterChartData = {
   hasData: false,
@@ -1387,6 +1350,29 @@ function releaseMasterChunks(mData) {
   mData.hasData = false;
 }
 
+// 保存済み（ファイルから読み直せる）ならマスターを解放してメモリを空ける。未保存の生成結果は残す
+function releaseMasterIfReloadable(mData) {
+  if (!mData || !mData.hasData) return false;
+  for (const [, grp] of folderGroups) {
+    for (const img of grp.images) {
+      if (img.masterData === mData && !img.file) return false;
+    }
+  }
+  for (const [, grp] of folderGroups) {
+    for (const img of grp.images) {
+      if (img.masterData === mData) img.masterData = null;
+    }
+  }
+  releaseMasterChunks(mData);
+  return true;
+}
+
+function replaceMasterChartData(newData) {
+  const old = masterChartData;
+  masterChartData = newData;
+  if (old && old !== newData && old.hasData) releaseMasterIfReloadable(old);
+}
+
 let chartMeta = {
   isGenerated: false,
   mode: "grid",
@@ -1403,7 +1389,8 @@ let chartMeta = {
   scale: 1,
   renderScale: 1,
   colRects: [],
-  timeToYMap: []
+  timeToYMap: [],
+  displayMap: null
 };
 
 // =========================================================
@@ -1453,12 +1440,14 @@ async function scanDirectoryHandle(dirHandle, path = "", collected = []) {
         } catch (e) {}
         continue;
       }
-      if (/\.(mp4|mov|webm|mkv|avi|png|jpe?g|webp|bmp)$/i.test(entry.name)) {
-        const file = await entry.getFile();
-        const baseName = entry.name.replace(/\.[^.]+$/, "");
-        file._customFolder = path || baseName;
-        file._dirHandle = dirHandle;
-        collected.push(file);
+      if (/\.(mp4|mov|m4v|webm|mkv|avi|png|jpe?g|webp|bmp)$/i.test(entry.name)) {
+        try {
+          const file = await entry.getFile();
+          const isImg = /\.(png|jpe?g|webp|bmp)$/i.test(entry.name);
+          file._customFolder = path || rootGroupNameForFile(entry.name, isImg);
+          file._dirHandle = dirHandle;
+          collected.push(file);
+        } catch (e) {}
       }
     } else if (entry.kind === "directory") {
       const subPath = path ? `${path}/${entry.name}` : entry.name;
@@ -1488,7 +1477,7 @@ async function loadFromSavedHandle(requestPerm = false) {
       await loadSettingsFileFromRootHandle(savedDirectoryHandle);
       folderGroups.clear();
       const files = await scanDirectoryHandle(savedDirectoryHandle, "");
-      handleIncomingFiles(files);
+      await handleIncomingFiles(files);
     } else {
       reconnectFolderBtn.style.display = "inline-flex";
       reconnectFolderBtn.textContent = `同階層フォルダ「${savedDirectoryHandle.name}」を自動読み込み`;
@@ -1545,11 +1534,14 @@ window.addEventListener("drop", async (e) => {
   if (isGenerating) return;
   const items = e.dataTransfer.items;
   if (items && items.length > 0 && items[0].webkitGetAsEntry) {
-    const collected = [];
+    // ドロップ情報はイベント中しか読めないため、先に全エントリを取り出してから中身を辿る
+    const entries = [];
     for (let i = 0; i < items.length; i++) {
       const entry = items[i].webkitGetAsEntry();
-      if (entry) await traverseFileTree(entry, "", collected);
+      if (entry) entries.push(entry);
     }
+    const collected = [];
+    for (const entry of entries) await traverseFileTree(entry, "", collected);
     if (collected.length > 0) await handleIncomingFiles(collected);
   } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
     await handleIncomingFiles(Array.from(e.dataTransfer.files));
@@ -1558,16 +1550,17 @@ window.addEventListener("drop", async (e) => {
 
 async function traverseFileTree(item, path, collected) {
   if (item.isFile) {
-    const file = await new Promise((res) => item.file(res));
-    const baseName = file.name.replace(/\.[^.]+$/, "");
-    file._customFolder = path || baseName;
+    const file = await new Promise((res) => item.file(res, () => res(null)));
+    if (!file) return;
+    const isImg = /\.(png|jpe?g|webp|bmp)$/i.test(file.name);
+    file._customFolder = path || rootGroupNameForFile(file.name, isImg);
     collected.push(file);
   } else if (item.isDirectory) {
     const dirReader = item.createReader();
     let entries = [];
     let batch;
     do {
-      batch = await new Promise((res) => dirReader.readEntries(res));
+      batch = await new Promise((res) => dirReader.readEntries(res, () => res([])));
       entries = entries.concat(batch);
     } while (batch.length > 0);
     const nextPath = path ? `${path}/${item.name}` : item.name;
@@ -1579,15 +1572,18 @@ async function traverseFileTree(item, path, collected) {
 
 videoInput.addEventListener("change", (e) => {
   if (!isGenerating && e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
+  e.target.value = "";
 });
 folderInput.addEventListener("change", (e) => {
   if (!isGenerating && e.target.files && e.target.files.length > 0) {
     folderGroups.clear();
     handleIncomingFiles(Array.from(e.target.files));
   }
+  e.target.value = "";
 });
 imagesInput.addEventListener("change", (e) => {
   if (!isGenerating && e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
+  e.target.value = "";
 });
 
 async function handleIncomingFiles(files) {
@@ -1604,8 +1600,8 @@ async function handleIncomingFiles(files) {
   }
 
   for (const f of files) {
-    const isVid = f.type.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi)$/i.test(f.name);
-    const isImg = f.type.startsWith("image/") || /\.(png|jpe?g|webp|bmp)$/i.test(f.name);
+    const isVid = (f.type || "").startsWith("video/") || /\.(mp4|mov|m4v|webm|mkv|avi)$/i.test(f.name);
+    const isImg = (f.type || "").startsWith("image/") || /\.(png|jpe?g|webp|bmp)$/i.test(f.name);
     if (!isVid && !isImg) continue;
 
     let folderName = f._customFolder || "";
@@ -1616,7 +1612,7 @@ async function handleIncomingFiles(files) {
       folderName = parts.join("/");
     }
     if (!folderName) {
-      folderName = f.name.replace(/\.[^.]+$/, "");
+      folderName = rootGroupNameForFile(f.name, isImg);
     }
 
     if (!folderGroups.has(folderName)) {
@@ -1627,7 +1623,7 @@ async function handleIncomingFiles(files) {
       group.dirHandle = f._dirHandle;
     }
 
-    const entry = { name: f.name, file: f, url: null, ramBlobUrl: null, folderName: folderName };
+    const entry = { name: f.name, file: f, url: null, folderName: folderName };
 
     if (isVid) {
       const idx = group.videos.findIndex(v => v.name === f.name);
@@ -1662,8 +1658,6 @@ function selectFolderSet(folderName) {
   const grp = folderGroups.get(folderName);
   if (!grp) return;
   activeFolderName = folderName;
-  smoothedDriftOffsetY = 0;
-  targetDriftOffsetY = 0;
   renderTopSwitcher();
 
   if (grp.videos.length > 0) {
@@ -1671,6 +1665,9 @@ function selectFolderSet(folderName) {
   }
   if (grp.images.length > 0) {
     loadImageItemToViewer(grp.images[0]);
+  } else {
+    // 静止画のないフォルダでは、前のフォルダの譜面を表示したままにしない（バーの位置が別の曲になってしまうため）
+    clearViewerChart();
   }
 }
 
@@ -1720,7 +1717,7 @@ function renderTopSwitcher() {
 }
 
 // =========================================================
-// 4. 画像内の列領域を実測する検出エンジン ＆ 外部画像の読み込み（埋め込みタイムスタンプ復元対応）
+// 4. 画像内の列領域を実測する検出エンジン ＆ 外部画像の読み込み
 // =========================================================
 function detectColumnRectsFromCanvas(ctx, W, H) {
   const sampleYs = [
@@ -1834,33 +1831,83 @@ function detectColumnRectsFromCanvas(ctx, W, H) {
   };
 }
 
-function loadImageItemToViewer(imgItem) {
+// 新しい静止画は並べ方（列の位置・倍率）を埋め込んでいるので、枠線を誤検出せず正確な列位置を使う
+function layoutRectsFromMeta(lay, W, H) {
+  if (!lay || !lay.m) return null;
+  if (lay.m === "single") return { mode: "single", rects: [{ x: 0, y: 0, w: W, h: H }] };
+  const s = lay.s || 1;
+  const g = lay.g || 0;
+  const top = (lay.hh || 0) + g;
+  const rects = [];
+  for (let c = 0; c < (lay.n || 0); c++) {
+    const x1 = Math.round((g + c * (lay.cw + g)) * s);
+    const x2 = Math.round((g + c * (lay.cw + g) + lay.cw) * s);
+    const y1 = Math.round(top * s);
+    const y2 = Math.round((top + lay.ch) * s);
+    if (x2 > W || y2 > H || x2 <= x1 || y2 <= y1) return null;
+    rects.push({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 });
+  }
+  return rects.length > 0 ? { mode: "grid", rects } : null;
+}
+
+function loadImageAsDrawable(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image load failed")); };
+    img.src = url;
+  });
+}
+
+let imageLoadToken = 0;
+async function loadImageItemToViewer(imgItem) {
   if (imgItem.masterData && imgItem.masterData.hasData) {
-    masterChartData = imgItem.masterData;
+    imageLoadToken++;
+    replaceMasterChartData(imgItem.masterData);
     reLayoutBtn.disabled = isGenerating;
     rebuildLayoutFromMaster(false);
     return;
   }
 
-  const srcUrl = imgItem.file ? URL.createObjectURL(imgItem.file) : imgItem.url;
-  if (!srcUrl) return;
-  const img = new Image();
-  img.onload = () => {
-    outputCanvas.width = img.width;
-    outputCanvas.height = img.height;
-    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
-    outCtx.drawImage(img, 0, 0);
+  const token = ++imageLoadToken;
+  let drawable = null;
+  try {
+    const blob = imgItem.file || (imgItem.url ? await (await fetch(imgItem.url)).blob() : null);
+    if (!blob) return;
+    // 色変換をかけずに読み込む（埋め込んだタイムスタンプの下位ビットが崩れないように）
+    if (typeof createImageBitmap === "function") {
+      try {
+        drawable = await createImageBitmap(blob, { colorSpaceConversion: "none", premultiplyAlpha: "none" });
+      } catch (e) {
+        drawable = null;
+      }
+    }
+    if (!drawable) drawable = await loadImageAsDrawable(blob);
+  } catch (e) {
+    bottomSaveStatusLabel.textContent = `画像を読み込めませんでした: ${imgItem.name}`;
+    return;
+  }
+  if (token !== imageLoadToken) {
+    if (drawable && drawable.close) drawable.close();
+    return;
+  }
 
-    const infoText = `表示中: ${activeFolderName} / ${imgItem.name} (${img.width} x ${img.height} px)`;
-    currentViewFileName.textContent = infoText;
-    bottomSaveStatusLabel.textContent = infoText;
+  const W = drawable.width;
+  const H = drawable.height;
+  outputCanvas.width = W;
+  outputCanvas.height = H;
+  const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+  outCtx.drawImage(drawable, 0, 0);
 
-    extractMasterFromExternalImage(img, outCtx, `${activeFolderName}`);
-    setupViewerAfterGenerate(chartMeta.numCols);
-    drawPlayheadOverlay();
-    if (imgItem.file) URL.revokeObjectURL(srcUrl);
-  };
-  img.src = srcUrl;
+  const infoText = `表示中: ${activeFolderName} / ${imgItem.name} (${W} x ${H} px)`;
+  currentViewFileName.textContent = infoText;
+  bottomSaveStatusLabel.textContent = infoText;
+
+  extractMasterFromExternalImage(drawable, outCtx, `${activeFolderName}`);
+  if (drawable.close) drawable.close();
+  setupViewerAfterGenerate(chartMeta.numCols);
+  drawPlayheadOverlay();
 }
 
 function extractMasterFromExternalImage(img, ctx, labelName) {
@@ -1871,7 +1918,8 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
   let tStart = !isNaN(parsedStart) ? parsedStart : 0.0;
   let tEnd = (!isNaN(parsedEnd) && parsedEnd > tStart) ? parsedEnd : (video.duration || 120.0);
 
-  const detected = detectColumnRectsFromCanvas(ctx, W, H);
+  const embeddedMeta = extractTimestampsFromCanvas(ctx, W, H);
+  const detected = (embeddedMeta && layoutRectsFromMeta(embeddedMeta.layout, W, H)) || detectColumnRectsFromCanvas(ctx, W, H);
   const colRects = detected.rects;
   const mode = detected.mode;
   const numCols = colRects.length;
@@ -1886,16 +1934,25 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
   const cropRatio = Math.max(0.2, (parseFloat(cropRightSlider.value) - parseFloat(cropLeftSlider.value)) / 100);
   const estVideoW = calcCropW / cropRatio;
   const estH = estVideoW * 0.68;
-  let estBottomBaseH = Math.round(estH * 0.30);
-  let estTopCapH = Math.round(estH * 0.63);
+  let estBottomBaseH = Math.round(estH * 0.38);
+  let estTopCapH = Math.round(estH * 0.55);
   let restoredTimeMap = [];
+  let frameH = 0;
+  let captureY = 0;
 
-  // 1) まずPNG画像の最下端行に埋め込まれたタイムスタンプ（ステガノグラフィ）があれば優先復元
-  const embeddedMeta = extractTimestampsFromCanvas(ctx, W, H);
+  // マスター上の位置 → この画像上の位置の倍率。一覧画像は最後の列に空白があるため、
+  // 全体の高さの比ではなく「1列の高さ」の比で求める（並べ方の情報が無い古い画像は従来どおり）
+  const scaleFromLayout = (lay, fallbackTotal) => {
+    if (lay && lay.m === "grid" && lay.ch > 0) return colMaxH / lay.ch;
+    return fallbackTotal > 0 ? (totalHeight / fallbackTotal) : 1.0;
+  };
+
   if (embeddedMeta && embeddedMeta.timeToYMap && embeddedMeta.timeToYMap.length >= 2) {
-    const scaleY = embeddedMeta.totalHeight > 0 ? (totalHeight / embeddedMeta.totalHeight) : 1.0;
+    const scaleY = scaleFromLayout(embeddedMeta.layout, embeddedMeta.totalHeight);
     estBottomBaseH = Math.round((embeddedMeta.bottomBaseH || estBottomBaseH) * scaleY);
     estTopCapH = Math.round((embeddedMeta.topCapH || estTopCapH) * scaleY);
+    frameH = Math.round((embeddedMeta.frameH || 0) * scaleY);
+    captureY = Math.round((embeddedMeta.captureY || 0) * scaleY);
     tStart = embeddedMeta.tStart ?? tStart;
     tEnd = embeddedMeta.tEnd ?? tEnd;
     restoredTimeMap = embeddedMeta.timeToYMap.map(pt => ({
@@ -1903,11 +1960,12 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
       bottomY: pt.bottomY * scaleY
     }));
   } else if (savedTimestampsByFolder[labelName] && savedTimestampsByFolder[labelName].timeToYMap) {
-    // 2) 設定ファイルに記録されていたフォルダ別の裏タイムスタンプがあれば復元
     const savedProf = savedTimestampsByFolder[labelName];
-    const scaleY = savedProf.totalHeight > 0 ? (totalHeight / savedProf.totalHeight) : 1.0;
+    const scaleY = scaleFromLayout(savedProf.layout, savedProf.totalHeight);
     estBottomBaseH = Math.round((savedProf.bottomBaseH || estBottomBaseH) * scaleY);
     estTopCapH = Math.round((savedProf.topCapH || estTopCapH) * scaleY);
+    frameH = Math.round((savedProf.frameH || 0) * scaleY);
+    captureY = Math.round((savedProf.captureY || 0) * scaleY);
     tStart = savedProf.tStart ?? tStart;
     tEnd = savedProf.tEnd ?? tEnd;
     restoredTimeMap = savedProf.timeToYMap.map(pt => ({
@@ -1946,7 +2004,7 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     }
   }
 
-  masterChartData = {
+  replaceMasterChartData({
     hasData: true,
     cropW: calcCropW,
     totalHeight: totalHeight,
@@ -1956,8 +2014,10 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     tStart: tStart,
     tEnd: tEnd,
     timeToYMap: restoredTimeMap,
+    frameH,
+    captureY,
     sourceLabel: labelName
-  };
+  });
   reLayoutBtn.disabled = isGenerating;
 
   chartMeta = {
@@ -1976,18 +2036,33 @@ function extractMasterFromExternalImage(img, ctx, labelName) {
     scale: 1,
     renderScale: 1,
     colRects: colRects,
-    timeToYMap: restoredTimeMap
+    timeToYMap: [],
+    displayMap: null
   };
+  setChartTimeMap(restoredTimeMap);
+}
 
-  // 再生時のリアルタイム・オートシンクロ補正のために静止画の視覚シグネチャを裏で構築
-  buildChartVisualSignatureFromMaster();
+// 静止画のないフォルダを選んだときに、表示中の譜面と再生位置バーを片付ける
+function clearViewerChart() {
+  imageLoadToken++;
+  replaceMasterChartData({ hasData: false, cropW: 0, totalHeight: 0, bottomBaseH: 0, topCapH: 0, chunks: [], tStart: 0, tEnd: 0, timeToYMap: [], sourceLabel: "" });
+  outputCanvas.width = 0;
+  outputCanvas.height = 0;
+  chartMeta.isGenerated = false;
+  chartMeta.colRects = [];
+  setChartTimeMap([]);
+  colJumpBar.style.display = "none";
+  reLayoutBtn.disabled = true;
+  currentViewFileName.textContent = `表示中: ${activeFolderName}（静止画は未作成です）`;
+  bottomSaveStatusLabel.textContent = "";
+  drawPlayheadOverlay();
 }
 
 // =========================================================
-// 5. マスター譜面データから「1列の高さ」を変更して即時再生成（タイムスタンプ埋め込み対応）
+// 5. マスター譜面データから「1列の高さ」を変更して即時再生成
 // =========================================================
-function drawColumnFromMaster(targetCtx, c, colMaxH, destX, destY) {
-  const { cropW, totalHeight, chunks } = masterChartData;
+function drawColumnFromMaster(targetCtx, mData, c, colMaxH, destX, destY) {
+  const { cropW, totalHeight, chunks } = mData;
   targetCtx.fillStyle = "#000000";
   targetCtx.fillRect(destX, destY, cropW, colMaxH);
 
@@ -2012,17 +2087,14 @@ function drawColumnFromMaster(targetCtx, c, colMaxH, destX, destY) {
   }
 }
 
-async function rebuildLayoutFromMaster(shouldAutoSave = true) {
-  if (!masterChartData.hasData || !masterChartData.chunks || masterChartData.chunks.length === 0) return;
-
-  const { cropW, totalHeight, bottomBaseH, topCapH, tStart, tEnd, timeToYMap, sourceLabel } = masterChartData;
+// マスターから一覧画像（または1本の縦長画像）を描く。画面表示用と一括処理の保存用で共通
+function renderChartLayout(mData, targetCanvas) {
+  const { cropW, totalHeight } = mData;
   const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
-  const mode = layoutMode.value;
+  const mode = layoutMode.value === "single" ? "single" : "grid";
   const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
   const colGap = 14;
   const headerH = 0;
-
-  currentColumnWidths = cropW;
 
   const MAX_DIM = 14000;
   const MAX_AREA = 60000000;
@@ -2036,28 +2108,23 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
     const areaScale = Math.min(1, Math.sqrt(MAX_AREA / Math.max(1, rawW * rawH)));
     renderScale = Math.min(dimScale, areaScale);
 
-    outputCanvas.width = Math.max(1, Math.round(rawW * renderScale));
-    outputCanvas.height = Math.max(1, Math.round(rawH * renderScale));
-    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+    targetCanvas.width = Math.max(1, Math.round(rawW * renderScale));
+    targetCanvas.height = Math.max(1, Math.round(rawH * renderScale));
+    const outCtx = targetCanvas.getContext("2d", { willReadFrequently: true });
     outCtx.imageSmoothingEnabled = true;
     outCtx.imageSmoothingQuality = "high";
     outCtx.fillStyle = "#000000";
-    outCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+    outCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
     outCtx.save();
     outCtx.scale(renderScale, renderScale);
 
     for (let c = 0; c < numCols; c++) {
       const destY = totalHeight - (c + 1) * colMaxH;
-      drawColumnFromMaster(outCtx, c, colMaxH, 0, destY);
+      drawColumnFromMaster(outCtx, mData, c, colMaxH, 0, destY);
     }
     outCtx.restore();
 
-    colRects.push({
-      x: 0,
-      y: 0,
-      w: outputCanvas.width,
-      h: outputCanvas.height
-    });
+    colRects.push({ x: 0, y: 0, w: targetCanvas.width, h: targetCanvas.height });
   } else {
     const rawW = numCols * cropW + (numCols + 1) * colGap;
     const rawH = colMaxH + headerH + colGap * 2;
@@ -2065,9 +2132,9 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
     const areaScale = Math.min(1, Math.sqrt(MAX_AREA / Math.max(1, rawW * rawH)));
     renderScale = Math.min(dimScale, areaScale);
 
-    outputCanvas.width = Math.max(1, Math.round(rawW * renderScale));
-    outputCanvas.height = Math.max(1, Math.round(rawH * renderScale));
-    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+    targetCanvas.width = Math.max(1, Math.round(rawW * renderScale));
+    targetCanvas.height = Math.max(1, Math.round(rawH * renderScale));
+    const outCtx = targetCanvas.getContext("2d", { willReadFrequently: true });
     outCtx.imageSmoothingEnabled = true;
     outCtx.imageSmoothingQuality = "high";
 
@@ -2080,10 +2147,11 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
       const x = colGap + c * (cropW + colGap);
       const y = headerH + colGap;
 
-      drawColumnFromMaster(outCtx, c, colMaxH, x, y);
+      drawColumnFromMaster(outCtx, mData, c, colMaxH, x, y);
+      // 枠線は譜面の外側に描く（以前は譜面の端の1行を上書きしていた）
       outCtx.strokeStyle = "#2b3856";
       outCtx.lineWidth = 2;
-      outCtx.strokeRect(x, y, cropW, colMaxH);
+      outCtx.strokeRect(x - 1, y - 1, cropW + 2, colMaxH + 2);
 
       colRects.push({
         x: x * renderScale,
@@ -2095,41 +2163,59 @@ async function rebuildLayoutFromMaster(shouldAutoSave = true) {
     outCtx.restore();
   }
 
+  return {
+    mode, numCols, colMaxH, colGap, headerH, renderScale, colRects,
+    layoutMeta: { m: mode, n: numCols, ch: colMaxH, cw: cropW, g: colGap, hh: headerH, s: Number(renderScale.toFixed(6)) }
+  };
+}
+
+async function rebuildLayoutFromMaster(shouldAutoSave = true, opts = {}) {
+  if (!masterChartData.hasData || !masterChartData.chunks || masterChartData.chunks.length === 0) return;
+  const mData = masterChartData;
+  const { cropW, totalHeight, bottomBaseH, topCapH, tStart, tEnd, timeToYMap, sourceLabel } = mData;
+
+  currentColumnWidths = cropW;
+  const lay = renderChartLayout(mData, outputCanvas);
+
   chartMeta = {
     isGenerated: true,
-    mode: mode,
-    numCols: numCols,
+    mode: lay.mode,
+    numCols: lay.numCols,
     cropW: cropW,
-    colMaxH: colMaxH,
-    colGap: colGap,
-    headerH: headerH,
+    colMaxH: lay.colMaxH,
+    colGap: lay.colGap,
+    headerH: lay.headerH,
     totalHeight: totalHeight,
     bottomBaseH: bottomBaseH || 0,
     topCapH: topCapH || 0,
     tStart: tStart,
     tEnd: tEnd,
-    scale: renderScale,
-    renderScale: renderScale,
-    colRects: colRects,
-    timeToYMap: timeToYMap
+    scale: lay.renderScale,
+    renderScale: lay.renderScale,
+    colRects: lay.colRects,
+    timeToYMap: [],
+    displayMap: null,
+    frameH: mData.frameH || 0,
+    captureY: mData.captureY || 0,
+    layout: lay.layoutMeta
   };
+  setChartTimeMap(timeToYMap);
 
-  // 裏で静止画の視覚シグネチャを構築し、さらにCanvas最下端行にタイムスタンプを埋め込む
-  buildChartVisualSignatureFromMaster();
   embedTimestampsIntoCanvas(outputCanvas, chartMeta);
-  if (activeFolderName) {
+  if (activeFolderName && opts.saveProfile !== false) {
     saveTimestampProfileForFolder(activeFolderName, chartMeta);
   }
 
-  const infoText = `${sourceLabel || activeFolderName || "生成譜面"} [1列の高さ: ${colMaxH}px / 全${numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
+  const infoText = `${sourceLabel || activeFolderName || "生成譜面"} [1列の高さ: ${lay.colMaxH}px / 全${lay.numCols}列] (${outputCanvas.width} x ${outputCanvas.height} px)`;
   currentViewFileName.textContent = infoText;
   bottomSaveStatusLabel.textContent = infoText;
-  setupViewerAfterGenerate(numCols);
+  setupViewerAfterGenerate(lay.numCols);
   drawPlayheadOverlay();
 
   if (shouldAutoSave && activeFolderName && !cancelGenerationRequested) {
-    await autoSaveCanvasToFolder(activeFolderName, outputCanvas);
+    return await autoSaveCanvasToFolder(activeFolderName, outputCanvas);
   }
+  return false;
 }
 
 reLayoutBtn.addEventListener("click", () => {
@@ -2147,35 +2233,50 @@ resolutionSelect.addEventListener("change", () => {
   scheduleSaveSettings();
 });
 
-// 動画ファイルをメモリ（RAM）に完全プリロードしてディスクI/O待ちの引っかかりをゼロにする関数
-async function ensureVideoPreloadedInMemory(vidItem) {
-  if (!vidItem) return null;
-  if (vidItem.ramBlobUrl) return vidItem.ramBlobUrl;
-  try {
-    if (vidItem.file) {
-      const arrayBuf = await vidItem.file.arrayBuffer();
-      const ramBlob = new Blob([arrayBuf], { type: vidItem.file.type || "video/mp4" });
-      vidItem.ramBlobUrl = URL.createObjectURL(ramBlob);
-      return vidItem.ramBlobUrl;
-    } else if (vidItem.url) {
-      const res = await fetch(vidItem.url);
-      const arrayBuf = await res.arrayBuffer();
-      const ramBlob = new Blob([arrayBuf], { type: "video/mp4" });
-      vidItem.ramBlobUrl = URL.createObjectURL(ramBlob);
-      return vidItem.ramBlobUrl;
+function getVideoObjectUrl(vidItem) {
+  if (!vidItem) return "";
+  if (vidItem.file) {
+    // 同じ動画を何度選んでも URL を作り直さない（作るたびに解放されずに溜まっていたため）
+    if (!vidItem.objectUrl) vidItem.objectUrl = URL.createObjectURL(vidItem.file);
+    return vidItem.objectUrl;
+  }
+  return vidItem.url || "";
+}
+
+function waitForVideoMetadata(vidElem, timeoutMs = 15000) {
+  return new Promise((resolve) => {
+    if (vidElem.readyState >= 1 && vidElem.videoWidth) {
+      resolve(true);
+      return;
     }
-  } catch (e) {}
-  return vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url;
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      vidElem.removeEventListener("loadedmetadata", onOk);
+      vidElem.removeEventListener("error", onErr);
+      resolve(ok);
+    };
+    const onOk = () => finish(true);
+    const onErr = () => finish(false);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    vidElem.addEventListener("loadedmetadata", onOk);
+    vidElem.addEventListener("error", onErr);
+  });
 }
 
 function loadVideoItem(vidItem) {
   if (isGenerating) return;
+  if (activeVideoItem && activeVideoItem !== vidItem) {
+    activeVideoItem.previewBg = null;   // プレビュー用の背景モデルは表示中の動画の分だけ持つ
+  }
   activeVideoName = vidItem.name;
   activeVideoItem = vidItem;
   shouldRestartFromBeginning = false;
+  playbackClock.stop();
 
-  const srcUrl = vidItem.ramBlobUrl || (vidItem.file ? URL.createObjectURL(vidItem.file) : vidItem.url);
-  video.src = srcUrl;
+  video.src = getVideoObjectUrl(vidItem);
   video.muted = false;
   video.volume = 1.0;
   video.load();
@@ -2202,7 +2303,49 @@ function loadVideoItem(vidItem) {
 
     video.currentTime = defaultStart;
     drawPlayheadOverlay();
+    ensurePreviewBackgroundModel(vidItem);
   };
+}
+
+// プレビューの黒背景表示用に、動画全体の静止背景モデル（フレーム全体・原寸）を裏で作る
+async function ensurePreviewBackgroundModel(vidItem) {
+  if (!vidItem || vidItem.previewBg || vidItem.previewBgPending || vidItem.previewBgFailed || !blackBgToggle.checked) return;
+  if (!video.videoWidth || vidItem !== activeVideoItem) return;
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  if (w * h > 3840 * 2160) return;
+  const dur = video.duration || 0;
+  vidItem.previewBgPending = true;
+  let tempVid = null;
+  try {
+    let source = vidItem.file ? await WebCodecsFrameSource.open(vidItem.file) : null;
+    if (!source) {
+      tempVid = document.createElement("video");
+      tempVid.muted = true;
+      tempVid.preload = "auto";
+      tempVid.src = video.src;
+      if (!(await waitForVideoMetadata(tempVid))) {
+        vidItem.previewBgFailed = true;
+        return;
+      }
+      source = new SeekFrameSource(tempVid);
+    }
+    const geo = computeCaptureGeometry(w, h, 0, 1, 1);
+    const stop = () => activeVideoItem !== vidItem || isGenerating;
+    const bg = await buildStaticBackgroundModel(source, geo, 0, dur, stop, null, { maxSamples: 11, minSamples: 7 });
+    if (bg && !stop()) vidItem.previewBg = { bg, w: geo.cropW, h: geo.h, laneCache: null };
+    // 途中で別の動画に切り替えた・生成が始まった場合は、次に表示したときに作り直す
+    else if (!stop()) vidItem.previewBgFailed = true;
+  } catch (e) {
+    vidItem.previewBgFailed = true;
+  } finally {
+    vidItem.previewBgPending = false;
+    if (tempVid) {
+      tempVid.removeAttribute("src");
+      tempVid.load();
+    }
+  }
+  if (vidItem === activeVideoItem && video.paused && !isGenerating) drawPreview(true);
 }
 
 function drawPreview(forceFilter = false) {
@@ -2218,14 +2361,32 @@ function drawPreview(forceFilter = false) {
   const x2 = Math.round(w * rightPct);
   const cw = x2 - x1;
 
+  // 一時停止中は、生成時と同じ「静止背景モデルとの差」で黒背景化した結果を表示する
   if ((video.paused || forceFilter) && !isGenerating && blackBgToggle.checked && cw > 10) {
-    if (filterSubCanvas.width !== cw || filterSubCanvas.height !== h) {
-      filterSubCanvas.width = cw;
-      filterSubCanvas.height = h;
+    const pb = activeVideoItem && activeVideoItem.previewBg;
+    if (pb && pb.w === w && pb.h === h) {
+      if (filterSubCanvas.width !== cw || filterSubCanvas.height !== h) {
+        filterSubCanvas.width = cw;
+        filterSubCanvas.height = h;
+      }
+      filterSubCtx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
+      const img = filterSubCtx.getImageData(0, 0, cw, h);
+      const fp = getBlackFilterParams();
+      const laneKey = `${x1}:${cw}:${fp.lineGain}`;
+      if (!pb.laneCache || pb.laneCache.key !== laneKey) {
+        pb.laneCache = {
+          key: laneKey,
+          lane: extractStaticVerticalLines(pb.bg, pb.w, x1, cw, h, Math.round(h * TOP_SAFE_RATIO), fp.lineGain)
+        };
+      }
+      for (let y = 0; y < h; y++) {
+        maskRowAgainstBackground(img.data, y * cw * 4, pb.bg, (y * pb.w + x1) * 3, cw, fp, pb.laneCache.lane, img.data, y * cw * 4);
+      }
+      filterSubCtx.putImageData(img, 0, 0);
+      pCtx.drawImage(filterSubCanvas, x1, 0);
+    } else if (activeVideoItem) {
+      ensurePreviewBackgroundModel(activeVideoItem);
     }
-    filterSubCtx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
-    applyBlackBackgroundFilter(filterSubCtx, cw, h);
-    pCtx.drawImage(filterSubCanvas, x1, 0);
   }
 
   pCtx.fillStyle = "rgba(0, 0, 0, 0.72)";
@@ -2236,37 +2397,28 @@ function drawPreview(forceFilter = false) {
   pCtx.lineWidth = 2;
   pCtx.strokeRect(x1, 0, cw, h);
 
-  const capY = Math.round(h * 0.70);
+  // 切り出し基準ライン（再生位置バーはこのラインにある譜面の位置を指す）
+  const anchorY = Math.round(h * CAPTURE_LINE_RATIO);
   pCtx.strokeStyle = "#ff4d88";
   pCtx.setLineDash([6, 4]);
   pCtx.beginPath();
-  pCtx.moveTo(x1, capY);
-  pCtx.lineTo(x2, capY);
+  pCtx.moveTo(x1, anchorY);
+  pCtx.lineTo(x2, anchorY);
   pCtx.stroke();
   pCtx.setLineDash([]);
 }
 
 // =========================================================
-// 6. 裏タイムスタンプ記録 ＆ リアルタイム・オートシンクロ補正による「再生位置バー」描画エンジン
+// 6. 再生位置バー（実フレーム時刻で記録した位置マップ ＋ 滑らかな再生時計 ＋ 画面座標での描画）
 // =========================================================
-function getNominalBottomYForTime(t) {
-  const { tStart, tEnd, totalHeight, bottomBaseH, topCapH, timeToYMap } = chartMeta;
-  if (timeToYMap && timeToYMap.length >= 2) {
-    if (t <= timeToYMap[0].time) return timeToYMap[0].bottomY;
-    const last = timeToYMap[timeToYMap.length - 1];
-    if (t >= last.time) return last.bottomY;
-    let low = 0, high = timeToYMap.length - 1;
-    while (low <= high) {
-      const mid = (low + high) >> 1;
-      if (timeToYMap[mid].time < t) low = mid + 1;
-      else high = mid - 1;
-    }
-    const p1 = timeToYMap[Math.max(0, low - 1)];
-    const p2 = timeToYMap[Math.min(timeToYMap.length - 1, low)];
-    const ratio = (p2.time - p1.time) > 0.0001 ? (t - p1.time) / (p2.time - p1.time) : 0;
-    return p1.bottomY + ratio * (p2.bottomY - p1.bottomY);
-  }
+function setChartTimeMap(map) {
+  chartMeta.timeToYMap = map || [];
+  chartMeta.displayMap = buildDisplayTimeMap(chartMeta.timeToYMap);
+}
 
+function getNominalBottomYForTime(t) {
+  if (chartMeta.displayMap) return displayMapY(chartMeta.displayMap, t);
+  const { tStart, tEnd, totalHeight, bottomBaseH, topCapH } = chartMeta;
   const dur = Math.max(0.1, tEnd - tStart);
   const startY = bottomBaseH || 0;
   const endY = Math.max(startY + 100, totalHeight - (topCapH || 0));
@@ -2275,53 +2427,94 @@ function getNominalBottomYForTime(t) {
 }
 
 function getTimeForBottomY(targetBottomY) {
-  const { tStart, tEnd, totalHeight, bottomBaseH, topCapH, timeToYMap } = chartMeta;
-  const unshiftedY = targetBottomY - smoothedDriftOffsetY;
-  if (timeToYMap && timeToYMap.length >= 2) {
-    if (unshiftedY <= timeToYMap[0].bottomY) return timeToYMap[0].time;
-    const last = timeToYMap[timeToYMap.length - 1];
-    if (unshiftedY >= last.bottomY) return last.time;
-    for (let i = 1; i < timeToYMap.length; i++) {
-      if (timeToYMap[i].bottomY >= unshiftedY) {
-        const p1 = timeToYMap[i - 1];
-        const p2 = timeToYMap[i];
-        const dy = p2.bottomY - p1.bottomY;
-        const r = dy > 0.001 ? (unshiftedY - p1.bottomY) / dy : 0;
-        return p1.time + r * (p2.time - p1.time);
-      }
-    }
-  }
+  if (chartMeta.displayMap) return displayMapTime(chartMeta.displayMap, targetBottomY);
+  const { tStart, tEnd, totalHeight, bottomBaseH, topCapH } = chartMeta;
   const startY = bottomBaseH || 0;
   const endY = Math.max(startY + 100, totalHeight - (topCapH || 0));
-  const ratio = Math.max(0, Math.min(1, (unshiftedY - startY) / Math.max(1, endY - startY)));
+  const ratio = Math.max(0, Math.min(1, (targetBottomY - startY) / Math.max(1, endY - startY)));
   return tStart + ratio * (tEnd - tStart);
 }
 
-function drawPlayheadOverlay() {
-  if (!outputCanvas.width || !outputCanvas.height || !showPlayheadToggle.checked) {
-    playheadBar.style.display = "none";
-    playheadColHighlight.style.display = "none";
+// 再生時計：video.currentTime はフレームごとに数msの揺らぎがあるため、
+// 実フレームの表示時刻（requestVideoFrameCallback）に少しずつ合わせ込む一定速度の時計でバーを動かす
+const playbackClock = {
+  running: false,
+  synced: false,
+  anchorMedia: 0,
+  anchorPerf: 0,
+  rate: 1,
+  lastObsPerf: 0,
+  reset(mediaTime, perfAt) {
+    this.anchorMedia = mediaTime;
+    this.anchorPerf = perfAt;
+    this.rate = video.playbackRate || 1;
+    this.lastObsPerf = perfAt;
+  },
+  start() {
+    this.running = true;
+    this.synced = false;
+    this.reset(video.currentTime || 0, performance.now());
+  },
+  stop() {
+    this.running = false;
+  },
+  predict(perfAt) {
+    if (!this.running) return video.currentTime || 0;
+    let t = this.anchorMedia + (perfAt - this.anchorPerf) * 0.001 * this.rate;
+    if (video.duration && t > video.duration) t = video.duration;
+    return t;
+  },
+  observe(mediaTime, perfAt) {
+    if (!this.running || !(mediaTime >= 0)) return;
+    if (!this.synced) {
+      // 再生開始直後は、最初に実際に表示されたフレームの時刻にそのまま合わせる
+      // （currentTime から始めると出力遅延ぶんずれ、それを少しずつ直す間バーが減速して見えていた）
+      this.synced = true;
+      this.reset(mediaTime, perfAt);
+      return;
+    }
+    const err = mediaTime - this.predict(perfAt);
+    if (Math.abs(err) > 0.15 * Math.max(1, this.rate)) this.reset(mediaTime, perfAt);
+    else this.anchorMedia += err * 0.1;
+    this.lastObsPerf = perfAt;
+  }
+};
+const HAS_RVFC = typeof video.requestVideoFrameCallback === "function";
+
+// 一時停止・再開を繰り返しても監視が二重に登録されないよう、前の予約を取り消してから登録する
+let frameObservationHandle = 0;
+function requestFrameObservation() {
+  if (!HAS_RVFC) return;
+  if (frameObservationHandle && typeof video.cancelVideoFrameCallback === "function") {
+    video.cancelVideoFrameCallback(frameObservationHandle);
+  }
+  frameObservationHandle = video.requestVideoFrameCallback((now, meta) => {
+    frameObservationHandle = 0;
+    if (!playbackClock.running) return;
+    playbackClock.observe(meta.mediaTime, meta.expectedDisplayTime || now);
+    requestFrameObservation();
+  });
+}
+
+let playheadGeom = null;   // 最後に計算した再生位置バーの位置（静止画キャンバス上の座標）
+let lastBadgeText = "";
+let lastBarWidthPx = -1;
+let lastHighlightKey = "";
+
+function drawPlayheadOverlay(mediaTime) {
+  if (!outputCanvas.width || !outputCanvas.height || !showPlayheadToggle.checked || !chartMeta.totalHeight) {
+    playheadGeom = null;
+    positionPlayheadOverlay();
     return;
   }
 
-  const rawTime = video.currentTime || 0;
+  const rawTime = (typeof mediaTime === "number") ? mediaTime : (video.currentTime || 0);
   const offsetSec = parseFloat(playheadOffsetInput.value) || 0;
-  const effectiveTime = rawTime + offsetSec;
-
-  // 1) 裏で記録されたタイムスタンプから基本のY位置を取得
-  const nominalBottomY = getNominalBottomYForTime(effectiveTime);
-
-  // 2) 動画再生中（またはシーク時）に動画フレームと静止画を裏で照合し、画像の歪みや速度誤差によるズレを検出
-  updateLivePlayheadDriftCorrection(nominalBottomY);
-
-  // 3) 検出されたズレ量 targetDriftOffsetY に向かって、カクつかないようイージング補間で滑らかにバー位置を修正！
-  smoothedDriftOffsetY += (targetDriftOffsetY - smoothedDriftOffsetY) * 0.14;
-  if (Math.abs(smoothedDriftOffsetY) < 0.05) smoothedDriftOffsetY = 0;
-
   const { colMaxH, numCols, totalHeight, colRects } = chartMeta;
-  const bottomY = Math.max(0, Math.min(totalHeight, nominalBottomY + smoothedDriftOffsetY));
+  const bottomY = Math.max(0, Math.min(totalHeight, getNominalBottomYForTime(rawTime + offsetSec)));
 
   let barX = 0, barY = 0, barW = outputCanvas.width;
+  let colRect = null;
 
   if (chartMeta.mode === "single" || !colRects || colRects.length <= 1) {
     const rect = (colRects && colRects[0]) ? colRects[0] : { x: 0, y: 0, w: outputCanvas.width, h: outputCanvas.height };
@@ -2329,7 +2522,6 @@ function drawPlayheadOverlay() {
     barW = rect.w;
     const ratio = Math.max(0, Math.min(1, bottomY / Math.max(1, totalHeight)));
     barY = rect.y + rect.h * (1 - ratio);
-    playheadColHighlight.style.display = "none";
   } else {
     const colIndex = Math.min(numCols - 1, Math.max(0, Math.floor(bottomY / colMaxH)));
     const relBottom = Math.max(0, Math.min(colMaxH, bottomY - colIndex * colMaxH));
@@ -2337,37 +2529,92 @@ function drawPlayheadOverlay() {
     barX = rect.x;
     barW = rect.w;
     barY = rect.y + rect.h * (1 - relBottom / Math.max(1, colMaxH));
-
-    playheadColHighlight.style.display = "block";
-    playheadColHighlight.style.width = `${rect.w}px`;
-    playheadColHighlight.style.height = `${rect.h}px`;
-    playheadColHighlight.style.transform = `translate3d(${rect.x}px, ${rect.y}px, 0)`;
+    colRect = rect;
   }
+  playheadGeom = { barX, barY, barW, colRect };
 
-  playheadBar.style.display = "block";
-  playheadBar.style.width = `${barW}px`;
-  playheadBar.style.transform = `translate3d(${barX}px, ${barY}px, 0)`;
-  playheadTimeBadge.textContent = `${rawTime.toFixed(2)}s (${currentPlaybackRate}x)`;
+  const badge = `${rawTime.toFixed(2)}s (${currentPlaybackRate}x)`;
+  if (badge !== lastBadgeText) {
+    lastBadgeText = badge;
+    playheadTimeBadge.textContent = badge;
+  }
 
   if (followPlayheadToggle.checked && !isDragging) {
     const vw = viewerViewport.clientWidth;
     const vh = viewerViewport.clientHeight;
     vX = vw * 0.5 - (barX + barW * 0.5) * vScale;
     vY = vh * 0.55 - barY * vScale;
-    updateViewerTransform();
+  }
+  updateViewerTransform();
+}
+
+// 再生位置バーは拡大縮小される静止画の中ではなく画面座標で描く（細くなって消えたり、文字が潰れたりしない）
+function positionPlayheadOverlay() {
+  if (!playheadGeom) {
+    playheadBar.style.display = "none";
+    playheadColHighlight.style.display = "none";
+    lastHighlightKey = "";
+    return;
+  }
+  const { barX, barY, barW, colRect } = playheadGeom;
+  const sx = vX + barX * vScale;
+  const sy = vY + barY * vScale;
+  const sw = Math.max(1, barW * vScale);
+  if (Math.abs(sw - lastBarWidthPx) > 0.25) {
+    lastBarWidthPx = sw;
+    playheadBar.style.width = `${sw}px`;
+  }
+  playheadBar.style.transform = `translate3d(${sx}px, ${sy}px, 0)`;
+  playheadBar.style.display = "block";
+
+  if (colRect) {
+    const hx = vX + colRect.x * vScale;
+    const hy = vY + colRect.y * vScale;
+    const hw = colRect.w * vScale;
+    const hh = colRect.h * vScale;
+    const key = `${hw.toFixed(2)}x${hh.toFixed(2)}`;
+    if (key !== lastHighlightKey) {
+      lastHighlightKey = key;
+      playheadColHighlight.style.width = `${hw}px`;
+      playheadColHighlight.style.height = `${hh}px`;
+    }
+    playheadColHighlight.style.transform = `translate3d(${hx}px, ${hy}px, 0)`;
+    playheadColHighlight.style.display = "block";
+  } else {
+    playheadColHighlight.style.display = "none";
+    lastHighlightKey = "";
   }
 }
 
 let animFrameId = null;
+let rafIntervalEstimate = 16.7;
+let lastRafTs = 0;
+let lastUiUpdateWall = 0;
 function startPlaybackLoop() {
-  const tick = () => {
-    if (!video.paused && !video.ended && !isGenerating) {
+  lastRafTs = 0;
+  const tick = (ts) => {
+    if (video.paused || video.ended || isGenerating) return;
+    if (lastRafTs) {
+      const d = ts - lastRafTs;
+      if (d > 3 && d < 60) rafIntervalEstimate = rafIntervalEstimate * 0.9 + d * 0.1;
+    }
+    lastRafTs = ts;
+    // requestVideoFrameCallback が使えない／止まっているときは currentTime で時計を補正する
+    const nowPerf = performance.now();
+    if (!HAS_RVFC || nowPerf - playbackClock.lastObsPerf > 300) {
+      playbackClock.observe(video.currentTime, nowPerf);
+    }
+    // この描画が画面に出るのは次の垂直同期なので、その時刻の再生位置を使う
+    const t = playbackClock.predict(ts + rafIntervalEstimate);
+
+    if (nowPerf - lastUiUpdateWall > 100) {
+      lastUiUpdateWall = nowPerf;
       seekSlider.value = video.currentTime;
       currentTimeLabel.textContent = `${video.currentTime.toFixed(2)} 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
-      drawPreview(false);
-      drawPlayheadOverlay();
-      animFrameId = requestAnimationFrame(tick);
     }
+    drawPreview(false);
+    drawPlayheadOverlay(t);
+    animFrameId = requestAnimationFrame(tick);
   };
   cancelAnimationFrame(animFrameId);
   animFrameId = requestAnimationFrame(tick);
@@ -2379,20 +2626,42 @@ video.addEventListener("play", () => {
     startPlaybackLoop();
   }
 });
+video.addEventListener("playing", () => {
+  if (isGenerating) return;
+  playbackClock.start();
+  requestFrameObservation();
+  startPlaybackLoop();
+});
+video.addEventListener("waiting", () => {
+  playbackClock.stop();
+});
+video.addEventListener("seeking", () => {
+  playbackClock.stop();
+});
+video.addEventListener("ratechange", () => {
+  if (playbackClock.running) playbackClock.reset(playbackClock.predict(performance.now()), performance.now());
+});
 video.addEventListener("pause", () => {
+  playbackClock.stop();
   cancelAnimationFrame(animFrameId);
   if (!isGenerating) {
-    drawPreview(true);
-    drawPlayheadOverlay();
-  }
-});
-video.addEventListener("seeked", () => {
-  if (video.paused && !isGenerating) {
     seekSlider.value = video.currentTime;
     currentTimeLabel.textContent = `${video.currentTime.toFixed(2)} 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
     drawPreview(true);
     drawPlayheadOverlay();
   }
+});
+video.addEventListener("seeked", () => {
+  if (isGenerating) return;
+  if (!video.paused) {
+    playbackClock.start();
+    requestFrameObservation();
+    return;
+  }
+  seekSlider.value = video.currentTime;
+  currentTimeLabel.textContent = `${video.currentTime.toFixed(2)} 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
+  drawPreview(true);
+  drawPlayheadOverlay();
 });
 
 showPlayheadToggle.addEventListener("change", () => {
@@ -2407,21 +2676,19 @@ followPlayheadToggle.addEventListener("change", () => {
 playheadOffsetSlider.addEventListener("input", () => {
   const val = parseFloat(playheadOffsetSlider.value) || 0;
   playheadOffsetInput.value = val.toFixed(2);
-  drawPlayheadOverlay();
+  if (video.paused) drawPlayheadOverlay();
   scheduleSaveSettings();
 });
 playheadOffsetInput.addEventListener("input", () => {
   const val = parseFloat(playheadOffsetInput.value) || 0;
   playheadOffsetSlider.value = Math.max(-2, Math.min(2, val)).toFixed(2);
-  drawPlayheadOverlay();
+  if (video.paused) drawPlayheadOverlay();
   scheduleSaveSettings();
 });
 resetOffsetBtn.addEventListener("click", () => {
   playheadOffsetSlider.value = "0.00";
   playheadOffsetInput.value = "0.00";
-  smoothedDriftOffsetY = 0;
-  targetDriftOffsetY = 0;
-  drawPlayheadOverlay();
+  if (video.paused) drawPlayheadOverlay();
   scheduleSaveSettings();
 });
 
@@ -2452,11 +2719,10 @@ function toggleVideoPlay() {
   if (video.paused) {
     if (shouldRestartFromBeginning || video.ended || (video.duration && video.currentTime >= video.duration - 0.1)) {
       video.currentTime = 0;
-      smoothedDriftOffsetY = 0;
-      targetDriftOffsetY = 0;
       shouldRestartFromBeginning = false;
     }
-    video.play();
+    const p = video.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
   } else {
     video.pause();
   }
@@ -2512,84 +2778,25 @@ speedInput.addEventListener("input", () => {
   scheduleSaveSettings();
 });
 
-// =========================================================
-// メディアスレッドの実フレーム時刻 (mediaTime) と完全同期するシーク関数
-// =========================================================
-function waitTwoAnimationFrames() {
-  return new Promise((resolve) => {
-    if (!document.hidden && window.requestAnimationFrame) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(resolve);
-      });
-    } else {
-      setTimeout(resolve, 34);
-    }
-  });
-}
-
+// 画面上の動画を指定時刻へ動かす（生成後に先頭へ戻すときなど）
 function seekVideoElementTo(vidElem, timeSec) {
   return new Promise((resolve) => {
-    if (cancelGenerationRequested) {
-      resolve({ elapsedMs: 0, mediaTime: timeSec });
-      return;
-    }
-    const startWall = performance.now();
-    const maxSafeTime = vidElem.duration ? Math.max(0, vidElem.duration - 0.04) : timeSec;
+    const maxSafeTime = vidElem.duration ? Math.max(0, vidElem.duration - 0.001) : timeSec;
     const target = Math.min(Math.max(0, timeSec), maxSafeTime);
-
-    if (Math.abs(vidElem.currentTime - target) < 0.0005 && !vidElem.seeking && vidElem.readyState >= 2) {
-      resolve({ elapsedMs: 0, mediaTime: vidElem.currentTime });
+    if (Math.abs(vidElem.currentTime - target) < 0.0005 && !vidElem.seeking) {
+      resolve();
       return;
     }
-
-    let settled = false;
-    let rvfcId = null;
-    let capturedMediaTime = null;
-
-    if ("requestVideoFrameCallback" in vidElem) {
-      try {
-        rvfcId = vidElem.requestVideoFrameCallback((now, metadata) => {
-          if (metadata && typeof metadata.mediaTime === "number") {
-            capturedMediaTime = metadata.mediaTime;
-          }
-        });
-      } catch (e) {}
-    }
-
+    let done = false;
     const finish = () => {
-      if (settled) return;
-      settled = true;
+      if (done) return;
+      done = true;
       clearTimeout(timer);
-      if (rvfcId !== null && vidElem.cancelVideoFrameCallback) {
-        try { vidElem.cancelVideoFrameCallback(rvfcId); } catch (e) {}
-      }
-      activeSeekResolvers.delete(finish);
-      vidElem.removeEventListener("seeked", onSeeked);
-      vidElem.removeEventListener("error", finish);
-      resolve({
-        elapsedMs: performance.now() - startWall,
-        mediaTime: capturedMediaTime !== null ? capturedMediaTime : vidElem.currentTime
-      });
+      vidElem.removeEventListener("seeked", finish);
+      resolve();
     };
-
-    const waitUntilReadyAndPainted = async () => {
-      let guard = 0;
-      while ((vidElem.seeking || vidElem.readyState < 2) && guard < 40 && !cancelGenerationRequested) {
-        await new Promise(r => setTimeout(r, 12));
-        guard++;
-      }
-      await waitTwoAnimationFrames();
-      finish();
-    };
-
-    const onSeeked = () => {
-      waitUntilReadyAndPainted();
-    };
-
-    activeSeekResolvers.add(finish);
-    const timer = setTimeout(finish, 2500);
-    vidElem.addEventListener("seeked", onSeeked);
-    vidElem.addEventListener("error", finish);
+    const timer = setTimeout(finish, 3000);
+    vidElem.addEventListener("seeked", finish);
     try {
       vidElem.currentTime = target;
     } catch (e) {
@@ -2599,129 +2806,140 @@ function seekVideoElementTo(vidElem, timeSec) {
 }
 
 // =========================================================
-// 7. 基準スクロール速度の自動計測
+// 7. スクロール速度の自動計測（生成エンジンと同じ照合で、実フレーム時刻あたりの移動量を測る）
 // =========================================================
 autoSpeedBtn.addEventListener("click", async () => {
-  if (!video.videoWidth || isGenerating) return;
+  if (!video.videoWidth || isGenerating || autoSpeedBtn.disabled) return;
   video.pause();
-  const prevMuted = video.muted;
-  video.muted = true;
   autoSpeedBtn.disabled = true;
   autoSpeedBtn.textContent = "計測中...";
-  cancelGenerationRequested = false;
+  const prevTime = video.currentTime;
+  let usedElement = false;
 
   try {
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    const x1 = Math.round(w * (parseFloat(cropLeftSlider.value) / 100));
-    const x2 = Math.round(w * (parseFloat(cropRightSlider.value) / 100));
-    const cw = Math.max(10, x2 - x1);
+    const dur = video.duration || 0;
+    const userStart = Math.max(0, parseFloat(startTimeInput.value) || 0);
+    const parsedEnd = parseFloat(endTimeInput.value);
+    const userEnd = (!isNaN(parsedEnd) && parsedEnd > userStart) ? Math.min(parsedEnd, dur) : dur;
+    const geo = computeCaptureGeometry(video.videoWidth, video.videoHeight,
+      parseFloat(cropLeftSlider.value) / 100, parseFloat(cropRightSlider.value) / 100, computeWorkScale(video.videoHeight));
 
-    const tmpC = document.createElement("canvas");
-    tmpC.width = cw;
-    tmpC.height = h;
-    const ctx = tmpC.getContext("2d", { willReadFrequently: true });
-
-    const dur = video.duration || 30;
-    const tStart = Math.min(dur * 0.2, Math.max(2.5, (parseFloat(startTimeInput.value) || 0) + 2.5));
-    const tEnd = Math.min(dur - 2.0, tStart + 25.0);
-    const dt = 0.15;
-    const samples = [];
-
-    for (let i = 0; i < 8; i++) {
-      if (cancelGenerationRequested) break;
-      const t = tStart + ((tEnd - tStart) * (i + 1)) / 10;
-      const s1 = await seekVideoElementTo(video, t);
-      const t1 = s1.mediaTime;
-      ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
-      const img1 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
-
-      const s2 = await seekVideoElementTo(video, t1 + dt);
-      const t2 = s2.mediaTime;
-      const realDt = t2 - t1;
-      if (realDt <= 0.02) continue;
-
-      ctx.drawImage(video, x1, 0, cw, h, 0, 0, cw, h);
-      const img2 = new Uint8ClampedArray(ctx.getImageData(0, 0, cw, h).data);
-
-      const yStart = Math.round(h * 0.25);
-      const yEnd = Math.round(h * 0.55);
-      const minDy = Math.max(2, Math.round(h * 0.12 * realDt));
-      const maxDy = Math.round(h * 1.10 * realDt);
-
-      let bestDy = 0;
-      const scores = new Float64Array(maxDy + 2);
-      scores.fill(Infinity);
-      let minScore = Infinity;
-
-      for (let dy = minDy; dy <= maxDy; dy++) {
-        let diffSum = 0, count = 0;
-        for (let y = yStart; y < yEnd; y += 2) {
-          const y2 = y + dy;
-          if (y2 >= h) continue;
-          for (let x = 0; x < cw; x += 4) {
-            const idx1 = (y * cw + x) * 4;
-            const idx2 = (y2 * cw + x) * 4;
-            if (img1[idx1] + img1[idx1 + 1] + img1[idx1 + 2] > 180) {
-              diffSum += Math.abs(img1[idx1] - img2[idx2]) +
-                         Math.abs(img1[idx1 + 1] - img2[idx2 + 1]) +
-                         Math.abs(img1[idx1 + 2] - img2[idx2 + 2]);
-              count++;
-            }
-          }
-        }
-        if (count > 40) {
-          const s = diffSum / count;
-          scores[dy] = s;
-          if (s < minScore) { minScore = s; bestDy = dy; }
-        }
-      }
-
-      if (bestDy > minDy && bestDy < maxDy && minScore < 55) {
-        const sPrev = scores[bestDy - 1];
-        const sCurr = scores[bestDy];
-        const sNext = scores[bestDy + 1];
-        const denom = 2 * (sPrev - 2 * sCurr + sNext);
-        const subOffset = denom !== 0 ? (sPrev - sNext) / denom : 0;
-        const exactDy = bestDy + Math.max(-0.5, Math.min(0.5, subOffset));
-        samples.push((exactDy / h / realDt) * 100);
-      }
+    let source = (activeVideoItem && activeVideoItem.file) ? await WebCodecsFrameSource.open(activeVideoItem.file) : null;
+    if (!source) {
+      source = new SeekFrameSource(video);
+      usedElement = true;
     }
+    const never = () => false;
+    const bg = await buildStaticBackgroundModel(source, geo, userStart, userEnd, never, null, { maxSamples: 11, minSamples: 7 });
+    const speedPct = parseFloat(speedInput.value) || 47.5;
+    const stepSec = source.kind === "seek" ? 1 / 30 : 1 / (source.fps || 60);
+    const tracker = new ScrollRegistrationTracker(geo, bg, (geo.h * speedPct / 100) * stepSec);
+    const bandTop = tracker.fTop;
+    const work = createWorkCanvas(geo.cropW, tracker.fH, true);
+    const rates = [];
+    let prevT = null;
+    const tA = userStart + (userEnd - userStart) * 0.3;
+    const tB = Math.min(userEnd, tA + 8);
+    await source.forEachFrame(tA, tB, async (frame, t) => {
+      drawFrameRows(work.ctx, frame, geo, bandTop);
+      tracker.computeFeatures(work.ctx.getImageData(0, 0, geo.cropW, tracker.fH).data, bandTop);
+      if (prevT !== null) {
+        const r = tracker.register(null);
+        if (r.status === "motion" && t - prevT > 1e-4) rates.push(r.d / (t - prevT));
+      }
+      tracker.commit();
+      prevT = t;
+    }, never, null, () => stepSec);
+    work.canvas.width = 0;
 
-    tmpC.width = 0;
-    tmpC.height = 0;
-
-    if (samples.length > 0) {
-      samples.sort((a, b) => a - b);
-      const median = samples[Math.floor(samples.length / 2)];
-      const rounded = (Math.round(median * 50) / 50).toFixed(2);
+    if (rates.length >= 5) {
+      rates.sort((a, b) => a - b);
+      const median = rates[Math.floor(rates.length / 2)];
+      const rounded = (Math.round((median / geo.h) * 100 * 50) / 50).toFixed(2);
       speedInput.value = rounded;
       speedSlider.value = rounded;
       speedValLabel.textContent = `${rounded} %/秒`;
       scheduleSaveSettings();
+    } else {
+      alert("この区間では譜面が動いていないため、スクロール速度を計測できませんでした。開始・終了時刻を譜面が流れている範囲に合わせてから再度お試しください。");
     }
+  } catch (e) {
+    alert(`速度の計測中にエラーが発生しました: ${e && e.message ? e.message : e}`);
   } finally {
     autoSpeedBtn.disabled = false;
     autoSpeedBtn.textContent = "速度を自動計測する";
-    await seekVideoElementTo(video, parseFloat(startTimeInput.value) || 0.0);
-    video.muted = prevMuted;
+    if (usedElement) await seekVideoElementTo(video, prevTime);
   }
 });
 
 // =========================================================
-// 8. 浮動小数点スライス ＋ キーフレーム遅延ガード ＋ 精密タイムスタンプ記録合成エンジン
+// 8. 【新エンジン】全フレーム解析 ＋ 実移動量照合 ＋ 静止背景モデル除去 ＋ クロスフェード合成
+//   ・MP4/MOV は WebCodecs で全フレームを先頭から順番にデコードし、正確なフレーム時刻で処理する
+//     （シーク待ちや待機時間に頼らないため、端末の速さで結果が変わらない）
+//   ・それ以外の形式はシーク方式にフォールバックし、requestVideoFrameCallback で実フレーム時刻を取得する
+//   ・各フレームの実際のスクロール量を前フレームとの画像照合で測る
+//     （録画のカクつき・数フレームの停止・速度設定の誤差があっても継ぎ目がずれない）
+//   ・動画全体から推定した静止背景（イラスト・固定UI）をフレーム単位で除去してから合成する
 // =========================================================
-function requestStopGeneration() {
-  cancelGenerationRequested = true;
-  for (const fn of Array.from(activeSeekResolvers)) {
-    try { fn(); } catch (e) {}
-  }
-  activeSeekResolvers.clear();
-  setGeneratingLock(false);
-  progressText.textContent = "静止画の生成を停止しました";
+const CAPTURE_LINE_RATIO = 0.70;   // 切り出し基準ライン（画面上端からの割合）
+const TOP_SAFE_RATIO = 0.07;       // 最上部のUI表示（「16分音符」など）を避ける割合
+const MASTER_MEMORY_BUDGET = 1400 * 1024 * 1024;
+
+function yieldToEventLoop() {
+  if (window.scheduler && typeof window.scheduler.yield === "function") return window.scheduler.yield();
+  // バックグラウンドタブでも間引かれない MessageChannel で制御を返す
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => resolve();
+    ch.port2.postMessage(0);
+  });
 }
-stopGenerateBtn.addEventListener("click", requestStopGeneration);
-progressStopBtn.addEventListener("click", requestStopGeneration);
+
+// gpu=true: 動画フレームの描画用（GPUで描いて必要な帯だけ読み出す方が、CPUキャンバスへ全面変換するより数倍速い）
+function createWorkCanvas(w, h, gpu = false) {
+  let canvas;
+  if (typeof OffscreenCanvas !== "undefined") {
+    canvas = new OffscreenCanvas(w, h);
+  } else {
+    canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+  }
+  const ctx = canvas.getContext("2d", gpu ? { alpha: false } : { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  return { canvas, ctx };
+}
+
+function getDrawableSize(src) {
+  if (typeof VideoFrame !== "undefined" && src instanceof VideoFrame) {
+    return { w: src.displayWidth, h: src.displayHeight };
+  }
+  return { w: src.videoWidth || src.width || 0, h: src.videoHeight || src.height || 0 };
+}
+
+// フレームの切り抜き範囲を作業解像度で描画する（rowTop 行目がキャンバスの0行目になる）
+function drawFrameRows(ctx, src, geo, rowTop) {
+  const size = getDrawableSize(src);
+  const fx = size.w > 0 ? size.w / geo.rawW : 1;
+  const fy = size.h > 0 ? size.h / geo.rawH : 1;
+  ctx.drawImage(src, geo.srcX1 * fx, 0, geo.srcCropW * fx, geo.rawH * fy, 0, -rowTop, geo.cropW, geo.h);
+}
+
+function computeCaptureGeometry(rawW, rawH, leftPct, rightPct, workScale) {
+  const srcX1 = Math.round(rawW * leftPct);
+  const srcX2 = Math.round(rawW * rightPct);
+  const srcCropW = Math.max(10, srcX2 - srcX1);
+  const h = Math.max(160, Math.round(rawH * workScale));
+  // 縦横同じ倍率で縮める（以前は縦横を別々に丸めていたため、小さい動画で縦横比がずれることがあった）
+  const scale = h / rawH;
+  const cropW = Math.max(60, Math.round(srcCropW * scale));
+  return {
+    rawW, rawH, srcX1, srcCropW, cropW, h,
+    capY: Math.round(h * CAPTURE_LINE_RATIO),
+    topSafeY: Math.round(h * TOP_SAFE_RATIO)
+  };
+}
 
 function computeWorkScale(rawH) {
   const resMode = resolutionSelect.value || "original";
@@ -2730,400 +2948,1488 @@ function computeWorkScale(rawH) {
   return rawH > maxH ? (maxH / rawH) : 1.0;
 }
 
-async function buildMasterDataForVideoElement(vidElem, sourceName, isTestMode, onStepProgress) {
+// ---------------------------------------------------------
+// 8-1. MP4/MOV コンテナ解析（外部ライブラリ不要・通常MP4と断片化MP4に対応）
+// ---------------------------------------------------------
+function mp4U32(b, o) { return ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0; }
+function mp4U16(b, o) { return (b[o] << 8) | b[o + 1]; }
+function mp4U64(b, o) { return mp4U32(b, o) * 4294967296 + mp4U32(b, o + 4); }
+function mp4Type(b, o) { return String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]); }
+
+function mp4ParseBoxes(b, start, end) {
+  const out = [];
+  let off = start;
+  while (off + 8 <= end) {
+    let size = mp4U32(b, off);
+    const type = mp4Type(b, off + 4);
+    let hdr = 8;
+    if (size === 1) {
+      if (off + 16 > end) break;
+      size = mp4U64(b, off + 8);
+      hdr = 16;
+    } else if (size === 0) {
+      size = end - off;
+    }
+    if (size < hdr || off + size > end) break;
+    out.push({ type, start: off, data: off + hdr, end: off + size });
+    off += size;
+  }
+  return out;
+}
+function mp4Find(boxes, type) { return boxes.find(x => x.type === type) || null; }
+function mp4Kids(b, box, skip = 0) { return mp4ParseBoxes(b, box.data + skip, box.end); }
+
+async function mp4ReadRange(blob, start, end) {
+  return new Uint8Array(await blob.slice(start, end).arrayBuffer());
+}
+
+async function mp4ScanTopLevel(blob) {
+  const tops = [];
+  const size = blob.size;
+  let off = 0;
+  while (off + 8 <= size && tops.length < 500000) {
+    const hd = await mp4ReadRange(blob, off, Math.min(size, off + 16));
+    let bsize = mp4U32(hd, 0);
+    const type = mp4Type(hd, 4);
+    let hdr = 8;
+    if (bsize === 1) {
+      bsize = mp4U64(hd, 8);
+      hdr = 16;
+    } else if (bsize === 0) {
+      bsize = size - off;
+    }
+    if (bsize < hdr || !/^[\x20-\x7e]{4}$/.test(type)) break;
+    tops.push({ type, start: off, data: off + hdr, end: Math.min(size, off + bsize) });
+    off += bsize;
+  }
+  return tops;
+}
+
+function mp4CodecString(entryType, cfgType, c) {
+  const hex2 = (n) => n.toString(16).padStart(2, "0");
+  if (cfgType === "avcC" && c.length >= 4) {
+    return `${entryType}.${hex2(c[1])}${hex2(c[2])}${hex2(c[3])}`;
+  }
+  if (cfgType === "hvcC" && c.length >= 13) {
+    const profileSpace = c[1] >> 6;
+    const tier = (c[1] >> 5) & 1;
+    const profileIdc = c[1] & 0x1f;
+    let compat = mp4U32(c, 2);
+    let rev = 0;
+    for (let i = 0; i < 32; i++) {
+      rev = (rev << 1) | (compat & 1);
+      compat >>>= 1;
+    }
+    const cons = [];
+    for (let i = 6; i < 12; i++) cons.push(c[i]);
+    while (cons.length && cons[cons.length - 1] === 0) cons.pop();
+    let s = `${entryType}.${["", "A", "B", "C"][profileSpace]}${profileIdc}.${(rev >>> 0).toString(16)}.${tier ? "H" : "L"}${c[12]}`;
+    for (const x of cons) s += "." + x.toString(16);
+    return s;
+  }
+  if (cfgType === "av1C" && c.length >= 4) {
+    const profile = c[1] >> 5;
+    const level = c[1] & 0x1f;
+    const tier = c[2] >> 7;
+    const highBit = (c[2] >> 6) & 1;
+    const twelve = (c[2] >> 5) & 1;
+    const depth = (profile === 2 && highBit) ? (twelve ? 12 : 10) : (highBit ? 10 : 8);
+    return `av01.${profile}.${String(level).padStart(2, "0")}${tier ? "H" : "M"}.${String(depth).padStart(2, "0")}`;
+  }
+  if (cfgType === "vpcC" && c.length >= 7) {
+    return `vp09.${String(c[4]).padStart(2, "0")}.${String(c[5]).padStart(2, "0")}.${String(c[6] >> 4).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+async function demuxMp4VideoTrack(blob) {
+  const tops = await mp4ScanTopLevel(blob);
+  const okFirst = ["ftyp", "moov", "free", "skip", "wide", "mdat", "styp", "sidx", "pnot", "uuid"];
+  if (!tops.length || !okFirst.includes(tops[0].type)) return null;
+  const moovTop = tops.find(t => t.type === "moov");
+  if (!moovTop) return null;
+
+  const moov = await mp4ReadRange(blob, moovTop.start, moovTop.end);
+  const mBoxes = mp4ParseBoxes(moov, moovTop.data - moovTop.start, moov.length);
+  const mvhd = mp4Find(mBoxes, "mvhd");
+  const movieTs = mvhd ? (moov[mvhd.data] === 1 ? mp4U32(moov, mvhd.data + 20) : mp4U32(moov, mvhd.data + 12)) : 1000;
+
+  let track = null;
+  for (const trak of mBoxes.filter(x => x.type === "trak")) {
+    const tb = mp4Kids(moov, trak);
+    const mdia = mp4Find(tb, "mdia");
+    if (!mdia) continue;
+    const mdb = mp4Kids(moov, mdia);
+    const hdlr = mp4Find(mdb, "hdlr");
+    if (!hdlr || mp4Type(moov, hdlr.data + 8) !== "vide") continue;
+    const tkhd = mp4Find(tb, "tkhd");
+    const trackId = tkhd ? (moov[tkhd.data] === 1 ? mp4U32(moov, tkhd.data + 20) : mp4U32(moov, tkhd.data + 12)) : 0;
+    const mdhd = mp4Find(mdb, "mdhd");
+    const minf = mp4Find(mdb, "minf");
+    const stbl = minf ? mp4Find(mp4Kids(moov, minf), "stbl") : null;
+    if (!mdhd || !stbl) continue;
+    const timescale = moov[mdhd.data] === 1 ? mp4U32(moov, mdhd.data + 20) : mp4U32(moov, mdhd.data + 12);
+    if (!timescale) continue;
+
+    // 編集リスト（先頭の空白区間・メディア開始位置）
+    let editMediaTime = 0;
+    let editEmptySec = 0;
+    const edts = mp4Find(tb, "edts");
+    const elst = edts ? mp4Find(mp4Kids(moov, edts), "elst") : null;
+    if (elst) {
+      const ver = moov[elst.data];
+      const n = mp4U32(moov, elst.data + 4);
+      let p = elst.data + 8;
+      for (let i = 0; i < n && p + (ver === 1 ? 20 : 12) <= elst.end; i++) {
+        const segDur = ver === 1 ? mp4U64(moov, p) : mp4U32(moov, p);
+        const mediaTime = ver === 1 ? (mp4U32(moov, p + 8) | 0) * 4294967296 + mp4U32(moov, p + 12) : (mp4U32(moov, p + 4) | 0);
+        p += ver === 1 ? 20 : 12;
+        if (mediaTime === -1) {
+          editEmptySec += segDur / (movieTs || 1000);
+          continue;
+        }
+        editMediaTime = mediaTime;
+        break;
+      }
+    }
+    track = { trackId, timescale, stblKids: mp4Kids(moov, stbl), editMediaTime, editEmptySec };
+    break;
+  }
+  if (!track) return null;
+
+  const sb = track.stblKids;
+  const stsd = mp4Find(sb, "stsd");
+  if (!stsd) return null;
+  const entry = mp4ParseBoxes(moov, stsd.data + 8, stsd.end)[0];
+  if (!entry || entry.end - entry.data < 78) return null;
+  const codedWidth = mp4U16(moov, entry.data + 24);
+  const codedHeight = mp4U16(moov, entry.data + 26);
+  const cfg = mp4ParseBoxes(moov, entry.data + 78, entry.end).find(x => ["avcC", "hvcC", "av1C", "vpcC"].includes(x.type));
+  if (!cfg) return null;
+  const cfgBytes = moov.slice(cfg.data, cfg.end);
+  const codec = mp4CodecString(entry.type, cfg.type, cfgBytes);
+  if (!codec) return null;
+
+  const samples = [];
+  const stsz = mp4Find(sb, "stsz");
+  const stco = mp4Find(sb, "stco") || mp4Find(sb, "co64");
+  const stsc = mp4Find(sb, "stsc");
+  const stts = mp4Find(sb, "stts");
+  if (stsz && stco && stsc && stts && mp4U32(moov, stsz.data + 8) > 0) {
+    const fixedSize = mp4U32(moov, stsz.data + 4);
+    const count = mp4U32(moov, stsz.data + 8);
+    const isCo64 = stco.type === "co64";
+    const nChunks = mp4U32(moov, stco.data + 4);
+    const chunkOffsets = new Array(nChunks);
+    for (let i = 0; i < nChunks; i++) {
+      chunkOffsets[i] = isCo64 ? mp4U64(moov, stco.data + 8 + i * 8) : mp4U32(moov, stco.data + 8 + i * 4);
+    }
+    const nStsc = mp4U32(moov, stsc.data + 4);
+    const stss = mp4Find(sb, "stss");
+    let keySet = null;
+    if (stss) {
+      keySet = new Set();
+      const n = mp4U32(moov, stss.data + 4);
+      for (let i = 0; i < n; i++) keySet.add(mp4U32(moov, stss.data + 8 + i * 4) - 1);
+    }
+    let s = 0;
+    for (let e = 0; e < nStsc && s < count; e++) {
+      const p = stsc.data + 8 + e * 12;
+      const firstChunk = mp4U32(moov, p) - 1;
+      const perChunk = mp4U32(moov, p + 4);
+      const lastChunk = (e + 1 < nStsc) ? mp4U32(moov, stsc.data + 8 + (e + 1) * 12) - 1 : nChunks;
+      for (let ch = firstChunk; ch < lastChunk && s < count; ch++) {
+        let off = chunkOffsets[ch];
+        for (let k = 0; k < perChunk && s < count; k++) {
+          const size = fixedSize || mp4U32(moov, stsz.data + 12 + s * 4);
+          samples.push({ offset: off, size, dts: 0, cts: 0, dur: 0, key: keySet ? keySet.has(s) : true });
+          off += size;
+          s++;
+        }
+      }
+    }
+    const nStts = mp4U32(moov, stts.data + 4);
+    let dts = 0;
+    let idx = 0;
+    for (let i = 0; i < nStts; i++) {
+      const cnt = mp4U32(moov, stts.data + 8 + i * 8);
+      const delta = mp4U32(moov, stts.data + 12 + i * 8);
+      for (let k = 0; k < cnt && idx < samples.length; k++) {
+        samples[idx].dts = dts;
+        samples[idx].dur = delta;
+        dts += delta;
+        idx++;
+      }
+    }
+    for (const sm of samples) sm.cts = sm.dts;
+    const ctts = mp4Find(sb, "ctts");
+    if (ctts) {
+      const ver = moov[ctts.data];
+      const n = mp4U32(moov, ctts.data + 4);
+      let i2 = 0;
+      for (let i = 0; i < n; i++) {
+        const cnt = mp4U32(moov, ctts.data + 8 + i * 8);
+        let off = mp4U32(moov, ctts.data + 12 + i * 8);
+        if (ver === 1) off |= 0;
+        for (let k = 0; k < cnt && i2 < samples.length; k++) {
+          samples[i2].cts = samples[i2].dts + off;
+          i2++;
+        }
+      }
+    }
+  }
+
+  // 断片化MP4（moof）
+  const moofs = tops.filter(t => t.type === "moof");
+  if (moofs.length > 0) {
+    let trexDur = 0, trexSize = 0, trexFlags = 0;
+    const mvex = mp4Find(mBoxes, "mvex");
+    if (mvex) {
+      for (const tr of mp4Kids(moov, mvex).filter(x => x.type === "trex")) {
+        if (mp4U32(moov, tr.data + 4) === track.trackId) {
+          trexDur = mp4U32(moov, tr.data + 12);
+          trexSize = mp4U32(moov, tr.data + 16);
+          trexFlags = mp4U32(moov, tr.data + 20);
+        }
+      }
+    }
+    let nextDts = samples.length ? samples[samples.length - 1].dts + samples[samples.length - 1].dur : 0;
+    for (const mf of moofs) {
+      const mb = await mp4ReadRange(blob, mf.start, mf.end);
+      for (const traf of mp4ParseBoxes(mb, mf.data - mf.start, mb.length).filter(x => x.type === "traf")) {
+        const tk = mp4Kids(mb, traf);
+        const tfhd = mp4Find(tk, "tfhd");
+        if (!tfhd || mp4U32(mb, tfhd.data + 4) !== track.trackId) continue;
+        const flags = mp4U32(mb, tfhd.data) & 0xffffff;
+        let p = tfhd.data + 8;
+        let baseOffset = mf.start;
+        if (flags & 0x1) { baseOffset = mp4U64(mb, p); p += 8; }
+        if (flags & 0x2) p += 4;
+        let defDur = trexDur, defSize = trexSize, defFlags = trexFlags;
+        if (flags & 0x8) { defDur = mp4U32(mb, p); p += 4; }
+        if (flags & 0x10) { defSize = mp4U32(mb, p); p += 4; }
+        if (flags & 0x20) { defFlags = mp4U32(mb, p); p += 4; }
+        const tfdt = mp4Find(tk, "tfdt");
+        if (tfdt) nextDts = mb[tfdt.data] === 1 ? mp4U64(mb, tfdt.data + 4) : mp4U32(mb, tfdt.data + 4);
+        for (const trun of tk.filter(x => x.type === "trun")) {
+          const tflags = mp4U32(mb, trun.data) & 0xffffff;
+          const ver = mb[trun.data];
+          const n = mp4U32(mb, trun.data + 4);
+          let q = trun.data + 8;
+          let dataOff = baseOffset;
+          if (tflags & 0x1) { dataOff = baseOffset + (mp4U32(mb, q) | 0); q += 4; }
+          let firstFlags = null;
+          if (tflags & 0x4) { firstFlags = mp4U32(mb, q); q += 4; }
+          for (let i = 0; i < n; i++) {
+            let dur = defDur, size = defSize, sflags = (i === 0 && firstFlags !== null) ? firstFlags : defFlags, cto = 0;
+            if (tflags & 0x100) { dur = mp4U32(mb, q); q += 4; }
+            if (tflags & 0x200) { size = mp4U32(mb, q); q += 4; }
+            if (tflags & 0x400) { sflags = mp4U32(mb, q); q += 4; }
+            if (tflags & 0x800) { cto = ver === 1 ? (mp4U32(mb, q) | 0) : mp4U32(mb, q); q += 4; }
+            samples.push({ offset: dataOff, size, dts: nextDts, cts: nextDts + cto, dur, key: !((sflags >> 16) & 1) });
+            dataOff += size;
+            nextDts += dur;
+          }
+        }
+      }
+    }
+  }
+  if (samples.length === 0) return null;
+
+  const durs = [];
+  for (const sm of samples) {
+    sm.time = (sm.cts - track.editMediaTime) / track.timescale + track.editEmptySec;
+    if (sm.dur > 0 && durs.length < 4000) durs.push(sm.dur);
+  }
+  durs.sort((a, b) => a - b);
+  const medianDur = durs.length ? durs[durs.length >> 1] : track.timescale / 30;
+  const fps = track.timescale / medianDur;
+  let duration = 0;
+  for (const sm of samples) duration = Math.max(duration, sm.time + sm.dur / track.timescale);
+
+  return {
+    codec,
+    entryType: entry.type,
+    configType: cfg.type,
+    description: cfgBytes,
+    codedWidth,
+    codedHeight,
+    timescale: track.timescale,
+    fps: (fps > 1 && fps < 1000) ? fps : 30,
+    duration,
+    samples
+  };
+}
+
+// ---------------------------------------------------------
+// 8-2. フレーム供給源（WebCodecs 全フレーム順次デコード / シーク方式フォールバック）
+// ---------------------------------------------------------
+class WebCodecsFrameSource {
+  constructor(blob, track, config) {
+    this.kind = "webcodecs";
+    this.blob = blob;
+    this.track = track;
+    this.config = config;
+    this.fps = track.fps;
+    this.duration = track.duration;
+    this.label = `WebCodecs 全フレーム解析 (${track.codec.split(".")[0]} / ${Math.round(track.fps)}fps)`;
+  }
+
+  static async open(blob) {
+    if (!blob || !WEBCODECS_AVAILABLE) return null;
+    let track = null;
+    try {
+      track = await demuxMp4VideoTrack(blob);
+    } catch (e) {
+      track = null;
+    }
+    if (!track) return null;
+    const codecs = [track.codec];
+    if (track.entryType === "avc3") codecs.push(track.codec.replace(/^avc3/, "avc1"));
+    if (track.entryType === "hev1") codecs.push(track.codec.replace(/^hev1/, "hvc1"));
+    for (const codec of codecs) {
+      const variants = [
+        { codec, codedWidth: track.codedWidth, codedHeight: track.codedHeight, description: track.description },
+        { codec, codedWidth: track.codedWidth, codedHeight: track.codedHeight }
+      ];
+      for (const cfg of variants) {
+        if (track.configType === "vpcC" && cfg.description) continue;
+        try {
+          const res = await VideoDecoder.isConfigSupported(cfg);
+          if (res && res.supported) return new WebCodecsFrameSource(blob, track, cfg);
+        } catch (e) {}
+      }
+    }
+    return null;
+  }
+
+  _makeState() {
+    const state = {
+      outQ: [],
+      error: null,
+      waiter: null,
+      wake() {
+        if (state.waiter) {
+          const w = state.waiter;
+          state.waiter = null;
+          w();
+        }
+      },
+      wait(ms) {
+        return new Promise((resolve) => {
+          state.waiter = resolve;
+          setTimeout(() => {
+            if (state.waiter === resolve) state.waiter = null;
+            resolve();
+          }, ms);
+        });
+      }
+    };
+    return state;
+  }
+
+  _createDecoder(state) {
+    const decoder = new VideoDecoder({
+      output: (frame) => {
+        state.outQ.push(frame);
+        state.wake();
+      },
+      error: (err) => {
+        state.error = err || new Error("VideoDecoder error");
+        state.wake();
+      }
+    });
+    decoder.configure(this.config);
+    if (typeof decoder.addEventListener === "function") {
+      decoder.addEventListener("dequeue", () => state.wake());
+    }
+    return decoder;
+  }
+
+  _readSample(index, cache) {
+    let p = cache.get(index);
+    if (!p) {
+      const s = this.track.samples[index];
+      p = mp4ReadRange(this.blob, s.offset, s.offset + s.size);
+      cache.set(index, p);
+    }
+    return p;
+  }
+
+  _chunkFor(index, data) {
+    const s = this.track.samples[index];
+    return new EncodedVideoChunk({
+      type: s.key ? "key" : "delta",
+      timestamp: Math.round(s.time * 1e6),
+      duration: Math.max(0, Math.round((s.dur / this.track.timescale) * 1e6)),
+      data
+    });
+  }
+
+  _closeAll(state, decoder) {
+    for (const f of state.outQ) {
+      try { f.close(); } catch (e) {}
+    }
+    state.outQ.length = 0;
+    try { if (decoder.state !== "closed") decoder.close(); } catch (e) {}
+  }
+
+  // [tFrom, tTo] のフレームを表示順に1枚ずつ onFrame(frame, timeSec) へ渡す（frame は呼び出し後に閉じる）
+  async forEachFrame(tFrom, tTo, onFrame, shouldStop) {
+    const samples = this.track.samples;
+    let startIdx = 0;
+    for (let i = 0; i < samples.length; i++) {
+      if (samples[i].key && samples[i].time <= tFrom + 1e-6) startIdx = i;
+    }
+    let endIdx = samples.length;
+    for (let i = startIdx; i < samples.length; i++) {
+      if (samples[i].time > tTo + 1e-6) {
+        endIdx = Math.min(samples.length, i + 24);
+        break;
+      }
+    }
+
+    const state = this._makeState();
+    const decoder = this._createDecoder(state);
+    const cache = new Map();
+    let next = startIdx;
+    let stopped = false;
+
+    const deliver = async () => {
+      while (state.outQ.length > 0) {
+        const frame = state.outQ.shift();
+        const t = frame.timestamp / 1e6;
+        try {
+          if (!stopped && t >= tFrom - 1e-4 && t <= tTo + 1e-4) await onFrame(frame, t);
+        } finally {
+          frame.close();
+        }
+        if (shouldStop()) stopped = true;
+      }
+    };
+
+    try {
+      while (!stopped) {
+        if (state.error) throw state.error;
+        if (shouldStop()) {
+          stopped = true;
+          break;
+        }
+        if (state.outQ.length > 0) {
+          await deliver();
+          continue;
+        }
+        if (next >= endIdx) break;
+        if (decoder.decodeQueueSize >= 4) {
+          await state.wait(40);
+          continue;
+        }
+        // 少し先まで読み込んでおき、ファイル読み込みとデコードを重ねる
+        for (let k = next; k < Math.min(endIdx, next + 10); k++) this._readSample(k, cache);
+        const data = await this._readSample(next, cache);
+        cache.delete(next);
+        if (state.error) throw state.error;
+        decoder.decode(this._chunkFor(next, data));
+        next++;
+      }
+      if (!stopped && !state.error) {
+        await decoder.flush();
+        await deliver();
+      }
+      if (state.error) throw state.error;
+    } finally {
+      this._closeAll(state, decoder);
+    }
+  }
+
+  // 指定した各時刻の直後のフレームを取り出す（キーフレームからその時刻までだけをデコードする）
+  async sampleFrames(targetTimes, onFrame, shouldStop) {
+    const samples = this.track.samples;
+    const keyOf = (t) => {
+      let k = 0;
+      for (let i = 0; i < samples.length; i++) {
+        if (samples[i].key && samples[i].time <= t + 1e-6) k = i;
+      }
+      return k;
+    };
+    const groups = new Map();
+    for (const t of targetTimes.slice().sort((a, b) => a - b)) {
+      const k = keyOf(t);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(t);
+    }
+    const state = this._makeState();
+    const decoder = this._createDecoder(state);
+    try {
+      for (const [keyIdx, times] of groups) {
+        if (shouldStop()) break;
+        let ti = 0;
+        const lastT = times[times.length - 1];
+        const deliver = async () => {
+          while (state.outQ.length > 0) {
+            const frame = state.outQ.shift();
+            const t = frame.timestamp / 1e6;
+            try {
+              if (ti < times.length && t >= times[ti] - 1e-6) {
+                while (ti < times.length && t >= times[ti] - 1e-6) ti++;
+                await onFrame(frame, t);
+              }
+            } finally {
+              frame.close();
+            }
+          }
+        };
+        for (let i = keyIdx; i < samples.length; i++) {
+          if (shouldStop() || ti >= times.length) break;
+          if (i > keyIdx && samples[i].key) break;
+          if (i > keyIdx && samples[i].time > lastT + 1.0) break;
+          while (decoder.decodeQueueSize >= 4 && !state.error) await state.wait(40);
+          if (state.error) throw state.error;
+          const data = await mp4ReadRange(this.blob, samples[i].offset, samples[i].offset + samples[i].size);
+          decoder.decode(this._chunkFor(i, data));
+          await deliver();
+        }
+        await decoder.flush();
+        if (state.error) throw state.error;
+        await deliver();
+      }
+    } finally {
+      this._closeAll(state, decoder);
+    }
+  }
+}
+
+class SeekFrameSource {
+  constructor(videoElem) {
+    this.kind = "seek";
+    this.video = videoElem;
+    this.fps = 0;
+    this.duration = videoElem.duration || 0;
+    this.hasRVFC = typeof videoElem.requestVideoFrameCallback === "function";
+    this.rvfcTries = 0;
+    this.rvfcHits = 0;
+    this.label = "互換モード: シーク解析（実フレーム時刻を取得）";
+  }
+
+  // 一時停止中のシークでは requestVideoFrameCallback が呼ばれないことがあるため、
+  // 取れる場合だけ実フレーム時刻を使い、取れない環境では待ち時間を使わない（画像の位置合わせは画像照合で行うので影響しない）
+  _useRVFC() {
+    if (!this.hasRVFC) return false;
+    return this.rvfcTries < 8 || this.rvfcHits / this.rvfcTries >= 0.9;
+  }
+
+  // 指定時刻へシークし、実際に表示されたフレームの時刻を返す
+  seekTo(timeSec, shouldStop) {
+    const v = this.video;
+    return new Promise((resolve) => {
+      const maxT = v.duration ? Math.max(0, v.duration - 0.001) : timeSec;
+      const target = Math.min(Math.max(0, timeSec), maxT);
+      const useRVFC = this._useRVFC();
+      let seeked = false;
+      let frameTime = null;
+      let settled = false;
+      let rvfcTimer = 0;
+      let guardTimer = 0;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(guardTimer);
+        clearTimeout(rvfcTimer);
+        activeSeekResolvers.delete(cancel);
+        v.removeEventListener("seeked", onSeeked);
+        v.removeEventListener("error", onError);
+        if (useRVFC && ok) {
+          this.rvfcTries++;
+          if (frameTime !== null) this.rvfcHits++;
+        }
+        resolve({ ok, time: frameTime !== null ? frameTime : v.currentTime });
+      };
+      const cancel = () => finish(false);
+      const onSeeked = () => {
+        seeked = true;
+        if (!useRVFC || frameTime !== null) finish(true);
+        else rvfcTimer = setTimeout(() => finish(true), 80);
+      };
+      const onError = () => finish(false);
+      guardTimer = setTimeout(() => finish(false), 8000);
+      activeSeekResolvers.add(cancel);
+      // 表示されるフレームの時刻を取るため、シーク開始前にコールバックを登録しておく
+      if (useRVFC) {
+        v.requestVideoFrameCallback((now, meta) => {
+          frameTime = (meta && typeof meta.mediaTime === "number") ? meta.mediaTime : null;
+          if (seeked) finish(true);
+        });
+      }
+      v.addEventListener("seeked", onSeeked);
+      v.addEventListener("error", onError);
+      if (shouldStop && shouldStop()) {
+        finish(false);
+        return;
+      }
+      try {
+        v.currentTime = target;
+      } catch (e) {
+        finish(false);
+      }
+    });
+  }
+
+  async forEachFrame(tFrom, tTo, onFrame, shouldStop, deliverFilter = null, getStepSec = null) {
+    let t = tFrom;
+    let lastTime = -1;
+    let guard = 0;
+    while (t <= tTo + 1e-6 && !shouldStop() && guard++ < 2000000) {
+      const r = await this.seekTo(t, shouldStop);
+      if (shouldStop()) break;
+      const ft = r.time;
+      if (Math.abs(ft - lastTime) > 1e-4 && (!deliverFilter || deliverFilter(ft))) {
+        await onFrame(this.video, ft);
+        lastTime = ft;
+      }
+      const step = getStepSec ? getStepSec() : (1 / 30);
+      t = Math.max(t + step, ft + 0.0015);
+    }
+  }
+
+  async sampleFrames(targetTimes, onFrame, shouldStop) {
+    for (const t of targetTimes) {
+      if (shouldStop()) break;
+      const r = await this.seekTo(t, shouldStop);
+      if (shouldStop()) break;
+      await onFrame(this.video, r.time);
+    }
+  }
+}
+
+// ---------------------------------------------------------
+// 8-3. 静止背景モデル（画素ごとに、時間方向で最も値がまとまっている所を背景とみなす）
+// ---------------------------------------------------------
+// 端末によらず毎回同じ結果になるよう、固定シードの擬似乱数で取り出す時刻を決める
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+//  ・取り出す時刻は「等間隔の区間それぞれの中のランダムな位置」にする
+//    （キーフレームのような等間隔だけだと、BPMによっては16分線が毎回同じ位置に来て背景と誤認されるため）
+//  ・画素ごとに、取り出した値の中で「最も狭い範囲に3割の値が集まっている所」を背景とみなす
+//    静止背景は毎回ほぼ同じ値になるので必ず固まりを作る。最小値はノーツの暗い縁取りに、
+//    中央値はロングノーツやスライドが長く通る位置（半分近くの時間で譜面が写る）に引きずられるため使わない
+async function buildStaticBackgroundModel(source, geo, tFrom, tTo, shouldStop, onProgress, options = {}) {
+  const { cropW, h } = geo;
+  const n = cropW * h * 3;
+  const maxSamples = options.maxSamples || 21;
+  const minSamples = options.minSamples || 9;
+  const count = Math.max(minSamples, Math.min(maxSamples, Math.floor((96 * 1024 * 1024) / n)));
+  const span = Math.max(0.05, tTo - tFrom);
+  const rnd = seededRandom(0x5EC41);
+  const targets = [];
+  for (let i = 0; i < count; i++) targets.push(tFrom + span * (i + 0.1 + 0.8 * rnd()) / count);
+
+  let stack;
+  try {
+    stack = new Uint8Array(n * count);
+  } catch (e) {
+    return null;
+  }
+  const work = createWorkCanvas(cropW, h, true);
+  let got = 0;
+  await source.sampleFrames(targets, async (frame) => {
+    if (got >= count) return;
+    drawFrameRows(work.ctx, frame, geo, 0);
+    const d = work.ctx.getImageData(0, 0, cropW, h).data;
+    const base = got * n;
+    for (let i = 0, j = 0; j < n; i += 4, j += 3) {
+      stack[base + j] = d[i];
+      stack[base + j + 1] = d[i + 1];
+      stack[base + j + 2] = d[i + 2];
+    }
+    got++;
+    if (onProgress) onProgress(Math.min(1, got / count) * 0.8);
+    await yieldToEventLoop();
+  }, shouldStop);
+  work.canvas.width = 0;
+  work.canvas.height = 0;
+  if (got < 3 || shouldStop()) return null;
+
+  const bg = new Uint8Array(n);
+  const tmp = new Uint8Array(got);
+  const win = Math.max(2, Math.ceil(got * 0.3));
+  const half = win >> 1;
+  let lastYield = performance.now();
+  for (let p = 0; p < n; p++) {
+    for (let s = 0; s < got; s++) {
+      const v = stack[s * n + p];
+      let k = s - 1;
+      while (k >= 0 && tmp[k] > v) {
+        tmp[k + 1] = tmp[k];
+        k--;
+      }
+      tmp[k + 1] = v;
+    }
+    // 最も狭い範囲に win 個が収まる区間を探す（ほぼ同じ狭さなら暗い方＝背景側を優先）
+    let minRange = 256;
+    for (let i = 0; i + win <= got; i++) {
+      const r = tmp[i + win - 1] - tmp[i];
+      if (r < minRange) minRange = r;
+    }
+    let pick = 0;
+    for (let i = 0; i + win <= got; i++) {
+      if (tmp[i + win - 1] - tmp[i] <= minRange + 2) {
+        pick = i;
+        break;
+      }
+    }
+    bg[p] = tmp[pick + half];
+    if ((p & 0xFFFF) === 0 && performance.now() - lastYield > 30) {
+      lastYield = performance.now();
+      if (onProgress) onProgress(0.8 + 0.2 * (p / n));
+      await yieldToEventLoop();
+      if (shouldStop()) return null;
+    }
+  }
+  return bg;
+}
+
+// ---------------------------------------------------------
+// 8-4. スクロール量の照合（前フレームとの画像照合・停止フレーム判定・信頼度判定）
+// ---------------------------------------------------------
+class ScrollRegistrationTracker {
+  constructor(geo, bgModel, dExpInit) {
+    const { cropW, h, capY } = geo;
+    this.geo = geo;
+    this.bg = bgModel;
+    this.win = Math.max(24, Math.round(h * 0.10));
+    let dMax = Math.round(Math.max(h * 0.12, dExpInit * 3 + 12));
+    dMax = Math.min(dMax, Math.round(h * 0.25), capY - this.win - geo.topSafeY);
+    this.dMax = Math.max(16, dMax);
+    this.fTop = capY - this.win - this.dMax;
+    this.fBot = capY + this.win;
+    this.fH = this.fBot - this.fTop;
+    this.fw = Math.ceil(cropW / 2);
+    this.strips = 24;
+    this.stripStart = new Int32Array(this.strips + 1);
+    for (let s = 0; s <= this.strips; s++) this.stripStart[s] = Math.round(s * this.fw / this.strips);
+    this.curF = new Uint8Array(this.fw * this.fH);
+    this.prevF = new Uint8Array(this.fw * this.fH);
+    this.curP = new Float32Array(this.fH * this.strips);
+    this.prevP = new Float32Array(this.fH * this.strips);
+    this.costs = new Float32Array(this.dMax + 1);
+    this.hasPrev = false;
+    this.dExp = Math.max(0.5, Math.min(this.dMax * 0.8, dExpInit));
+    this.recent = [];
+    this.moving = false;
+  }
+
+  // band: RGBA データ（作業解像度の bandTop 行目から）。静止背景との差を特徴量にする
+  computeFeatures(band, bandTop) {
+    const { cropW } = this.geo;
+    const { fw, fH, fTop, curF, curP, strips, stripStart } = this;
+    const bg = this.bg;
+    for (let fy = 0; fy < fH; fy++) {
+      const y = fTop + fy;
+      const bRow = (y - bandTop) * cropW;
+      const gRow = y * cropW;
+      const o = fy * fw;
+      for (let k = 0; k < fw; k++) {
+        let x = k * 2;
+        if (x >= cropW) x = cropW - 1;
+        const i = (bRow + x) * 4;
+        let v;
+        if (bg) {
+          const j = (gRow + x) * 3;
+          const dr = band[i] - bg[j], dg = band[i + 1] - bg[j + 1], db = band[i + 2] - bg[j + 2];
+          v = ((dr < 0 ? -dr : dr) + (dg < 0 ? -dg : dg) + (db < 0 ? -db : db)) * 0.5 - 4;
+        } else {
+          const r = band[i], g = band[i + 1], b = band[i + 2];
+          v = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        }
+        curF[o + k] = v <= 0 ? 0 : (v >= 255 ? 255 : v);
+      }
+      for (let s = 0; s < strips; s++) {
+        let acc = 0;
+        const k0 = stripStart[s], k1 = stripStart[s + 1];
+        for (let k = k0; k < k1; k++) acc += curF[o + k];
+        curP[fy * strips + s] = acc / Math.max(1, k1 - k0);
+      }
+    }
+  }
+
+  _ssd(d) {
+    // 2次元の二乗誤差（照合窓の全行・特徴列を1つおき）
+    const { fw, win, dMax, curF, prevF } = this;
+    const di = Math.floor(d);
+    let acc = 0, n = 0;
+    for (let fy = dMax; fy < dMax + 2 * win; fy++) {
+      const o = fy * fw;
+      const op = (fy - di) * fw;
+      for (let k = 0; k < fw; k += 2) {
+        const q = curF[o + k] - prevF[op + k];
+        acc += q * q;
+        n++;
+      }
+    }
+    return acc / Math.max(1, n);
+  }
+
+  // 前フレームからの移動量を求める（wholeFrameStatic: 画面全体が前フレームと同一かを返す関数・不明なら null）
+  register(wholeFrameStatic) {
+    const { fw, dMax, curF, prevF } = this;
+    if (!this.hasPrev) return { status: "first", d: 0 };
+
+    // 1) 照合窓の特徴量の強さと、帯全体をずらさずに比べた差（停止フレーム判定）
+    //    ロングノーツのように縦にずらしても同じ見た目の要素があるため、停止判定は窓より広い帯全体で行う
+    let energy = 0, n = 0, energyAll = 0, diff0 = 0, nAll = 0;
+    for (let fy = 0; fy < this.fH; fy++) {
+      const o = fy * fw;
+      const inWin = fy >= dMax;
+      for (let k = 0; k < fw; k += 2) {
+        const c = curF[o + k];
+        const p = prevF[o + k];
+        diff0 += c > p ? c - p : p - c;
+        energyAll += c;
+        nAll++;
+        if (inWin) {
+          energy += c;
+          n++;
+        }
+      }
+    }
+    energy /= Math.max(1, n);
+    energyAll /= Math.max(1, nAll);
+    diff0 /= Math.max(1, nAll);
+    if (energyAll < 0.3) {
+      // 帯全体に譜面要素が無い：画面全体の変化で再生中か停止中かを判断し、再生中なら予測値で進める
+      const st = wholeFrameStatic ? wholeFrameStatic() : null;
+      if (st === true) this.moving = false;
+      else if (st === false) this.moving = true;
+      return this.moving ? { status: "predicted", d: this.dExp } : { status: "freeze", d: 0 };
+    }
+    if (diff0 < 0.3) {
+      // 前フレームと実質同一（録画側で同じ画面が続いた／再生停止中）
+      this.moving = false;
+      return { status: "freeze", d: 0 };
+    }
+    this.moving = true;
+    if (energy < 0.6) {
+      // 帯は変化している（再生中）が、照合窓の中に手掛かりが無い：直近の実測値で進める
+      return { status: "predicted", d: this.dExp };
+    }
+
+    // 2) 移動量0〜最大まで全範囲を探す（一部の範囲だけで判定すると、範囲内の局所的な一致を誤って採用してしまう）
+    const res = this._searchAll();
+    if (!res) return { status: "predicted", d: this.dExp };
+    const { best, alt } = res;
+    if (best.e < alt * 0.55) {
+      if (best.d === 0) {
+        // 譜面は止まっていて、別の表示だけが変化している
+        this.moving = false;
+        return { status: "freeze", d: 0 };
+      }
+      const d = this._subpixel(best.d, best.e);
+      this.recent.push(d);
+      if (this.recent.length > 31) this.recent.shift();
+      if (this.recent.length >= 5) {
+        const s = this.recent.slice().sort((x, y) => x - y);
+        this.dExp = s[s.length >> 1];
+      }
+      return { status: "motion", d };
+    }
+    // 決め手に欠ける（等間隔のグリッド線だけ等）：同程度に一致する候補のうち、直近の実測値に最も近いものを採る
+    if (this.recent.length >= 5) {
+      let pick = null;
+      for (const c of res.refined) {
+        if (c.d === 0 || c.e > best.e * 1.8) continue;
+        if (!pick || Math.abs(c.d - this.dExp) < Math.abs(pick.d - this.dExp)) pick = c;
+      }
+      if (pick && Math.abs(pick.d - this.dExp) <= Math.max(3, this.dExp * 0.35)) {
+        return { status: "motion", d: this._subpixel(pick.d, pick.e) };
+      }
+    }
+    return { status: "predicted", d: this.dExp };
+  }
+
+  // 全範囲 [0, dMax] を列帯プロファイルで粗く探し、上位の候補を2次元の二乗誤差で精密に比べる
+  _searchAll() {
+    const { win, dMax, curP, prevP, strips, costs } = this;
+    let mean = 0;
+    for (let d = 0; d <= dMax; d++) {
+      let acc = 0;
+      for (let fy = dMax; fy < dMax + 2 * win; fy += 2) {
+        const o = fy * strips;
+        const op = (fy - d) * strips;
+        for (let s = 0; s < strips; s++) {
+          const q = curP[o + s] - prevP[op + s];
+          acc += q < 0 ? -q : q;
+        }
+      }
+      costs[d] = acc;
+      mean += acc;
+    }
+    mean /= (dMax + 1);
+    // 予測値に近いほどわずかに有利にする（等間隔の16分線などで迷ったときの決め手）
+    const tol = Math.max(2, this.dExp * 0.3);
+    const lambda = mean * 0.12;
+    const scored = (d) => {
+      const z = (d - this.dExp) / tol;
+      return costs[d] + lambda * Math.min(1, z * z);
+    };
+    const local = [];
+    for (let d = 0; d <= dMax; d++) {
+      const v = scored(d);
+      const left = d > 0 ? scored(d - 1) : Infinity;
+      const right = d < dMax ? scored(d + 1) : Infinity;
+      if (v <= left && v <= right) local.push({ d, v });
+    }
+    if (local.length === 0) return null;
+    local.sort((a, b) => a.v - b.v);
+
+    const refined = [];
+    for (const c of local.slice(0, 4)) {
+      let lb = null;
+      for (let d = Math.max(0, c.d - 1); d <= Math.min(dMax, c.d + 1); d++) {
+        const e = this._ssd(d);
+        if (!lb || e < lb.e) lb = { d, e };
+      }
+      if (!refined.some(r => r.d === lb.d)) refined.push(lb);
+    }
+    refined.sort((a, b) => a.e - b.e);
+    const best = refined[0];
+    let alt = Infinity;
+    for (const r of refined) if (Math.abs(r.d - best.d) >= 3 && r.e < alt) alt = r.e;
+    const spread = Math.max(3, Math.round(this.dExp * 0.25));
+    if (best.d - spread >= 0) alt = Math.min(alt, this._ssd(best.d - spread));
+    if (best.d + spread <= dMax) alt = Math.min(alt, this._ssd(best.d + spread));
+    return { best, alt, refined };
+  }
+
+  // 放物線近似によるサブピクセル補間
+  _subpixel(d, e) {
+    if (d < 1 || d >= this.dMax) return d;
+    const a = this._ssd(d - 1), c = this._ssd(d + 1);
+    const den = a - 2 * e + c;
+    return den > 1e-9 ? d + Math.max(-0.5, Math.min(0.5, 0.5 * (a - c) / den)) : d;
+  }
+
+  commit() {
+    // 今回のフレームを「前フレーム」にする
+    let t = this.prevF; this.prevF = this.curF; this.curF = t;
+    let p = this.prevP; this.prevP = this.curP; this.curP = p;
+    this.hasPrev = true;
+  }
+}
+
+// ---------------------------------------------------------
+// 8-5. マスター画像（縦に長い1本の譜面）の書き込み
+// ---------------------------------------------------------
+class ChartMasterWriter {
+  constructor(width) {
+    this.width = width;
+    this.canvases = [];
+    this.curIndex = -1;
+    this.curImage = null;
+  }
+
+  _flush() {
+    if (this.curIndex < 0 || !this.curImage) return;
+    const c = document.createElement("canvas");
+    c.width = this.width;
+    c.height = MASTER_CHUNK_H;
+    c.getContext("2d", { willReadFrequently: true }).putImageData(this.curImage, 0, 0);
+    this.canvases[this.curIndex] = c;
+    this.curImage = null;
+  }
+
+  // 行 Y（下から数えた位置）を書き込むためのバイト位置を返す（Y は昇順で呼ぶ）
+  row(Y) {
+    const k = Math.floor(Y / MASTER_CHUNK_H);
+    if (k !== this.curIndex) {
+      this._flush();
+      this.curIndex = k;
+      this.curImage = new ImageData(this.width, MASTER_CHUNK_H);
+      new Uint32Array(this.curImage.data.buffer).fill(0xFF000000);
+    }
+    return (MASTER_CHUNK_H - 1 - (Y - k * MASTER_CHUNK_H)) * this.width * 4;
+  }
+
+  get data() { return this.curImage.data; }
+
+  finish() {
+    this._flush();
+    const out = [];
+    for (let k = 0; k < this.canvases.length; k++) {
+      if (!this.canvases[k]) {
+        const c = document.createElement("canvas");
+        c.width = this.width;
+        c.height = MASTER_CHUNK_H;
+        const ctx = c.getContext("2d", { willReadFrequently: true });
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, c.width, c.height);
+        this.canvases[k] = c;
+      }
+      out.push(this.canvases[k]);
+    }
+    return out;
+  }
+
+  release() {
+    for (const c of this.canvases) {
+      if (c) { c.width = 0; c.height = 0; }
+    }
+    this.canvases = [];
+    this.curImage = null;
+  }
+}
+
+// ---------------------------------------------------------
+// 8-6. 合成エンジン本体
+//   各フレームの「切り出し基準ライン」がマスター上のどこに当たるか（C）を実移動量で積み上げ、
+//   前後2フレームの間の行を、上下のフレームからクロスフェードしながら埋めていく
+// ---------------------------------------------------------
+async function captureChartMasterFromSource(source, geo, opts, hooks) {
+  const { cropW, h, capY, topSafeY } = geo;
+  const shouldStop = hooks.shouldStop;
+
+  // 1) 静止背景モデル
+  if (hooks.onPhase) hooks.onPhase("bg", 0);
+  const bgModel = await buildStaticBackgroundModel(source, geo, opts.bgFrom, opts.bgTo, shouldStop,
+    (r) => { if (hooks.onPhase) hooks.onPhase("bg", r); });
+  if (shouldStop()) return null;
+
+  const useMask = Boolean(opts.blackBg && bgModel);
+  const fp = opts.filterParams;
+  const t0 = fp.t0;
+  const invTw = fp.invTw;
+  const lineGain = useMask ? fp.lineGain : 1;
+  const lane = useMask ? extractStaticVerticalLines(bgModel, cropW, 0, cropW, h, topSafeY, fp.lineGain) : null;
+
+  // 2) 照合・合成の準備
+  const isSeek = source.kind === "seek";
+  const fps = source.fps > 1 ? source.fps : 60;
+  const speedHint = Math.max(1, opts.speedHintPxPerSec);
+  const seekStepSec = Math.min(0.2, Math.max(1 / 60, (0.4 * h * 0.12) / speedHint));
+  const frameInterval = isSeek ? seekStepSec : 1 / fps;
+  const tracker = new ScrollRegistrationTracker(geo, bgModel, speedHint * frameInterval);
+  const dMax = tracker.dMax;
+  const bandTop = Math.max(0, Math.min(tracker.fTop, capY - dMax - 2));
+  const bandBot = Math.min(h, Math.max(tracker.fBot, capY + dMax + 2));
+  const bandH = bandBot - bandTop;
+  const bandWork = createWorkCanvas(cropW, bandH, true);
+  const fullWork = createWorkCanvas(cropW, h, true);
+  const thumbWork = createWorkCanvas(96, 54, true);
+  let prevBand = null;
+  let curBand = null;
+
+  const writer = new ChartMasterWriter(cropW);
+  const timeToYMap = [];
+  const stats = { frames: 0, freeze: 0, predicted: 0, motion: 0 };
+  let motionDist = 0;   // 実際に動いていたフレームの移動量の合計と、その時間の合計（実測速度の表示用）
+  let motionTime = 0;
+
+  let C = 0;          // 現在フレームの切り出しラインが当たるマスター上の位置（下からのpx）
+  let yFill = 0;      // 次に書き込むマスター行
+  let firstTime = null;
+  let lastTime = null;
+  let lastFrameClone = null;
+  let lastProgressWall = 0;
+  let lastYieldWall = performance.now();
+
+  const bgRowOff = (y) => y * cropW * 3;
+  const rowA = new Float32Array(cropW * 3);
+  const rowB = new Float32Array(cropW * 3);
+
+  // band（rowTop 行目から始まる RGBA）の yIdx 行目（小数可）を補間で取り出し、黒背景化する
+  const sampleRow = (band, rowTop, yIdx, out) => {
+    const bandRows = band.length / (cropW * 4);
+    let r0 = Math.floor(yIdx);
+    let f = yIdx - r0;
+    if (r0 < rowTop) { r0 = rowTop; f = 0; }
+    let r1 = r0 + 1;
+    if (r1 > rowTop + bandRows - 1) { r1 = r0; f = 0; }
+    const ia0 = (r0 - rowTop) * cropW * 4;
+    const ia1 = (r1 - rowTop) * cropW * 4;
+    const ja0 = bgRowOff(r0), ja1 = bgRowOff(r1);
+    for (let x = 0; x < cropW; x++) {
+      const i0 = ia0 + x * 4, i1 = ia1 + x * 4;
+      let r = band[i0] + (band[i1] - band[i0]) * f;
+      let g = band[i0 + 1] + (band[i1 + 1] - band[i0 + 1]) * f;
+      let b = band[i0 + 2] + (band[i1 + 2] - band[i0 + 2]) * f;
+      if (useMask) {
+        const j0 = ja0 + x * 3, j1 = ja1 + x * 3;
+        const br = bgModel[j0] + (bgModel[j1] - bgModel[j0]) * f;
+        const bgc = bgModel[j0 + 1] + (bgModel[j1 + 1] - bgModel[j0 + 1]) * f;
+        const bb = bgModel[j0 + 2] + (bgModel[j1 + 2] - bgModel[j0 + 2]) * f;
+        const dr = r - br, dg = g - bgc, db = b - bb;
+        const dm = dr > dg ? (dr > db ? dr : db) : (dg > db ? dg : db);
+        let a = (dm - t0) * invTw;
+        a = a < 0 ? 0 : (a > 1 ? 1 : a);
+        r *= a;
+        g *= a;
+        b *= a;
+      }
+      const o = x * 3;
+      out[o] = r;
+      out[o + 1] = g;
+      out[o + 2] = b;
+    }
+  };
+
+  const writeBlendedRow = (Y, w) => {
+    const off = writer.row(Y);
+    const data = writer.data;
+    for (let x = 0; x < cropW; x++) {
+      const o = x * 3;
+      let r = rowA[o] + (rowB[o] - rowA[o]) * w;
+      let g = rowA[o + 1] + (rowB[o + 1] - rowA[o + 1]) * w;
+      let b = rowA[o + 2] + (rowB[o + 2] - rowA[o + 2]) * w;
+      if (lineGain !== 1) {
+        const mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+        if (mx > 0 && mx - mn < 40) {
+          r *= lineGain;
+          g *= lineGain;
+          b *= lineGain;
+        }
+      }
+      if (lane) {
+        if (lane[o] > r) r = lane[o];
+        if (lane[o + 1] > g) g = lane[o + 1];
+        if (lane[o + 2] > b) b = lane[o + 2];
+      }
+      const p = off + x * 4;
+      data[p] = r;
+      data[p + 1] = g;
+      data[p + 2] = b;
+    }
+  };
+
+  // 2枚のフレームの間（Cprev〜Cnow）を、上下のフレームをクロスフェードしながら埋める
+  const fillBetween = (Cprev, Cnow) => {
+    const span = Cnow - Cprev;
+    while (yFill + 0.5 <= Cnow) {
+      const Yc = yFill + 0.5;
+      const w = span > 1e-6 ? Math.max(0, Math.min(1, (Yc - Cprev) / span)) : 1;
+      const yPrev = capY - (Yc - Cprev) - 0.5;
+      const yCur = capY - (Yc - Cnow) - 0.5;
+      const prevOk = prevBand && yPrev >= bandTop;
+      if (prevOk) sampleRow(prevBand, bandTop, yPrev, rowA);
+      sampleRow(curBand, bandTop, Math.min(bandBot - 1, yCur), rowB);
+      if (!prevOk) rowA.set(rowB);
+      writeBlendedRow(yFill, prevOk ? w : 1);
+      yFill++;
+    }
+  };
+
+  const onFrame = async (frame, t) => {
+    if (shouldStop()) return;
+    stats.frames++;
+    drawFrameRows(bandWork.ctx, frame, geo, bandTop);
+    curBand = bandWork.ctx.getImageData(0, 0, cropW, bandH).data;
+    tracker.computeFeatures(curBand, bandTop);
+
+    if (firstTime === null) {
+      // 最初のフレーム：切り出しラインより下（画面下部）をそのまま土台として書き込む
+      firstTime = t;
+      drawFrameRows(fullWork.ctx, frame, geo, 0);
+      const full = fullWork.ctx.getImageData(0, 0, cropW, h).data;
+      C = h - capY;
+      for (let Y = 0; Y < C; Y++) {
+        const y = h - 1 - Y;
+        const off = writer.row(Y);
+        if (useMask) {
+          maskRowAgainstBackground(full, y * cropW * 4, bgModel, bgRowOff(y), cropW, fp, lane, writer.data, off);
+        } else {
+          writer.data.set(full.subarray(y * cropW * 4, (y + 1) * cropW * 4), off);
+        }
+      }
+      yFill = C;
+      timeToYMap.push({ time: t, bottomY: C });
+    } else {
+      // 照合窓に手掛かりが無いときだけ、画面全体（タイマー表示など）が前フレームから変化したかを確認する
+      const wholeFrameStatic = () => {
+        if (!lastFrameClone || !(typeof VideoFrame !== "undefined" && frame instanceof VideoFrame)) return null;
+        thumbWork.ctx.drawImage(lastFrameClone, 0, 0, 96, 54);
+        const a = thumbWork.ctx.getImageData(0, 0, 96, 54).data.slice();
+        thumbWork.ctx.drawImage(frame, 0, 0, 96, 54);
+        const b = thumbWork.ctx.getImageData(0, 0, 96, 54).data;
+        let maxDiff = 0;
+        for (let i = 0; i < a.length; i += 4) {
+          const q = Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]);
+          if (q > maxDiff) maxDiff = q;
+        }
+        return maxDiff <= 9;
+      };
+      const reg = tracker.register(wholeFrameStatic);
+      let d = reg.d;
+      if (!(d >= 0)) d = 0;
+      if (d > dMax) d = dMax;
+      if (reg.status === "motion") {
+        stats.motion++;
+        if (t - lastTime > 1e-4) {
+          motionDist += d;
+          motionTime += t - lastTime;
+        }
+      } else if (reg.status === "freeze") {
+        stats.freeze++;
+      } else {
+        stats.predicted++;
+      }
+      if (d > 0) {
+        const Cprev = C;
+        C += d;
+        fillBetween(Cprev, C);
+      }
+      timeToYMap.push({ time: t, bottomY: C });
+    }
+    tracker.commit();
+    prevBand = curBand;
+    lastTime = t;
+
+    if (typeof VideoFrame !== "undefined" && frame instanceof VideoFrame) {
+      if (lastFrameClone) lastFrameClone.close();
+      lastFrameClone = frame.clone();
+    }
+
+    const now = performance.now();
+    if (hooks.onProgress && (now - lastProgressWall > 150)) {
+      lastProgressWall = now;
+      hooks.onProgress(t, stats, tracker.dExp);
+    }
+    if (now - lastYieldWall > 30) {
+      lastYieldWall = now;
+      await yieldToEventLoop();
+    }
+  };
+
+  const cleanupWork = () => {
+    if (lastFrameClone) {
+      lastFrameClone.close();
+      lastFrameClone = null;
+    }
+    bandWork.canvas.width = 0;
+    fullWork.canvas.width = 0;
+    thumbWork.canvas.width = 0;
+  };
+
+  try {
+    await source.forEachFrame(opts.tStart, opts.tEnd, onFrame, shouldStop, null, () => seekStepSec);
+  } catch (err) {
+    cleanupWork();
+    writer.release();
+    throw err;
+  }
+
+  if (shouldStop() || firstTime === null) {
+    cleanupWork();
+    writer.release();
+    return null;
+  }
+
+  // 3) 最後のフレーム：切り出しラインより上（画面上部）を書き込む
+  const lastSrc = lastFrameClone || (isSeek ? source.video : null);
+  const capEnd = C + (capY - topSafeY);
+  if (lastSrc) {
+    drawFrameRows(fullWork.ctx, lastSrc, geo, 0);
+    const full = fullWork.ctx.getImageData(0, 0, cropW, h).data;
+    while (yFill + 0.5 <= capEnd) {
+      const Yc = yFill + 0.5;
+      const yIdx = capY - (Yc - C) - 0.5;
+      sampleRow(full, 0, Math.max(topSafeY, yIdx), rowB);
+      rowA.set(rowB);
+      writeBlendedRow(yFill, 1);
+      yFill++;
+    }
+  }
+  cleanupWork();
+
+  const totalHeight = Math.max(100, yFill);
+  const chunks = writer.finish();
+  const pxPerSec = motionTime > 0 ? motionDist / motionTime : tracker.dExp / frameInterval;
+  stats.measuredSpeedPct = (pxPerSec / h) * 100;
+
+  return {
+    hasData: true,
+    cropW,
+    totalHeight,
+    bottomBaseH: h - capY,
+    topCapH: Math.max(0, totalHeight - Math.round(C)),
+    chunks,
+    tStart: firstTime,
+    tEnd: lastTime,
+    timeToYMap,
+    frameH: h,
+    captureY: capY,
+    fps,
+    engine: source.kind,
+    stats
+  };
+}
+
+// ---------------------------------------------------------
+// 8-7. 動画1本分の生成（フレーム供給源の選択・メモリ上限の確認・失敗時の切り替え）
+// ---------------------------------------------------------
+async function buildMasterDataForVideo(vidElem, vidItem, sourceName, isTestMode, job, onProgress) {
   const rawW = vidElem.videoWidth;
   const rawH = vidElem.videoHeight;
   const leftPct = parseFloat(cropLeftSlider.value) / 100;
   const rightPct = parseFloat(cropRightSlider.value) / 100;
-  const srcX1 = Math.round(rawW * leftPct);
-  const srcX2 = Math.round(rawW * rightPct);
-  const srcCropW = Math.max(10, srcX2 - srcX1);
+  const dur = vidElem.duration || 0;
 
-  const workScale = computeWorkScale(rawH);
-  const h = Math.max(160, Math.round(rawH * workScale));
-  const cropW = Math.max(60, Math.round(srcCropW * workScale));
-
-  const dur = vidElem.duration || 120;
   let tStart = 0.0;
-  let fullEnd = Math.max(0.5, dur - 0.04);
-
+  let fullEnd = dur;
   if (vidElem === video) {
     const userStart = parseFloat(startTimeInput.value);
     const userEnd = parseFloat(endTimeInput.value);
-    tStart = !isNaN(userStart) ? Math.min(Math.max(0, userStart), Math.max(0, dur - 0.5)) : 0.0;
-    fullEnd = (!isNaN(userEnd) && userEnd > tStart)
-      ? Math.min(userEnd, Math.max(tStart + 0.5, dur - 0.04))
-      : Math.max(tStart + 0.5, dur - 0.04);
+    tStart = !isNaN(userStart) ? Math.min(Math.max(0, userStart), Math.max(0, dur - 0.1)) : 0.0;
+    fullEnd = (!isNaN(userEnd) && userEnd > tStart) ? Math.min(userEnd, dur) : dur;
   }
-
   const tEnd = isTestMode ? Math.min(fullEnd, tStart + 12.0) : fullEnd;
-  const duration = Math.max(0.5, tEnd - tStart);
+  const speedPct = parseFloat(speedInput.value) || 47.50;
 
-  // 1つの基準スクロール速度（%/秒）で固定
-  const speedPctPerSec = parseFloat(speedInput.value) || 47.50;
-  const speedPxPerSec = Math.max(10, h * (speedPctPerSec / 100));
-
-  // 【改良1】60fpsのフレーム周期（1/30秒 = 0.033333...秒）に完全固定し、
-  // 切り出し幅 stepPx を整数に丸めず浮動小数点のまま計算することで、周期的なうなり歪みを解消する
-  const dt = 2 / 60;
-  const stepPx = dt * speedPxPerSec;
-  const overlapPx = 2.0;
-  const totalSteps = Math.max(1, Math.floor(duration / dt));
-
-  const capY = Math.round(h * 0.70);
-  const bottomBaseH = h - capY;
-  const topSafeY = Math.round(h * 0.07);
-  const topCapH = Math.max(0, (capY - stepPx) - topSafeY);
-
-  const masterChunks = [];
-  const masterCtxs = [];
-
-  function ensureMasterChunkExists(k) {
-    while (masterChunks.length <= k) {
-      const mc = document.createElement("canvas");
-      mc.width = cropW;
-      mc.height = MASTER_CHUNK_H;
-      const mctx = mc.getContext("2d", { willReadFrequently: true });
-      mctx.imageSmoothingEnabled = true;
-      mctx.imageSmoothingQuality = "high";
-      mctx.fillStyle = "#000000";
-      mctx.fillRect(0, 0, cropW, MASTER_CHUNK_H);
-      masterChunks.push(mc);
-      masterCtxs.push(mctx);
-    }
+  // 縦に長いマスター画像がメモリに収まるよう、極端に長い動画では作業解像度を自動で下げる
+  let workScale = computeWorkScale(rawH);
+  const geo0 = computeCaptureGeometry(rawW, rawH, leftPct, rightPct, workScale);
+  const estRows = (tEnd - tStart) * geo0.h * (Math.max(speedPct, 40) / 100) * 1.25 + geo0.h;
+  const estBytes = geo0.cropW * estRows * 4;
+  let reducedNote = "";
+  if (estBytes > MASTER_MEMORY_BUDGET) {
+    workScale *= Math.sqrt(MASTER_MEMORY_BUDGET / estBytes);
+    reducedNote = "（動画が長いためメモリ節約のため解像度を自動調整）";
   }
+  const geo = computeCaptureGeometry(rawW, rawH, leftPct, rightPct, workScale);
 
-  function drawSliceToMaster(srcCanvas, srcY, srcH, bottomY, alpha = 1.0) {
-    if (srcH <= 0.05) return;
-    const startChunk = Math.floor(bottomY / MASTER_CHUNK_H);
-    const endChunk = Math.floor((bottomY + srcH - 0.0001) / MASTER_CHUNK_H);
-    for (let k = startChunk; k <= endChunk; k++) {
-      if (k < 0) continue;
-      ensureMasterChunkExists(k);
-      const chunkBottomOffset = k * MASTER_CHUNK_H;
-      const relBottom = bottomY - chunkBottomOffset;
-      const destY = MASTER_CHUNK_H - relBottom - srcH;
-      const ctx = masterCtxs[k];
-      if (alpha < 0.99) {
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.drawImage(srcCanvas, 0, srcY, cropW, srcH, 0, destY, cropW, srcH);
-        ctx.restore();
-      } else {
-        ctx.drawImage(srcCanvas, 0, srcY, cropW, srcH, 0, destY, cropW, srcH);
-      }
-    }
+  const opts = {
+    tStart,
+    tEnd,
+    bgFrom: tStart,
+    bgTo: fullEnd,
+    blackBg: blackBgToggle.checked,
+    filterParams: getBlackFilterParams(),
+    speedHintPxPerSec: geo.h * speedPct / 100
+  };
+  const hooks = {
+    shouldStop: () => job.cancelled,
+    onPhase: (phase, ratio) => { if (onProgress) onProgress({ phase, ratio }); },
+    onProgress: (t, stats) => { if (onProgress) onProgress({ phase: "main", time: t, tStart, tEnd, stats }); }
+  };
+
+  let source = null;
+  if (vidItem && vidItem.file) source = await WebCodecsFrameSource.open(vidItem.file);
+  if (!source) source = new SeekFrameSource(vidElem);
+  if (onProgress) onProgress({ phase: "engine", label: source.label + reducedNote });
+
+  let result = null;
+  try {
+    result = await captureChartMasterFromSource(source, geo, opts, hooks);
+  } catch (err) {
+    if (source.kind !== "webcodecs" || job.cancelled) throw err;
+    // この動画をデコードできなかった場合はシーク方式でやり直す
+    source = new SeekFrameSource(vidElem);
+    if (onProgress) onProgress({ phase: "engine", label: `${source.label}（WebCodecs で読めなかったため切替）${reducedNote}` });
+    result = await captureChartMasterFromSource(source, geo, opts, hooks);
   }
+  if (!result) return { hasData: false, chunks: [] };
+  result.sourceLabel = sourceName;
+  result.engineLabel = source.label;
+  return result;
+}
 
-  const frameCanvas = document.createElement("canvas");
-  frameCanvas.width = cropW;
-  frameCanvas.height = h;
-  const fCtx = frameCanvas.getContext("2d");
-  fCtx.imageSmoothingEnabled = true;
-  fCtx.imageSmoothingQuality = "high";
+function setProgress(pct, text) {
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  progressPercent.textContent = `${p}%`;
+  progressBar.style.width = `${p}%`;
+  if (text) progressText.textContent = text;
+}
 
-  // 【改良2】キーフレーム跨ぎ等の高負荷区間で「前のコマの絵が残っている（デコード遅延）」ことだけを
-  // CPU負荷ゼロ（0.01ms未満）で検知するための極小（24x16px）センサーキャンバス
-  const tinyCheckC = document.createElement("canvas");
-  tinyCheckC.width = 24;
-  tinyCheckC.height = 16;
-  const tinyCheckCtx = tinyCheckC.getContext("2d", { willReadFrequently: true });
-  let prevTinyData = null;
-
-  let currentBottomY = 0;
-  const timeToYMap = [];
-
-  let avgSeekMs = DEVICE_SPEC_PROFILE.baseStepWaitMs;
-  let lastProgressUpdateWall = 0;
-
-  for (let step = 0; step <= totalSteps; step++) {
-    if (cancelGenerationRequested) break;
-
-    const exactTime = Math.min(tEnd, tStart + step * dt);
-    const seekResult = await seekVideoElementTo(vidElem, exactTime);
-    if (cancelGenerationRequested) break;
-
-    avgSeekMs = avgSeekMs * 0.8 + seekResult.elapsedMs * 0.2;
-    const autoBrakeExtraMs = avgSeekMs > 45 ? Math.min(100, Math.round((avgSeekMs - 45) * 0.75)) : 0;
-    const totalWaitMs = DEVICE_SPEC_PROFILE.baseStepWaitMs + autoBrakeExtraMs;
-    if (totalWaitMs > 0) {
-      await new Promise(r => setTimeout(r, totalWaitMs));
-    }
-    if (cancelGenerationRequested) break;
-
-    // キーフレーム跨ぎなどでデコーダが一瞬遅れて直前と全く同じフレームバッファを返している場合のみ、最大2回（18ms×2）だけ待つ
-    tinyCheckCtx.drawImage(vidElem, srcX1, Math.round(rawH * 0.55), srcCropW, Math.round(rawH * 0.15), 0, 0, 24, 16);
-    let currTinyData = new Uint8ClampedArray(tinyCheckCtx.getImageData(0, 0, 24, 16).data);
-    if (prevTinyData && step > 0) {
-      let retry = 0;
-      while (retry < 2 && !cancelGenerationRequested) {
-        let diff = 0, active = 0;
-        for (let i = 0; i < currTinyData.length; i += 4) {
-          const s = currTinyData[i] + currTinyData[i + 1] + currTinyData[i + 2];
-          if (s > 130) active++;
-          diff += Math.abs(currTinyData[i] - prevTinyData[i]) + Math.abs(currTinyData[i + 1] - prevTinyData[i + 1]);
-        }
-        // ノーツや線が存在する区間なのに差分がほぼ0（デコード未完了）なら少し待って再取得
-        if (active >= 8 && diff < 12) {
-          await new Promise(r => setTimeout(r, 18));
-          await waitTwoAnimationFrames();
-          tinyCheckCtx.drawImage(vidElem, srcX1, Math.round(rawH * 0.55), srcCropW, Math.round(rawH * 0.15), 0, 0, 24, 16);
-          currTinyData = new Uint8ClampedArray(tinyCheckCtx.getImageData(0, 0, 24, 16).data);
-          retry++;
-        } else {
-          break;
-        }
-      }
-    }
-    prevTinyData = currTinyData;
-
-    const actualMediaTime = seekResult.mediaTime;
-    const timeDiff = actualMediaTime - exactTime;
-    const rawShiftY = timeDiff * speedPxPerSec;
-    const maxShift = stepPx * 0.45;
-    const subPixelShiftY = Math.max(-maxShift, Math.min(maxShift, rawShiftY));
-
-    fCtx.drawImage(vidElem, srcX1, 0, srcCropW, rawH, 0, 0, cropW, h);
-
-    if (step === 0 && bottomBaseH > 0) {
-      const baseSy = Math.max(0, Math.min(h - bottomBaseH, capY + subPixelShiftY));
-      drawSliceToMaster(frameCanvas, baseSy, bottomBaseH, 0, 1.0);
-      currentBottomY += bottomBaseH;
-    }
-
-    // 【改良3】時刻 exactTime において動画の基準ライン（capY）にあるノーツは、まさに今の currentBottomY に描かれるため、
-    // スライスを足す前の正確な基準座標をタイムスタンプとして記録する！（これにより初期ズレがゼロになる）
-    timeToYMap.push({ time: exactTime, bottomY: currentBottomY });
-
-    const sy = Math.max(0, Math.min(h - stepPx, (capY - stepPx) + subPixelShiftY));
-    drawSliceToMaster(frameCanvas, sy, stepPx, currentBottomY, 1.0);
-
-    if (step > 0 && overlapPx > 0 && currentBottomY > overlapPx) {
-      const halfOv = overlapPx * 0.5;
-      const featherSy1 = Math.max(0, Math.min(h - halfOv, sy + stepPx - halfOv));
-      const featherSy2 = Math.max(0, Math.min(h - halfOv, sy + stepPx));
-      drawSliceToMaster(frameCanvas, featherSy1, halfOv, currentBottomY - halfOv, 0.55);
-      drawSliceToMaster(frameCanvas, featherSy2, halfOv, currentBottomY - overlapPx, 0.25);
-    }
-
-    currentBottomY += stepPx;
-
-    if (step === totalSteps && topCapH > 0) {
-      const topSy = Math.max(0, Math.min(h - topCapH, topSafeY + subPixelShiftY));
-      drawSliceToMaster(frameCanvas, topSy, topCapH, currentBottomY, 1.0);
-      currentBottomY += topCapH;
-    }
-
-    if (step > 0 && step % DEVICE_SPEC_PROFILE.gcPauseEverySteps === 0) {
-      await new Promise(r => setTimeout(r, DEVICE_SPEC_PROFILE.gcPauseDurationMs));
-    }
-
-    const nowWall = performance.now();
-    if (onStepProgress && (nowWall - lastProgressUpdateWall > 180 || step === totalSteps)) {
-      lastProgressUpdateWall = nowWall;
-      onStepProgress((step + 1) / (totalSteps + 1), exactTime, tEnd, autoBrakeExtraMs);
-      await new Promise((r) => setTimeout(r, 0));
-    }
-  }
-
-  frameCanvas.width = 0;
-  frameCanvas.height = 0;
-  tinyCheckC.width = 0;
-  tinyCheckC.height = 0;
-
-  if (cancelGenerationRequested) {
-    for (const mc of masterChunks) {
-      mc.width = 0;
-      mc.height = 0;
-    }
-    return { hasData: false, chunks: [] };
-  }
-
-  const totalHeight = Math.max(100, Math.round(currentBottomY));
-
-  if (blackBgToggle.checked && masterChunks.length > 0) {
-    for (let k = 0; k < masterChunks.length; k++) {
-      if (cancelGenerationRequested) break;
-      applyBlackBackgroundFilter(masterCtxs[k], cropW, MASTER_CHUNK_H);
-      await new Promise(r => setTimeout(r, 15));
-    }
-  }
-
-  const actualLastTime = timeToYMap.length > 0 ? timeToYMap[timeToYMap.length - 1].time : tEnd;
-
+function describeMainProgress(info, engineLabel, prefix = "") {
+  const span = Math.max(0.001, info.tEnd - info.tStart);
+  const ratio = Math.min(1, Math.max(0, (info.time - info.tStart) / span));
+  const st = info.stats;
   return {
-    hasData: masterChunks.length > 0 && !cancelGenerationRequested,
-    cropW: cropW,
-    totalHeight: totalHeight,
-    bottomBaseH: Math.round(bottomBaseH),
-    topCapH: Math.round(topCapH + stepPx),
-    chunks: masterChunks,
-    tStart: tStart,
-    tEnd: actualLastTime,
-    timeToYMap: timeToYMap,
-    sourceLabel: sourceName
+    ratio,
+    text: `${prefix}全フレームの実移動量を照合して合成中... (${info.time.toFixed(1)}秒 / ${info.tEnd.toFixed(1)}秒) [${engineLabel}] 停止フレーム ${st.freeze} / 推定補間 ${st.predicted}`
   };
 }
 
-function renderMasterDataToTempCanvas(mData) {
-  const { cropW, totalHeight, chunks } = mData;
-  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
-  const mode = layoutMode.value;
-  const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
-  const colGap = 14;
-  const headerH = 0;
-
-  const MAX_DIM = 14000;
-  const MAX_AREA = 60000000;
-  const tempC = document.createElement("canvas");
-
-  function drawCol(targetCtx, c, destX, destY) {
-    targetCtx.fillStyle = "#000000";
-    targetCtx.fillRect(destX, destY, cropW, colMaxH);
-    const colBottomStart = c * colMaxH;
-    const colBottomEnd = Math.min(totalHeight, colBottomStart + colMaxH);
-    if (colBottomEnd <= colBottomStart) return;
-    const startChunk = Math.floor(colBottomStart / MASTER_CHUNK_H);
-    const endChunk = Math.floor((colBottomEnd - 1) / MASTER_CHUNK_H);
-    for (let k = startChunk; k <= endChunk; k++) {
-      if (k < 0 || k >= chunks.length) continue;
-      const chunkBottomStart = k * MASTER_CHUNK_H;
-      const overlapBottom = Math.max(colBottomStart, chunkBottomStart);
-      const overlapTop = Math.min(colBottomEnd, chunkBottomStart + MASTER_CHUNK_H);
-      const copyH = overlapTop - overlapBottom;
-      if (copyH <= 0) continue;
-      const srcY = MASTER_CHUNK_H - (overlapBottom - chunkBottomStart) - copyH;
-      const dstY = destY + (colMaxH - (overlapBottom - colBottomStart) - copyH);
-      targetCtx.drawImage(chunks[k], 0, srcY, cropW, copyH, destX, dstY, cropW, copyH);
-    }
+function requestStopGeneration() {
+  if (!activeGenerationJob) return;
+  activeGenerationJob.cancelled = true;
+  cancelGenerationRequested = true;
+  for (const fn of Array.from(activeSeekResolvers)) {
+    try { fn(); } catch (e) {}
   }
-
-  if (mode === "single") {
-    const rawW = cropW;
-    const rawH = totalHeight;
-    const renderScale = Math.min(
-      1,
-      MAX_DIM / Math.max(1, rawW),
-      MAX_DIM / Math.max(1, rawH),
-      Math.sqrt(MAX_AREA / Math.max(1, rawW * rawH))
-    );
-    tempC.width = Math.max(1, Math.round(rawW * renderScale));
-    tempC.height = Math.max(1, Math.round(rawH * renderScale));
-    const ctx = tempC.getContext("2d", { willReadFrequently: true });
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, tempC.width, tempC.height);
-    ctx.save();
-    ctx.scale(renderScale, renderScale);
-    for (let c = 0; c < numCols; c++) {
-      drawCol(ctx, c, 0, totalHeight - (c + 1) * colMaxH);
-    }
-    ctx.restore();
-  } else {
-    const rawW = numCols * cropW + (numCols + 1) * colGap;
-    const rawH = colMaxH + headerH + colGap * 2;
-    const renderScale = Math.min(
-      1,
-      MAX_DIM / Math.max(1, rawW),
-      MAX_DIM / Math.max(1, rawH),
-      Math.sqrt(MAX_AREA / Math.max(1, rawW * rawH))
-    );
-    tempC.width = Math.max(1, Math.round(rawW * renderScale));
-    tempC.height = Math.max(1, Math.round(rawH * renderScale));
-    const ctx = tempC.getContext("2d", { willReadFrequently: true });
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.save();
-    ctx.scale(renderScale, renderScale);
-    ctx.fillStyle = blackBgToggle.checked ? "#05070b" : "#161c2e";
-    ctx.fillRect(0, 0, rawW, rawH);
-    for (let c = 0; c < numCols; c++) {
-      const x = colGap + c * (cropW + colGap);
-      const y = headerH + colGap;
-      drawCol(ctx, c, x, y);
-      ctx.strokeStyle = "#2b3856";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, cropW, colMaxH);
-    }
-    ctx.restore();
-  }
-
-  // 一括作成時の保存画像にも裏でタイムスタンプを直接埋め込む
-  embedTimestampsIntoCanvas(tempC, mData);
-  return tempC;
+  activeSeekResolvers.clear();
+  progressText.textContent = "停止しています...";
 }
+stopGenerateBtn.addEventListener("click", requestStopGeneration);
+progressStopBtn.addEventListener("click", requestStopGeneration);
 
 async function generateChartImage(isTestMode = false) {
   if (!video.videoWidth || isGenerating) return;
   video.pause();
   const prevMuted = video.muted;
   video.muted = true;
+  const job = { cancelled: false };
+  activeGenerationJob = job;
   cancelGenerationRequested = false;
 
   const startWallTime = performance.now();
   setGeneratingLock(true);
   progressContainer.style.display = "block";
-  progressPercent.textContent = "0%";
-  progressBar.style.width = "0%";
-  progressText.textContent = "動画データをメモリへプリロード中...";
+  setProgress(0, "生成の準備中...");
+  let engineLabel = "";
 
   try {
-    if (activeVideoItem && !activeVideoItem.ramBlobUrl) {
-      const ramUrl = await ensureVideoPreloadedInMemory(activeVideoItem);
-      if (ramUrl && !cancelGenerationRequested) {
-        video.src = ramUrl;
-        video.load();
-        await new Promise((resolve) => {
-          video.onloadedmetadata = resolve;
-          video.onerror = resolve;
-        });
-      }
-    }
-
     const label = activeFolderName || (activeVideoName ? activeVideoName.replace(/\.[^.]+$/, "") : "生成譜面");
-    const resultData = await buildMasterDataForVideoElement(
-      video,
-      label,
-      isTestMode,
-      (ratio, exactTime, tEnd, brakeExtraMs) => {
-        if (cancelGenerationRequested) return;
-        const pct = Math.min(100, Math.round(ratio * 100));
-        progressPercent.textContent = `${pct}%`;
-        progressBar.style.width = `${pct}%`;
-        const paceNote = brakeExtraMs > 10 ? ` [負荷検知: 自動減速中 +${brakeExtraMs}ms]` : ` [${DEVICE_SPEC_PROFILE.label}]`;
-        progressText.textContent = `タイムスタンプ記録＆高精度フレーム同期で合成中... (${exactTime.toFixed(1)}秒 / ${tEnd.toFixed(1)}秒)${paceNote}`;
+    const resultData = await buildMasterDataForVideo(video, activeVideoItem, label, isTestMode, job, (info) => {
+      if (job.cancelled) return;
+      if (info.phase === "engine") {
+        engineLabel = info.label;
+        if (deviceSpecBadge) deviceSpecBadge.textContent = info.label;
+      } else if (info.phase === "bg") {
+        setProgress(info.ratio * 5, `動かない背景（イラスト・固定表示）を動画全体から推定中... [${engineLabel}]`);
+      } else if (info.phase === "main") {
+        const p = describeMainProgress(info, engineLabel);
+        setProgress(5 + 95 * p.ratio, p.text);
       }
-    );
+    });
 
-    if (resultData.hasData && !cancelGenerationRequested) {
-      if (masterChartData.hasData) {
-        releaseMasterChunks(masterChartData);
-      }
-      masterChartData = resultData;
-      if (activeFolderName && folderGroups.has(activeFolderName)) {
+    if (resultData.hasData && !job.cancelled) {
+      // テスト作成ではフォルダの静止画・保存済みタイムスタンプを上書きしない
+      if (!isTestMode && activeFolderName && folderGroups.has(activeFolderName)) {
         const grp = folderGroups.get(activeFolderName);
-        grp.images = [{ name: `${activeFolderName}_譜面.png`, file: null, url: null, masterData: resultData }];
+        grp.images = [{ name: chartImageFileName(activeFolderName), file: null, url: null, masterData: resultData, folderName: activeFolderName }];
       }
-      await rebuildLayoutFromMaster(!isTestMode);
-      progressPercent.textContent = "100%";
-      progressBar.style.width = "100%";
+      replaceMasterChartData(resultData);
+      const saved = await rebuildLayoutFromMaster(!isTestMode, { saveProfile: !isTestMode });
       const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-      progressText.textContent = `譜面静止画の作成・タイムスタンプ記録・フォルダ自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
-    } else if (cancelGenerationRequested) {
+      const st = resultData.stats || {};
+      const speedNote = st.measuredSpeedPct ? `・実測スクロール速度 ${st.measuredSpeedPct.toFixed(2)}%/秒` : "";
+      const doneLabel = isTestMode
+        ? "テスト作成が完了しました"
+        : (saved
+          ? "譜面静止画の作成・タイムスタンプ記録・フォルダ自動保存が完了しました"
+          : "譜面静止画の作成とタイムスタンプ記録が完了しました（保存先フォルダが未登録のため、下の保存ボタンから保存してください）");
+      setProgress(100, `${doneLabel}（処理時間: ${elapsedSec}秒・${st.frames || 0}フレーム解析・停止フレーム${st.freeze || 0}${speedNote}）`);
+    } else if (job.cancelled) {
       progressText.textContent = "静止画の生成を停止しました";
     }
   } catch (err) {
-    progressText.textContent = `エラーが発生しました: ${err.message || err}`;
+    progressText.textContent = `エラーが発生しました: ${err && err.message ? err.message : err}`;
   } finally {
     video.muted = prevMuted;
     applyPlaybackRate(currentPlaybackRate, false);
     shouldRestartFromBeginning = true;
-    smoothedDriftOffsetY = 0;
-    targetDriftOffsetY = 0;
     await seekVideoElementTo(video, 0);
     seekSlider.value = 0;
     currentTimeLabel.textContent = `0.00 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
+    activeGenerationJob = null;
     setGeneratingLock(false);
     renderTopSwitcher();
     drawPreview(true);
@@ -3137,99 +4443,103 @@ async function processMultipleVideosConcurrently() {
   if (vidEntries.length === 0) return;
 
   video.pause();
+  const job = { cancelled: false };
+  activeGenerationJob = job;
   cancelGenerationRequested = false;
   const startWallTime = performance.now();
   setGeneratingLock(true);
   progressContainer.style.display = "block";
-  progressPercent.textContent = "0%";
-  progressBar.style.width = "0%";
+  setProgress(0, "一括作成の準備中...");
 
   let completedCount = 0;
+  let savedCount = 0;
   let firstCompletedFolder = "";
 
   try {
     for (let idx = 0; idx < vidEntries.length; idx++) {
-      if (cancelGenerationRequested) break;
+      if (job.cancelled) break;
       const { videoEntry, folderName } = vidEntries[idx];
-
-      progressText.textContent = `[${idx + 1}/${vidEntries.length}本目] 「${folderName}」の動画データをメモリへ展開中...`;
-
-      const ramUrl = await ensureVideoPreloadedInMemory(videoEntry);
-      if (cancelGenerationRequested) break;
+      const head = `[${idx + 1}/${vidEntries.length}本目: ${folderName}] `;
+      progressText.textContent = `${head}動画を読み込み中...`;
 
       const tempVid = document.createElement("video");
       tempVid.playsInline = true;
       tempVid.muted = true;
-      tempVid.src = ramUrl;
+      tempVid.preload = "auto";
+      const tempUrl = videoEntry.file ? URL.createObjectURL(videoEntry.file) : (videoEntry.url || "");
+      tempVid.src = tempUrl;
       tempVid.load();
+      const ok = await waitForVideoMetadata(tempVid);
 
-      await new Promise((resolve) => {
-        tempVid.onloadedmetadata = resolve;
-        tempVid.onerror = resolve;
-      });
+      try {
+        if (ok && tempVid.videoWidth && !job.cancelled) {
+          let engineLabel = "";
+          const mData = await buildMasterDataForVideo(tempVid, videoEntry, folderName, false, job, (info) => {
+            if (job.cancelled) return;
+            if (info.phase === "engine") {
+              engineLabel = info.label;
+            } else if (info.phase === "bg") {
+              setProgress(((idx + info.ratio * 0.05) / vidEntries.length) * 100, `${head}動かない背景を推定中...`);
+            } else if (info.phase === "main") {
+              const p = describeMainProgress(info, engineLabel, head);
+              setProgress(((idx + 0.05 + 0.95 * p.ratio) / vidEntries.length) * 100, p.text);
+            }
+          });
 
-      if (tempVid.videoWidth && !cancelGenerationRequested) {
-        const mData = await buildMasterDataForVideoElement(
-          tempVid,
-          folderName,
-          false,
-          (ratio, exactTime, tEnd) => {
-            if (cancelGenerationRequested) return;
-            const overallRatio = (idx + ratio) / vidEntries.length;
-            const pct = Math.min(100, Math.round(overallRatio * 100));
-            progressPercent.textContent = `${pct}%`;
-            progressBar.style.width = `${pct}%`;
-            progressText.textContent = `[${idx + 1}/${vidEntries.length}本目: ${folderName}] タイムスタンプ記録＆高精度同期で合成中... (${exactTime.toFixed(1)}s / ${tEnd.toFixed(1)}s)`;
+          if (mData.hasData && !job.cancelled) {
+            completedCount++;
+            if (!firstCompletedFolder) firstCompletedFolder = folderName;
+            saveTimestampProfileForFolder(folderName, mData);
+
+            const tempOutC = document.createElement("canvas");
+            const lay = renderChartLayout(mData, tempOutC);
+            embedTimestampsIntoCanvas(tempOutC, Object.assign({}, mData, { layout: lay.layoutMeta }));
+            const grp = folderGroups.get(folderName);
+            const saved = await autoSaveCanvasToFolder(folderName, tempOutC);
+            if (saved) savedCount++;
+            if (!saved && grp) {
+              // 保存先が無い場合は画像としてメモリに残す（巨大なマスターは残さない）
+              const blob = await canvasToBlobSafe(tempOutC);
+              if (blob) {
+                const name = chartImageFileName(folderName);
+                grp.images = [{ name, file: new File([blob], name, { type: "image/png" }), url: null, masterData: null, folderName }];
+              }
+            }
+            tempOutC.width = 0;
+            tempOutC.height = 0;
+            // 一括処理では動画1本ごとにマスターを解放する（以前は全動画分を保持してメモリ不足になり得た）
+            releaseMasterChunks(mData);
           }
-        );
-
-        if (mData.hasData && !cancelGenerationRequested) {
-          completedCount++;
-          if (!firstCompletedFolder) firstCompletedFolder = folderName;
-
-          saveTimestampProfileForFolder(folderName, mData);
-
-          const grp = folderGroups.get(folderName);
-          if (grp) {
-            grp.images = [{
-              name: `${folderName}_譜面.png`,
-              file: null,
-              url: null,
-              masterData: mData
-            }];
-          }
-
-          const tempOutC = renderMasterDataToTempCanvas(mData);
-          await autoSaveCanvasToFolder(folderName, tempOutC);
-          tempOutC.width = 0;
-          tempOutC.height = 0;
         }
+      } finally {
+        tempVid.removeAttribute("src");
+        tempVid.load();
+        if (videoEntry.file && tempUrl) URL.revokeObjectURL(tempUrl);
       }
-
-      tempVid.src = "";
-      await new Promise(r => setTimeout(r, 300));
     }
 
     const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
-    if (cancelGenerationRequested) {
+    if (job.cancelled) {
       progressText.textContent = `一括処理を停止しました（完了分 ${completedCount} フォルダ / ${elapsedSec}秒）`;
+    } else if (savedCount === completedCount) {
+      setProgress(100, `未作成だった全 ${completedCount} フォルダの順番処理・タイムスタンプ記録・自動保存が完了しました（処理時間: ${elapsedSec}秒）`);
     } else {
-      progressPercent.textContent = "100%";
-      progressBar.style.width = "100%";
-      progressText.textContent = `未作成だった全 ${completedCount} フォルダの順番処理・タイムスタンプ記録・自動保存が完了しました（処理時間: ${elapsedSec}秒）`;
+      setProgress(100, `未作成だった全 ${completedCount} フォルダの作成が完了しました（自動保存 ${savedCount} 件。保存先フォルダが未登録の ${completedCount - savedCount} 件は画面内に保持しているので、各フォルダを選んで保存ボタンから保存してください／処理時間: ${elapsedSec}秒）`);
     }
+  } catch (err) {
+    progressText.textContent = `エラーが発生しました: ${err && err.message ? err.message : err}`;
   } finally {
     shouldRestartFromBeginning = true;
-    smoothedDriftOffsetY = 0;
-    targetDriftOffsetY = 0;
     if (video.src) {
       applyPlaybackRate(currentPlaybackRate, false);
       await seekVideoElementTo(video, 0);
       seekSlider.value = 0;
       currentTimeLabel.textContent = `0.00 秒 / ${(video.duration || 0).toFixed(2)} 秒`;
     }
+    const wasCancelled = job.cancelled;
+    activeGenerationJob = null;
     setGeneratingLock(false);
-    if (firstCompletedFolder && !cancelGenerationRequested) {
+    if (firstCompletedFolder && !wasCancelled) {
       switcherContent.style.display = "block";
       selectFolderSet(firstCompletedFolder);
     } else {
@@ -3265,10 +4575,16 @@ let vY = 0;
 let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
+let lastZoomLabel = "";
 
 function updateViewerTransform() {
   canvasStage.style.transform = `translate3d(${vX}px, ${vY}px, 0) scale(${vScale})`;
-  zoomLevelLabel.textContent = `${Math.round(vScale * 100)}%`;
+  const zl = `${Math.round(vScale * 100)}%`;
+  if (zl !== lastZoomLabel) {
+    lastZoomLabel = zl;
+    zoomLevelLabel.textContent = zl;
+  }
+  positionPlayheadOverlay();
 }
 
 function fitViewerAll() {
@@ -3430,6 +4746,9 @@ window.addEventListener("mouseup", () => {
   isDragging = false;
   viewerViewport.classList.remove("dragging");
 });
+window.addEventListener("resize", () => {
+  positionPlayheadOverlay();
+});
 
 // =========================================================
 // 10. PNG画像・指定列のみ保存・ZIP一括ダウンロード保存
@@ -3437,7 +4756,7 @@ window.addEventListener("mouseup", () => {
 downloadPngBtn.addEventListener("click", async () => {
   if (isGenerating || !outputCanvas.width) return;
   const blob = await canvasToBlobSafe(outputCanvas);
-  const prefix = activeFolderName || "Proseka_Chart";
+  const prefix = activeFolderName ? String(activeFolderName).split("/").pop() : "Proseka_Chart";
   downloadBlob(blob, `${prefix}.png`);
 });
 
@@ -3462,12 +4781,12 @@ downloadSingleColBtn.addEventListener("click", async () => {
   tmpColC.height = colMaxH;
   const tmpColCtx = tmpColC.getContext("2d");
 
-  drawColumnFromMaster(tmpColCtx, c, colMaxH, 0, 0);
+  drawColumnFromMaster(tmpColCtx, masterChartData, c, colMaxH, 0, 0);
   const blob = await canvasToBlobSafe(tmpColC);
   tmpColC.width = 0;
   tmpColC.height = 0;
 
-  const prefix = activeFolderName || "Proseka_Chart";
+  const prefix = activeFolderName ? String(activeFolderName).split("/").pop() : "Proseka_Chart";
   const numStr = String(colNumber).padStart(2, "0");
   downloadBlob(blob, `${prefix}_列${numStr}.png`);
 });
@@ -3478,7 +4797,7 @@ downloadResultZipBtn.addEventListener("click", async () => {
   downloadResultZipBtn.textContent = "ZIPファイルを作成中...";
   try {
     const files = [];
-    const prefix = activeFolderName || "Proseka_Chart";
+    const prefix = activeFolderName ? String(activeFolderName).split("/").pop() : "Proseka_Chart";
     const fullPngBytes = await canvasToUint8Array(outputCanvas);
     if (fullPngBytes.length > 0) {
       files.push({ name: `00_${prefix}_全体一覧.png`, data: fullPngBytes });
@@ -3494,7 +4813,7 @@ downloadResultZipBtn.addEventListener("click", async () => {
       const tmpColCtx = tmpColC.getContext("2d");
 
       for (let c = 0; c < numCols; c++) {
-        drawColumnFromMaster(tmpColCtx, c, colMaxH, 0, 0);
+        drawColumnFromMaster(tmpColCtx, masterChartData, c, colMaxH, 0, 0);
         const colBytes = await canvasToUint8Array(tmpColC);
         if (colBytes.length > 0) {
           const num = String(c + 1).padStart(2, "0");

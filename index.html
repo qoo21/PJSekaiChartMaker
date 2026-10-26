@@ -3,476 +3,335 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PJSekaiChartMaker - プロセカ譜面動画 変換ソフト</title>
+<title>譜面静止画メーカー</title>
 <style>
   :root {
-    --primary: #00d4d4;
-    --primary-dark: #009999;
-    --bg: #0f131d;
-    --card: #192030;
-    --text: #f0f4f8;
-    --muted: #9aa5b8;
-    --accent: #ff4d88;
-    --border: #2e3954;
+    --bg: #15171b;
+    --panel: #1e2126;
+    --panel-2: #262a30;
+    --line: #33373f;
+    --text: #e8e8e8;
+    --muted: #9a9ea6;
+    --accent: #d9577a;
+    --accent-hover: #e46d8c;
+    --ok: #7cc49a;
   }
-  * { box-sizing: border-box; font-family: "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif; }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; padding: 16px 20px;
-    background-color: var(--bg); color: var(--text);
-    line-height: 1.55;
+    margin: 0; padding: 12px;
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    font-size: 15px; line-height: 1.5;
   }
-  .container { max-width: 1200px; margin: 0 auto; }
-  header {
-    display: flex; justify-content: space-between; align-items: center;
-    background: linear-gradient(135deg, #182540 0%, #101a2e 100%);
-    padding: 14px 20px; border-radius: 12px;
-    border: 1px solid var(--border); margin-bottom: 14px;
-    flex-wrap: wrap; gap: 12px;
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.15rem; margin: 4px 0 12px; font-weight: 700; }
+  h2 { font-size: 0.95rem; margin: 0 0 8px; font-weight: 700; color: var(--text); }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px; margin-bottom: 12px;
   }
-  header h1 { margin: 0; font-size: 1.3rem; color: #fff; }
-  .step-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 16px 18px; margin-bottom: 16px;
-  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row + .row { margin-top: 8px; }
+  .spacer { flex: 1; }
+  .hint { font-size: 0.82rem; color: var(--muted); }
+
   .btn {
-    background: var(--primary); color: #001818; border: none;
-    padding: 8px 15px; border-radius: 8px; font-weight: bold;
-    cursor: pointer; font-size: 0.9rem; transition: 0.18s;
-    display: inline-flex; align-items: center; gap: 6px;
+    min-height: 38px; padding: 6px 14px;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; font-size: 0.9rem; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    -webkit-tap-highlight-color: transparent;
   }
-  .btn:hover { background: #33ecec; transform: translateY(-1px); }
-  .btn:disabled { background: #3c445c; color: #7c869e; cursor: not-allowed; transform: none; }
-  .btn-secondary { background: #28324a; color: #fff; border: 1px solid #3f4e70; }
-  .btn-secondary:hover { background: #344160; }
-  .btn-secondary.active { background: var(--primary); color: #001818; border-color: var(--primary); }
-  .btn-accent { background: var(--accent); color: #fff; }
-  .btn-accent:hover { background: #ff709f; }
-  .btn-danger { background: #e63946; color: #fff; }
-  .btn-danger:hover { background: #ff525f; }
+  .btn:hover { background: #2e333a; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-stop { background: #3a2226; border-color: #6b3540; color: #ffb3c0; }
+  .btn-small { min-height: 32px; padding: 4px 10px; font-size: 0.84rem; }
 
-  /* 生成中のロック表示用スタイル */
-  .locked-during-gen {
-    pointer-events: none !important;
-    opacity: 0.42 !important;
-    user-select: none !important;
+  select, input[type="number"], input[type="text"] {
+    min-height: 34px; padding: 4px 8px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 0.9rem;
   }
+  input[type="number"], input[type="text"] { width: 90px; }
+  input[type="range"] { accent-color: var(--accent); }
+  input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+  label.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9rem; }
 
-  /* プレビュー上部のフォルダ一括切り替えバー */
-  .top-switcher-card {
-    background: #141b2b; border: 2px solid #00a8a8;
-    border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
-    transition: opacity 0.2s;
-  }
-  .switcher-header {
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 10px;
-  }
+  /* 生成中は他の操作を止める */
+  .locked-during-gen { pointer-events: none !important; opacity: 0.45 !important; user-select: none !important; }
+
+  /* フォルダ切り替え（スマホでは横スクロール） */
   .folder-tabs {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    padding-top: 10px; margin-top: 8px; border-top: 1px solid var(--border);
+    display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 2px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: thin;
   }
   .folder-set-btn {
-    background: #222c42; color: #e2e8f0; border: 1px solid #3a496b;
-    padding: 7px 15px; border-radius: 8px; font-size: 0.9rem;
-    cursor: pointer; white-space: nowrap; transition: 0.15s; font-weight: bold;
+    flex: 0 0 auto; min-height: 34px; padding: 4px 12px;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 999px;
+    font: inherit; font-size: 0.86rem; cursor: pointer; white-space: nowrap;
   }
-  .folder-set-btn:hover { background: #2e3c59; transform: translateY(-1px); }
-  .folder-set-btn.active {
-    background: var(--primary); color: #001818; border-color: var(--primary);
-    box-shadow: 0 0 12px rgba(0, 212, 212, 0.35);
-  }
-  .folder-set-btn.unprocessed {
-    border-color: var(--accent);
-  }
+  .folder-set-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 700; }
+  .folder-set-btn.unprocessed { border-style: dashed; border-color: var(--accent); }
 
-  /* 動画プレビュー（上部） */
+  /* 動画プレビュー */
   .preview-wrapper {
-    position: relative; background: #000; border-radius: 8px;
-    overflow: hidden; border: 1px solid var(--border);
-    display: flex; justify-content: center; align-items: center;
-    min-height: 200px; max-height: 310px;
+    background: #000; border-radius: 6px; overflow: hidden;
+    display: flex; justify-content: center; align-items: center; min-height: 160px;
   }
   #videoPreview { display: none; }
   #previewCanvas { max-width: 100%; max-height: 300px; display: block; }
+  .transport { margin-top: 8px; }
+  .transport input[type="range"] { flex: 1 1 160px; min-width: 120px; }
+  #currentTimeLabel { font-variant-numeric: tabular-nums; font-size: 0.86rem; color: var(--muted); white-space: nowrap; }
 
-  /* 再生ボタン＆シークバー（常時表示） */
-  .main-transport-bar {
-    display: flex; align-items: center; gap: 10px;
-    background: #121724; padding: 10px 14px; border-radius: 8px;
-    border: 1px solid #222b40; margin-top: 10px; flex-wrap: wrap;
-    transition: opacity 0.2s;
-  }
-  .main-transport-bar input[type="range"] {
-    flex: 1; min-width: 140px; accent-color: var(--primary); cursor: pointer;
-  }
+  .progress-container { display: none; margin-top: 10px; }
+  .progress-bar-bg { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .progress-bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s; }
+  #progressText { font-size: 0.86rem; }
+  #progressPercent { font-variant-numeric: tabular-nums; font-weight: 700; }
 
-  /* 常時表示パネル共通 */
-  .always-panel {
-    margin-top: 10px; background: #121724; padding: 12px 14px;
-    border-radius: 8px; border: 1px solid #222b40;
-  }
-
-  /* 詳細設定の折りたたみタブ */
-  .details-tab-wrap {
-    margin-top: 10px; background: #121724; border: 1px solid var(--border);
-    border-radius: 8px; overflow: hidden; transition: opacity 0.2s;
-  }
-  .details-tab-summary {
-    padding: 9px 14px; cursor: pointer; font-weight: bold;
-    color: var(--primary); font-size: 0.92rem; user-select: none;
-    background: #161d2e; display: flex; justify-content: space-between; align-items: center;
-    list-style: none;
-  }
+  /* 詳細設定 */
+  .details-tab-wrap { border-radius: 8px; }
+  .details-tab-summary { cursor: pointer; font-weight: 700; font-size: 0.95rem; list-style: none; display: flex; justify-content: space-between; gap: 8px; }
   .details-tab-summary::-webkit-details-marker { display: none; }
-  .details-tab-summary:hover { background: #1c253b; }
-  .details-tab-body {
-    padding: 14px; border-top: 1px solid var(--border);
-  }
+  .details-tab-summary::before { content: "▸"; margin-right: 6px; color: var(--muted); }
+  details[open] > .details-tab-summary::before { content: "▾"; }
+  .details-tab-body { margin-top: 10px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .control-group { background: var(--panel-2); border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+  .control-group > .label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.88rem; font-weight: 700; margin-bottom: 6px; }
+  .control-group input[type="range"] { width: 100%; }
+  .field { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; font-size: 0.88rem; }
+  .field > span:first-child { min-width: 64px; color: var(--muted); }
 
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
-
-  .control-group { margin-bottom: 12px; background: #0e131f; padding: 12px 14px; border-radius: 8px; border: 1px solid #222b40; }
-  .control-group label { display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 5px; font-weight: bold; }
-  .control-group input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
-  .inline-inputs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
-  .num-input, select.num-input {
-    background: #0a0e17; color: #fff; border: 1px solid var(--border);
-    padding: 6px 10px; border-radius: 6px; width: 92px; font-size: 0.92rem;
-  }
-  .checkbox-row {
-    display: flex; align-items: center; gap: 8px; cursor: pointer;
-    font-weight: bold; color: #55ffaa; font-size: 0.92rem; margin-bottom: 8px;
-  }
-  .checkbox-row input { width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer; }
-
-  .progress-container {
-    display: none; margin-top: 10px; background: #0b0f18;
-    border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border);
-  }
-  .progress-bar-bg { width: 100%; height: 12px; background: #1e2638; border-radius: 6px; overflow: hidden; margin-top: 6px; }
-  .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #55ffaa); transition: width 0.08s; }
-
-  /* 静止画プレビューの上：常時表示ツールバー（生成中も操作可能） */
-  .viewer-top-controls {
-    margin-top: 12px; background: #141a29; border: 2px solid var(--border);
-    border-bottom: none; border-radius: 10px 10px 0 0; padding: 10px 14px;
-  }
-  .viewer-col-jumps {
-    display: none; gap: 6px; align-items: center; overflow-x: auto;
-    padding-top: 8px; margin-top: 8px; border-top: 1px solid #26314d;
-  }
-
-  /* 静止画プレビュー本体（生成中も操作可能） */
-  .viewer-box {
-    position: relative; background: #07090e; border: 2px solid var(--border);
-    overflow: hidden; display: flex; flex-direction: column;
-  }
-  .viewer-box.fullscreen {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 9999; margin: 0; border-radius: 0; border: none;
-  }
-  .exit-fullscreen-btn {
-    display: none; position: fixed; top: 16px; right: 20px;
-    z-index: 10001; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
-    padding: 10px 18px; font-size: 0.95rem;
-  }
-  .viewer-box.fullscreen .exit-fullscreen-btn {
-    display: inline-flex;
-  }
-
+  /* 静止画ビューアー */
+  .viewer-box { position: relative; background: #000; border-radius: 6px; overflow: hidden; margin-top: 8px; }
+  .viewer-box.fullscreen { position: fixed; inset: 0; z-index: 9999; margin: 0; border-radius: 0; }
+  .exit-fullscreen-btn { display: none; position: fixed; top: 12px; right: 12px; z-index: 10001; }
+  .viewer-box.fullscreen .exit-fullscreen-btn { display: inline-flex; }
   .viewer-viewport {
-    position: relative; width: 100%; height: 580px; overflow: hidden;
-    cursor: grab; background: #000; user-select: none;
+    position: relative; width: 100%; height: min(68vh, 600px); overflow: hidden;
+    cursor: grab; background: #000; user-select: none; touch-action: none;
   }
-  .viewer-box.fullscreen .viewer-viewport { height: 100vh; }
+  .viewer-box.fullscreen .viewer-viewport { height: 100vh; height: 100dvh; }
   .viewer-viewport.dragging { cursor: grabbing; }
-  #canvasStage {
-    transform-origin: 0 0;
-    position: absolute; top: 0; left: 0;
-    box-shadow: 0 0 25px rgba(0,0,0,0.8);
-    will-change: transform;
-  }
+  #canvasStage { transform-origin: 0 0; position: absolute; top: 0; left: 0; will-change: transform; }
   #outputCanvas { display: block; }
+  .viewer-col-jumps { display: none; gap: 6px; overflow-x: auto; padding-top: 8px; }
+  .viewer-col-jumps .btn { flex: 0 0 auto; }
+  #zoomLevelLabel { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
 
-  /* 再生位置バー：静止画の拡大率に関係なく画面上で一定の太さのまま、GPU合成だけで滑らかに動かす */
+  /* 再生位置バー：拡大率に関係なく画面上で一定の太さ */
   #playheadColHighlight {
     position: absolute; top: 0; left: 0; z-index: 3;
-    border: 2px solid rgba(255, 77, 136, 0.6);
-    pointer-events: none; display: none;
-    will-change: transform;
+    border: 2px solid rgba(217, 87, 122, 0.55);
+    pointer-events: none; display: none; will-change: transform;
   }
   #playheadBar {
-    position: absolute; top: 0; left: 0; z-index: 4; height: 14px; margin-top: -7px;
-    background: rgba(255, 50, 110, 0.16);
-    pointer-events: none; display: none;
-    will-change: transform;
+    position: absolute; top: 0; left: 0; z-index: 4; height: 12px; margin-top: -6px;
+    pointer-events: none; display: none; will-change: transform;
   }
   #playheadBar::after {
     content: ""; position: absolute; left: 0; right: 0; top: 50%;
-    height: 2px; margin-top: -1px; background: #ff2a6d;
-    box-shadow: 0 0 6px rgba(255, 42, 109, 0.85);
+    height: 2px; margin-top: -1px; background: #ff4f7b;
   }
   #playheadTimeBadge {
-    position: absolute; left: 0; bottom: 100%; margin-bottom: 3px;
-    background: #ff2a6d; color: #fff; font-weight: bold;
-    font-size: 12px; line-height: 20px; padding: 0 8px;
-    border-radius: 3px; white-space: nowrap;
+    position: absolute; left: 0; bottom: 100%; margin-bottom: 2px;
+    background: #ff4f7b; color: #fff; font-size: 12px; line-height: 18px; padding: 0 6px;
+    border-radius: 3px; white-space: nowrap; font-variant-numeric: tabular-nums;
   }
 
-  /* 静止画プレビューの下：常時表示保存バー */
-  .viewer-bottom-save-bar {
-    background: #141a29; border: 2px solid var(--border);
-    border-top: none; border-radius: 0 0 10px 10px; padding: 10px 14px;
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 10px; transition: opacity 0.2s;
+  @media (max-width: 720px) {
+    body { padding: 8px; font-size: 14px; }
+    .panel { padding: 10px; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .btn { min-height: 42px; }
+    .hide-sm { display: none !important; }
+    .full-sm { flex: 1 1 100%; }
+    #previewCanvas { max-height: 220px; }
   }
-
-  .hint { font-size: 0.82rem; color: var(--muted); }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <header>
-    <div>
-      <h1>プロセカ譜面動画 静止画メーカー</h1>
-    </div>
-    <div id="headerControls" style="display:flex; gap:8px; flex-wrap:wrap; transition:opacity 0.2s;">
-      <button class="btn" id="linkRootFolderBtn">同階層フォルダを登録（自動読み込み・自動保存設定）</button>
-      <button class="btn btn-secondary" id="selectFolderBtn">フォルダ選択</button>
-      <button class="btn btn-secondary" id="selectVideoBtn">動画選択</button>
-      <button class="btn btn-secondary" id="selectImagesBtn">画像選択</button>
-      <input type="file" id="videoInput" accept="video/*" multiple style="display:none;">
+  <h1>譜面静止画メーカー</h1>
+
+  <!-- 1. 読み込み -->
+  <section class="panel" id="topSwitcherCard">
+    <h2>1. 動画を読み込む</h2>
+    <div class="row" id="headerControls">
+      <button class="btn" id="linkRootFolderBtn" title="index.html のあるフォルダを選ぶと、次回から自動で読み込み、作った静止画と設定を自動保存します">フォルダを登録</button>
+      <button class="btn" id="selectFolderBtn">フォルダを開く</button>
+      <button class="btn" id="selectFilesBtn">ファイルを開く</button>
+      <input type="file" id="filesInput" accept="video/*,image/*,.json" multiple style="display:none;">
       <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
-      <input type="file" id="imagesInput" accept="image/*" multiple style="display:none;">
+      <span class="spacer"></span>
+      <button class="btn btn-small" id="reconnectFolderBtn" style="display:none;">前回のフォルダを読み込む</button>
+      <button class="btn btn-small" id="refreshFolderBtn" style="display:none;">再読み込み</button>
     </div>
-  </header>
-
-  <!-- プレビュー最上部：フォルダ切り替えバー（フォルダ名ボタン1つで動画と静止画を同時に切り替え） -->
-  <div class="top-switcher-card" id="topSwitcherCard">
-    <div class="switcher-header">
-      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <strong style="color:var(--primary); font-size:0.95rem;">フォルダ・ファイル切り替えバー</strong>
-        <span class="hint" id="folderStatusLabel">右上の「同階層フォルダを登録」で index.html のあるフォルダを選ぶと、フォルダの自動読み込み・静止画と設定の自動保存が有効になります</span>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button class="btn btn-accent" id="reconnectFolderBtn" style="display:none; padding:6px 14px; font-size:0.85rem;">同階層フォルダを自動読み込み</button>
-        <button class="btn btn-secondary" id="refreshFolderBtn" style="display:none; padding:5px 11px; font-size:0.82rem;">再スキャン</button>
-      </div>
-    </div>
-
+    <div class="hint" id="folderStatusLabel" style="margin-top:6px;">動画（と作成済みの静止画）を選んでください。ドラッグ＆ドロップでも読み込めます。</div>
     <div id="switcherContent" style="display:none;">
       <div class="folder-tabs" id="folderTabs"></div>
     </div>
-  </div>
+  </section>
 
-  <!-- 動画プレビューと静止画プレビューを統合したメイン枠 -->
-  <div class="step-card" id="unifiedPreviewCard">
-
-    <!-- 1. 上部：動画プレビュー -->
+  <!-- 2. 動画と作成 -->
+  <section class="panel" id="unifiedPreviewCard">
+    <h2>2. 静止画を作る</h2>
     <div class="preview-wrapper">
       <video id="videoPreview" playsinline></video>
       <canvas id="previewCanvas" width="640" height="360"></canvas>
     </div>
 
-    <!-- 2. 再生ボタン・再生速度（倍速/低速）＆ シークバー（常時表示・生成中はロック） -->
-    <div class="main-transport-bar" id="mainTransportBar">
-      <button class="btn" id="playPauseBtn" style="padding:7px 16px;">再生 / 一時停止</button>
-      <div style="display:flex; align-items:center; gap:5px; background:#0b0f19; padding:4px 9px; border-radius:6px; border:1px solid #26314d;">
-        <span style="font-size:0.82rem; color:var(--muted); white-space:nowrap;">再生速度:</span>
-        <select id="playbackRateSelect" class="num-input" style="width:105px; padding:3px 6px; font-size:0.85rem;">
-          <option value="0.25">0.25倍 (極低速)</option>
-          <option value="0.5">0.5倍 (低速)</option>
-          <option value="0.75">0.75倍 (やや低速)</option>
-          <option value="1" selected>1.0倍 (標準)</option>
-          <option value="1.25">1.25倍</option>
-          <option value="1.5">1.5倍 (高速)</option>
-          <option value="2">2.0倍 (倍速)</option>
-        </select>
-      </div>
-      <input type="range" id="seekSlider" min="0" max="100" step="0.02" value="0">
-      <span id="currentTimeLabel" style="font-size:0.88rem; font-weight:bold; min-width:135px; text-align:right;">0.00 秒 / 0.00 秒</span>
+    <div class="row transport" id="mainTransportBar">
+      <button class="btn" id="playPauseBtn">再生 / 停止</button>
+      <input type="range" id="seekSlider" min="0" max="100" step="0.02" value="0" aria-label="再生位置">
+      <span id="currentTimeLabel">0.00 秒 / 0.00 秒</span>
+      <select id="playbackRateSelect" aria-label="再生速度">
+        <option value="0.25">0.25倍</option>
+        <option value="0.5">0.5倍</option>
+        <option value="0.75">0.75倍</option>
+        <option value="1" selected>1倍</option>
+        <option value="1.25">1.25倍</option>
+        <option value="1.5">1.5倍</option>
+        <option value="2">2倍</option>
+      </select>
     </div>
 
-    <!-- 3. 静止画の作成・停止・複数動画一括処理・高さ変更再生成パネル（常時表示） -->
-    <div class="always-panel" style="border-color:#00a8a8;">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <div id="genActionGroup" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; transition:opacity 0.2s;">
-            <button class="btn btn-accent" id="generateBtn" disabled>現在の動画から静止画を作成</button>
-            <button class="btn" id="batchGenerateBtn" disabled>未作成の複数動画を一括作成</button>
-            <button class="btn btn-secondary" id="testGenerateBtn" disabled>最初の12秒だけテスト作成</button>
-          </div>
-          <button class="btn btn-danger" id="stopGenerateBtn" disabled>生成を停止</button>
-        </div>
-        <div id="reLayoutActionGroup" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; transition:opacity 0.2s;">
-          <span style="font-size:0.88rem; font-weight:bold; color:#55ffaa;">1列の高さ(px):</span>
-          <input type="number" id="colHeightInput" class="num-input" step="100" min="400" max="16000" value="5400" style="width:90px;">
-          <select id="layoutMode" class="num-input" style="width:185px;">
-            <option value="grid" selected>1枚の一覧画像に折り返して並べる</option>
-            <option value="single">折り返さずに1本の縦長画像にする</option>
-          </select>
-          <button class="btn btn-secondary" id="reLayoutBtn" disabled>高さを変更して再生成</button>
-        </div>
-      </div>
+    <div class="row" id="genActionGroup" style="margin-top:12px;">
+      <button class="btn btn-primary full-sm" id="generateBtn" disabled>静止画を作成</button>
+      <button class="btn" id="testGenerateBtn" disabled>最初の12秒で試す</button>
+      <button class="btn" id="batchGenerateBtn" disabled>未作成をまとめて作成</button>
     </div>
 
-    <!-- 進捗バー（生成処理中のみ表示） -->
     <div class="progress-container" id="progressContainer">
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.88rem; gap:10px;">
-        <span id="progressText">譜面を合成しています...</span>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span id="progressPercent" style="font-weight:bold;">0%</span>
-          <button class="btn btn-danger" id="progressStopBtn" style="padding:4px 10px; font-size:0.8rem;">停止</button>
-        </div>
+      <div class="row">
+        <span id="progressText" style="flex:1 1 200px;">準備中...</span>
+        <span id="progressPercent">0%</span>
+        <button class="btn btn-small btn-stop" id="progressStopBtn" disabled>停止</button>
       </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progressBar"></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+    </div>
+  </section>
+
+  <!-- 詳細設定 -->
+  <details class="panel details-tab-wrap" id="detailsTab">
+    <summary class="details-tab-summary">
+      <span>詳細設定</span>
+      <span class="hint hide-sm" id="currentViewFileName"></span>
+    </summary>
+
+    <div class="details-tab-body">
+      <div class="grid-2">
+        <div>
+          <div class="control-group">
+            <div class="label"><span>作成する範囲</span></div>
+            <div class="field">
+              <span>開始(秒)</span>
+              <input type="number" id="startTimeInput" step="0.1" value="0.0" inputmode="decimal">
+              <button class="btn btn-small" id="setStartBtn">今の位置</button>
+            </div>
+            <div class="field">
+              <span>終了(秒)</span>
+              <input type="number" id="endTimeInput" step="0.1" value="0.0" inputmode="decimal">
+              <button class="btn btn-small" id="setEndBtn">今の位置</button>
+            </div>
+            <div class="field">
+              <span>左端 <span id="leftVal">18.0</span>%</span>
+              <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="18" style="flex:1;">
+            </div>
+            <div class="field">
+              <span>右端 <span id="rightVal">78.5</span>%</span>
+              <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
+            </div>
+            <div class="hint" style="margin-top:6px;">プレビューの点線の位置にある譜面を、再生位置バーが指します。</div>
+          </div>
+
+          <div class="control-group">
+            <div class="label"><span>解像度</span><span class="hint" id="deviceSpecBadge"></span></div>
+            <select id="resolutionSelect" style="width:100%;">
+              <option value="original" selected>元の動画のまま</option>
+              <option value="1080">高さ 1080px まで</option>
+              <option value="720">高さ 720px まで</option>
+              <option value="560">高さ 560px まで（メモリ節約）</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div class="control-group">
+            <label class="check" style="font-weight:700;">
+              <input type="checkbox" id="blackBgToggle" checked>
+              背景のイラストを消す
+            </label>
+            <div id="blackBgControls">
+              <div class="label" style="margin-top:8px;"><span>消す強さ</span><span id="bgThreshLabel">36</span></div>
+              <input type="range" id="bgThreshSlider" min="25" max="110" step="1" value="36">
+              <div class="label" style="margin-top:6px;"><span>線の濃さ</span><span id="gridBoostLabel">0.5倍</span></div>
+              <input type="range" id="gridBoostSlider" min="0.5" max="3.5" step="0.1" value="0.5">
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="label"><span>スクロール速度の目安</span><span id="speedValLabel">47.50 %/秒</span></div>
+            <input type="range" id="speedSlider" min="15" max="160" step="0.02" value="47.50">
+            <div class="field">
+              <input type="number" id="speedInput" step="0.02" value="47.50" inputmode="decimal">
+              <button class="btn btn-small" id="autoSpeedBtn">自動で測る</button>
+            </div>
+            <div class="hint" style="margin-top:6px;">作成時は実際の動きを測るので、多少ずれていても結果は変わりません。</div>
+          </div>
+        </div>
       </div>
     </div>
+  </details>
 
-    <!-- 4. 詳細設定タブ（切り抜き範囲・解像度・黒背景フィルター・スクロール速度の目安） -->
-    <details class="details-tab-wrap" id="detailsTab">
-      <summary class="details-tab-summary">
-        <span>詳細設定を開く / 閉じる</span>
-        <span class="hint" id="currentViewFileName"></span>
-      </summary>
-
-      <div class="details-tab-body">
-        <div class="grid-2">
-          <div>
-            <!-- 時間と左右切り抜き（デフォルト：時間=動画全体 / 左右=左18%〜右78.5%） -->
-            <div class="control-group">
-              <label><span>合成する時間範囲 ＆ 左右の切り抜き範囲</span></label>
-              <div class="inline-inputs">
-                <span>開始(秒):</span>
-                <input type="number" id="startTimeInput" class="num-input" step="0.1" value="0.0">
-                <button class="btn btn-secondary" id="setStartBtn" style="padding:5px 9px; font-size:0.8rem;">今の位置を開始</button>
-              </div>
-              <div class="inline-inputs" style="margin-top:6px;">
-                <span>終了(秒):</span>
-                <input type="number" id="endTimeInput" class="num-input" step="0.1" value="0.0">
-                <button class="btn btn-secondary" id="setEndBtn" style="padding:5px 9px; font-size:0.8rem;">今の位置を終了</button>
-              </div>
-              <div class="inline-inputs" style="margin-top:8px;">
-                <span style="width:65px; font-size:0.85rem;">左端 <span id="leftVal">18.0</span>%:</span>
-                <input type="range" id="cropLeftSlider" min="0" max="45" step="0.5" value="18" style="flex:1;">
-                <span style="width:72px; font-size:0.85rem;">右端 <span id="rightVal">78.5</span>%:</span>
-                <input type="range" id="cropRightSlider" min="55" max="100" step="0.5" value="78.5" style="flex:1;">
-              </div>
-              <div class="hint" style="margin-top:6px;">プレビューのピンクの点線が切り出し基準ライン（再生位置バーが指す位置）です。譜面が止まっている時間（再生前・終了後）が含まれていても自動で判別します。</div>
-            </div>
-
-            <!-- 処理・出力の解像度設定（精度最優先でデフォルトは原寸100%） -->
-            <div class="control-group">
-              <label>
-                <span>処理・出力の解像度</span>
-                <span class="hint" id="deviceSpecBadge"></span>
-              </label>
-              <div class="inline-inputs">
-                <select id="resolutionSelect" class="num-input" style="width:100%;">
-                  <option value="original" selected>原寸 100%（元動画の解像度のまま・最高精度）</option>
-                  <option value="1080">高画質（高さ最大 1080px 相当）</option>
-                  <option value="720">標準（高さ最大 720px 相当）</option>
-                  <option value="560">軽量（高さ最大 560px 相当・メモリ節約）</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <!-- 黒背景フィルター設定 -->
-            <div class="control-group">
-              <label class="checkbox-row">
-                <input type="checkbox" id="blackBgToggle" checked>
-                <span>背景イラストを消して見やすくする</span>
-              </label>
-              <div id="blackBgControls">
-                <div class="hint" style="margin-bottom:6px;">動画全体から「動かない背景（イラスト・固定表示）」を推定し、動いている譜面要素だけを残します。</div>
-                <label>
-                  <span>背景消去しきい値（大きいほど薄い残りも消える）</span>
-                  <span id="bgThreshLabel">36</span>
-                </label>
-                <input type="range" id="bgThreshSlider" min="25" max="110" step="1" value="36">
-                <label style="margin-top:6px;">
-                  <span>16分音符の横線・レーン縦線のくっきり度</span>
-                  <span id="gridBoostLabel">0.5倍</span>
-                </label>
-                <input type="range" id="gridBoostSlider" min="0.5" max="3.5" step="0.1" value="0.5">
-              </div>
-            </div>
-
-            <!-- スクロール速度（照合の初期目安） -->
-            <div class="control-group">
-              <label>
-                <span>スクロール速度の目安（画面高さに対する % / 秒）</span>
-                <span id="speedValLabel">47.50 %/秒</span>
-              </label>
-              <input type="range" id="speedSlider" min="15" max="160" step="0.02" value="47.50">
-              <div class="inline-inputs" style="justify-content: space-between;">
-                <div>
-                  <span>微調整:</span>
-                  <input type="number" id="speedInput" class="num-input" step="0.02" value="47.50">
-                </div>
-                <button class="btn btn-secondary" id="autoSpeedBtn" style="padding:6px 12px; font-size:0.84rem;">速度を自動計測する</button>
-              </div>
-              <div class="hint" style="margin-top:6px;">生成時は各フレームの実際の移動量を画像照合で測るため、この値は照合の出発点として使われます（多少ずれていても結果は変わりません）。</div>
-            </div>
-          </div>
-        </div>
+  <!-- 3. 確認と保存 -->
+  <section class="panel">
+    <h2>3. 確認して保存</h2>
+    <div id="viewerTopControls">
+      <div class="row">
+        <button class="btn" id="viewerPlayPauseBtn">再生 / 停止</button>
+        <select id="viewerPlaybackRateSelect" aria-label="再生速度">
+          <option value="0.25">0.25倍</option>
+          <option value="0.5">0.5倍</option>
+          <option value="0.75">0.75倍</option>
+          <option value="1" selected>1倍</option>
+          <option value="1.25">1.25倍</option>
+          <option value="1.5">1.5倍</option>
+          <option value="2">2倍</option>
+        </select>
+        <span class="spacer hide-sm"></span>
+        <button class="btn btn-small" id="zoomOutBtn" aria-label="縮小">−</button>
+        <span id="zoomLevelLabel">100%</span>
+        <button class="btn btn-small" id="zoomInBtn" aria-label="拡大">＋</button>
+        <button class="btn btn-small" id="fitAllBtn">全体</button>
+        <button class="btn btn-small" id="fitHeightBtn">高さ合わせ</button>
+        <button class="btn btn-small" id="zoom100Btn">等倍</button>
+        <button class="btn btn-small" id="fullscreenBtn">全画面</button>
       </div>
-    </details>
-
-    <!-- 5. 静止画プレビューの上：静止画ビューアー表示操作・再生ボタン・倍速/低速・バー遅延調整（常時表示） -->
-    <div class="viewer-top-controls" id="viewerTopControls">
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:space-between;">
-        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-          <strong style="color:var(--primary); font-size:0.9rem; margin-right:2px;">ビューアー操作:</strong>
-          <button class="btn" id="viewerPlayPauseBtn" style="padding:5px 14px; font-size:0.86rem;">再生 / 一時停止</button>
-          <select id="viewerPlaybackRateSelect" class="num-input" title="再生速度（倍速・低速）" style="width:96px; padding:4px 6px; font-size:0.82rem;">
-            <option value="0.25">0.25倍速</option>
-            <option value="0.5">0.5倍速</option>
-            <option value="0.75">0.75倍速</option>
-            <option value="1" selected>1.0倍速</option>
-            <option value="1.25">1.25倍速</option>
-            <option value="1.5">1.5倍速</option>
-            <option value="2">2.0倍速</option>
-          </select>
-          <button class="btn btn-secondary" id="zoomOutBtn" style="padding:5px 10px;">ー 縮小</button>
-          <span id="zoomLevelLabel" style="min-width:52px; text-align:center; font-weight:bold;">100%</span>
-          <button class="btn btn-secondary" id="zoomInBtn" style="padding:5px 10px;">＋ 拡大</button>
-          <button class="btn btn-secondary" id="fitAllBtn" style="padding:5px 10px; font-size:0.84rem;">全体を表示</button>
-          <button class="btn btn-secondary" id="fitHeightBtn" style="padding:5px 10px; font-size:0.84rem;">高さに合わせる</button>
-          <button class="btn btn-secondary" id="zoom100Btn" style="padding:5px 10px; font-size:0.84rem;">1:1 等倍</button>
-          <button class="btn btn-secondary" id="fullscreenBtn" style="padding:5px 12px; font-size:0.84rem;">全画面表示</button>
-        </div>
-
-        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-          <label style="display:flex; align-items:center; gap:5px; font-size:0.85rem; cursor:pointer; color:#55ffaa; font-weight:bold; margin:0;">
-            <input type="checkbox" id="showPlayheadToggle" checked style="accent-color:var(--primary);">
-            再生位置バーを表示
-          </label>
-          <label style="display:flex; align-items:center; gap:5px; font-size:0.85rem; cursor:pointer; font-weight:bold; margin:0;">
-            <input type="checkbox" id="followPlayheadToggle" style="accent-color:var(--primary);">
-            自動追従
-          </label>
-          <div style="display:flex; align-items:center; gap:6px; background:#0d121d; padding:4px 10px; border-radius:6px; border:1px solid #26314d;">
-            <span style="font-size:0.82rem; color:var(--muted); white-space:nowrap;">バー遅延調整(秒):</span>
-            <input type="range" id="playheadOffsetSlider" min="-2.00" max="2.00" step="0.01" value="0.00" style="width:90px; accent-color:var(--primary); cursor:pointer;">
-            <input type="number" id="playheadOffsetInput" class="num-input" step="0.01" min="-5.00" max="5.00" value="0.00" style="width:70px; padding:3px 6px; font-size:0.84rem;">
-            <button class="btn btn-secondary" id="resetOffsetBtn" style="padding:3px 8px; font-size:0.78rem;">0に戻す</button>
-          </div>
-        </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="showPlayheadToggle" checked>再生位置バー</label>
+        <label class="check"><input type="checkbox" id="followPlayheadToggle">バーを追いかける</label>
+        <span class="row" style="gap:6px;">
+          <span class="hint">バーのずれ(秒)</span>
+          <input type="range" id="playheadOffsetSlider" min="-2.00" max="2.00" step="0.01" value="0.00" style="width:110px;">
+          <input type="number" id="playheadOffsetInput" step="0.01" min="-5.00" max="5.00" value="0.00" style="width:76px;" inputmode="decimal">
+          <button class="btn btn-small" id="resetOffsetBtn">0に戻す</button>
+        </span>
       </div>
       <div class="viewer-col-jumps" id="colJumpBar"></div>
     </div>
 
-    <!-- 6. 静止画プレビュー本体（生成中も操作可能） -->
     <div class="viewer-box" id="viewerBox">
-      <button class="btn btn-accent exit-fullscreen-btn" id="exitFullscreenBtn">全画面表示から戻る (Esc)</button>
-
-      <div class="viewer-viewport" id="viewerViewport" title="マウスホイールで拡大縮小・ドラッグで移動・ダブルクリックでその位置の秒数へ動画をシークします">
+      <button class="btn btn-primary exit-fullscreen-btn" id="exitFullscreenBtn">閉じる</button>
+      <div class="viewer-viewport" id="viewerViewport" title="ドラッグで移動・ホイール／ピンチで拡大縮小・ダブルクリック（ダブルタップ）でその位置へ移動">
         <div id="canvasStage">
           <canvas id="outputCanvas"></canvas>
         </div>
@@ -480,21 +339,28 @@
         <div id="playheadBar"><span id="playheadTimeBadge">0.00s</span></div>
       </div>
     </div>
+    <div class="hint" style="margin-top:6px;">ドラッグで移動、ホイールまたは2本指で拡大縮小。ダブルタップでその位置から再生できます。</div>
 
-    <!-- 7. 静止画プレビューの下：保存ボタンバー（指定列のみ保存対応・生成中はロック） -->
-    <div class="viewer-bottom-save-bar" id="bottomSaveBar">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <button class="btn" id="downloadPngBtn">1枚の譜面画像 (.png) を保存</button>
-        <div style="display:flex; gap:6px; align-items:center; background:#0d121d; padding:4px 10px; border-radius:8px; border:1px solid #26314d;">
-          <input type="text" id="targetColInput" class="num-input" placeholder="例: 1" value="1" style="width:70px; padding:4px 8px; font-size:0.86rem;">
-          <button class="btn btn-secondary" id="downloadSingleColBtn" style="padding:5px 12px; font-size:0.86rem;">指定列のみ保存 (.png)</button>
-        </div>
-        <button class="btn btn-secondary" id="downloadResultZipBtn">全体＋分割画像をZIPで保存</button>
-      </div>
-      <span class="hint" id="bottomSaveStatusLabel"></span>
+    <div class="row" id="reLayoutActionGroup" style="margin-top:12px;">
+      <span class="hint">1列の高さ</span>
+      <input type="number" id="colHeightInput" step="100" min="400" max="16000" value="8000" inputmode="numeric">
+      <select id="layoutMode">
+        <option value="grid" selected>折り返して並べる</option>
+        <option value="single">1本の縦長にする</option>
+      </select>
+      <button class="btn" id="reLayoutBtn" disabled>並べ直す</button>
     </div>
 
-  </div>
+    <div class="row" id="bottomSaveBar" style="margin-top:8px;">
+      <button class="btn btn-primary full-sm" id="downloadPngBtn">画像を保存</button>
+      <span class="row" style="gap:6px;">
+        <input type="text" id="targetColInput" placeholder="列番号" value="1" style="width:64px;" inputmode="numeric">
+        <button class="btn" id="downloadSingleColBtn">この列だけ保存</button>
+      </span>
+      <button class="btn" id="downloadResultZipBtn">ZIPでまとめて保存</button>
+    </div>
+    <div class="hint" id="bottomSaveStatusLabel" style="margin-top:6px;"></div>
+  </section>
 </div>
 
 <script>
@@ -742,13 +608,11 @@ const filterSubCanvas = document.createElement("canvas");
 const filterSubCtx = filterSubCanvas.getContext("2d", { willReadFrequently: true });
 
 const headerControls = document.getElementById("headerControls");
-const videoInput = document.getElementById("videoInput");
+const filesInput = document.getElementById("filesInput");
 const folderInput = document.getElementById("folderInput");
-const imagesInput = document.getElementById("imagesInput");
 const linkRootFolderBtn = document.getElementById("linkRootFolderBtn");
-const selectVideoBtn = document.getElementById("selectVideoBtn");
+const selectFilesBtn = document.getElementById("selectFilesBtn");
 const selectFolderBtn = document.getElementById("selectFolderBtn");
-const selectImagesBtn = document.getElementById("selectImagesBtn");
 
 const topSwitcherCard = document.getElementById("topSwitcherCard");
 const switcherContent = document.getElementById("switcherContent");
@@ -795,7 +659,6 @@ const reLayoutBtn = document.getElementById("reLayoutBtn");
 const generateBtn = document.getElementById("generateBtn");
 const batchGenerateBtn = document.getElementById("batchGenerateBtn");
 const testGenerateBtn = document.getElementById("testGenerateBtn");
-const stopGenerateBtn = document.getElementById("stopGenerateBtn");
 const progressStopBtn = document.getElementById("progressStopBtn");
 const progressContainer = document.getElementById("progressContainer");
 const progressText = document.getElementById("progressText");
@@ -1122,7 +985,7 @@ function collectCurrentSettings() {
     bgThresh: parseInt(bgThreshSlider.value, 10) || 36,
     gridBoost: parseFloat(gridBoostSlider.value) || 0.5,
     speed: parseFloat(speedInput.value) || 47.50,
-    colHeight: parseInt(colHeightInput.value, 10) || 5400,
+    colHeight: parseInt(colHeightInput.value, 10) || 8000,
     layoutMode: layoutMode.value || "grid",
     showPlayhead: showPlayheadToggle.checked,
     followPlayhead: followPlayheadToggle.checked,
@@ -1311,7 +1174,7 @@ function setGeneratingLock(locked) {
 
   viewerPlayPauseBtn.disabled = locked;
   viewerPlaybackRateSelect.disabled = locked;
-  stopGenerateBtn.disabled = !locked;
+  progressStopBtn.disabled = !locked;
 
   const tabBtns = folderTabs.querySelectorAll("button");
   tabBtns.forEach(b => { b.disabled = locked; });
@@ -1378,10 +1241,10 @@ let chartMeta = {
   mode: "grid",
   numCols: 1,
   cropW: 400,
-  colMaxH: 5400,
+  colMaxH: 8000,
   colGap: 14,
   headerH: 0,
-  totalHeight: 5400,
+  totalHeight: 8000,
   bottomBaseH: 120,
   topCapH: 250,
   tStart: 0.0,
@@ -1480,8 +1343,8 @@ async function loadFromSavedHandle(requestPerm = false) {
       await handleIncomingFiles(files);
     } else {
       reconnectFolderBtn.style.display = "inline-flex";
-      reconnectFolderBtn.textContent = `同階層フォルダ「${savedDirectoryHandle.name}」を自動読み込み`;
-      folderStatusLabel.textContent = `右のボタンを押すと、登録済みの同階層フォルダ「${savedDirectoryHandle.name}」から全フォルダと設定を一括読み込みします`;
+      reconnectFolderBtn.textContent = `「${savedDirectoryHandle.name}」を読み込む`;
+      folderStatusLabel.textContent = `登録済みのフォルダ「${savedDirectoryHandle.name}」があります。「読み込む」を押すと続きから使えます。`;
     }
   } catch (e) {}
 }
@@ -1516,21 +1379,20 @@ linkRootFolderBtn.addEventListener("click", async () => {
 reconnectFolderBtn.addEventListener("click", () => { if (!isGenerating) loadFromSavedHandle(true); });
 refreshFolderBtn.addEventListener("click", () => { if (!isGenerating) loadFromSavedHandle(true); });
 
-selectVideoBtn.addEventListener("click", () => { if (!isGenerating) videoInput.click(); });
+selectFilesBtn.addEventListener("click", () => { if (!isGenerating) filesInput.click(); });
 selectFolderBtn.addEventListener("click", () => { if (!isGenerating) folderInput.click(); });
-selectImagesBtn.addEventListener("click", () => { if (!isGenerating) imagesInput.click(); });
 
 window.addEventListener("dragover", (e) => {
   e.preventDefault();
   if (isGenerating) return;
-  topSwitcherCard.style.borderColor = "#ff4d88";
+  topSwitcherCard.style.borderColor = "var(--accent)";
 });
 window.addEventListener("dragleave", (e) => {
-  if (!e.relatedTarget) topSwitcherCard.style.borderColor = "#00a8a8";
+  if (!e.relatedTarget) topSwitcherCard.style.borderColor = "";
 });
 window.addEventListener("drop", async (e) => {
   e.preventDefault();
-  topSwitcherCard.style.borderColor = "#00a8a8";
+  topSwitcherCard.style.borderColor = "";
   if (isGenerating) return;
   const items = e.dataTransfer.items;
   if (items && items.length > 0 && items[0].webkitGetAsEntry) {
@@ -1570,7 +1432,8 @@ async function traverseFileTree(item, path, collected) {
   }
 }
 
-videoInput.addEventListener("change", (e) => {
+// 動画・静止画・設定ファイルを1つのボタンでまとめて選べる
+filesInput.addEventListener("change", (e) => {
   if (!isGenerating && e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
   e.target.value = "";
 });
@@ -1579,10 +1442,6 @@ folderInput.addEventListener("change", (e) => {
     folderGroups.clear();
     handleIncomingFiles(Array.from(e.target.files));
   }
-  e.target.value = "";
-});
-imagesInput.addEventListener("change", (e) => {
-  if (!isGenerating && e.target.files && e.target.files.length > 0) handleIncomingFiles(Array.from(e.target.files));
   e.target.value = "";
 });
 
@@ -1686,9 +1545,9 @@ function updateBatchButtonState() {
   const unprocessedVids = getUnprocessedVideoEntries();
   batchGenerateBtn.disabled = isGenerating || unprocessedVids.length === 0;
   if (unprocessedVids.length > 0) {
-    batchGenerateBtn.textContent = `未作成の複数動画を一括作成 (${unprocessedVids.length}本)`;
+    batchGenerateBtn.textContent = `未作成をまとめて作成（${unprocessedVids.length}本）`;
   } else {
-    batchGenerateBtn.textContent = `一括作成（未作成の動画なし）`;
+    batchGenerateBtn.textContent = `未作成をまとめて作成`;
   }
 }
 
@@ -1698,7 +1557,7 @@ function renderTopSwitcher() {
   const unprocessedCount = getUnprocessedVideoEntries().length;
 
   folderStatusLabel.textContent = totalFolders > 0
-    ? `全 ${totalFolders} フォルダ （未作成の動画フォルダ: ${unprocessedCount} 件）`
+    ? `${totalFolders} フォルダ（未作成 ${unprocessedCount}）`
     : "";
 
   for (const [folderName, grp] of folderGroups) {
@@ -2090,7 +1949,7 @@ function drawColumnFromMaster(targetCtx, mData, c, colMaxH, destX, destY) {
 // マスターから一覧画像（または1本の縦長画像）を描く。画面表示用と一括処理の保存用で共通
 function renderChartLayout(mData, targetCanvas) {
   const { cropW, totalHeight } = mData;
-  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
+  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 8000);
   const mode = layoutMode.value === "single" ? "single" : "grid";
   const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
   const colGap = 14;
@@ -4353,7 +4212,7 @@ function describeMainProgress(info, engineLabel, prefix = "") {
   const st = info.stats;
   return {
     ratio,
-    text: `${prefix}全フレームの実移動量を照合して合成中... (${info.time.toFixed(1)}秒 / ${info.tEnd.toFixed(1)}秒) [${engineLabel}] 停止フレーム ${st.freeze} / 推定補間 ${st.predicted}`
+    text: `${prefix}作成中… ${info.time.toFixed(1)} / ${info.tEnd.toFixed(1)} 秒`
   };
 }
 
@@ -4367,7 +4226,6 @@ function requestStopGeneration() {
   activeSeekResolvers.clear();
   progressText.textContent = "停止しています...";
 }
-stopGenerateBtn.addEventListener("click", requestStopGeneration);
 progressStopBtn.addEventListener("click", requestStopGeneration);
 
 async function generateChartImage(isTestMode = false) {
@@ -4393,7 +4251,7 @@ async function generateChartImage(isTestMode = false) {
         engineLabel = info.label;
         if (deviceSpecBadge) deviceSpecBadge.textContent = info.label;
       } else if (info.phase === "bg") {
-        setProgress(info.ratio * 5, `動かない背景（イラスト・固定表示）を動画全体から推定中... [${engineLabel}]`);
+        setProgress(info.ratio * 5, "背景を調べています…");
       } else if (info.phase === "main") {
         const p = describeMainProgress(info, engineLabel);
         setProgress(5 + 95 * p.ratio, p.text);
@@ -4410,15 +4268,13 @@ async function generateChartImage(isTestMode = false) {
       const saved = await rebuildLayoutFromMaster(!isTestMode, { saveProfile: !isTestMode });
       const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
       const st = resultData.stats || {};
-      const speedNote = st.measuredSpeedPct ? `・実測スクロール速度 ${st.measuredSpeedPct.toFixed(2)}%/秒` : "";
+      const speedNote = st.measuredSpeedPct ? `・速度 ${st.measuredSpeedPct.toFixed(1)}%/秒` : "";
       const doneLabel = isTestMode
-        ? "テスト作成が完了しました"
-        : (saved
-          ? "譜面静止画の作成・タイムスタンプ記録・フォルダ自動保存が完了しました"
-          : "譜面静止画の作成とタイムスタンプ記録が完了しました（保存先フォルダが未登録のため、下の保存ボタンから保存してください）");
-      setProgress(100, `${doneLabel}（処理時間: ${elapsedSec}秒・${st.frames || 0}フレーム解析・停止フレーム${st.freeze || 0}${speedNote}）`);
+        ? "お試しで作成しました"
+        : (saved ? "作成してフォルダに保存しました" : "作成しました。「画像を保存」で保存できます");
+      setProgress(100, `${doneLabel}（${elapsedSec}秒${speedNote}）`);
     } else if (job.cancelled) {
-      progressText.textContent = "静止画の生成を停止しました";
+      progressText.textContent = "停止しました";
     }
   } catch (err) {
     progressText.textContent = `エラーが発生しました: ${err && err.message ? err.message : err}`;
@@ -4459,8 +4315,8 @@ async function processMultipleVideosConcurrently() {
     for (let idx = 0; idx < vidEntries.length; idx++) {
       if (job.cancelled) break;
       const { videoEntry, folderName } = vidEntries[idx];
-      const head = `[${idx + 1}/${vidEntries.length}本目: ${folderName}] `;
-      progressText.textContent = `${head}動画を読み込み中...`;
+      const head = `${idx + 1}/${vidEntries.length}本目「${folderName}」 `;
+      progressText.textContent = `${head}読み込み中…`;
 
       const tempVid = document.createElement("video");
       tempVid.playsInline = true;
@@ -4479,7 +4335,7 @@ async function processMultipleVideosConcurrently() {
             if (info.phase === "engine") {
               engineLabel = info.label;
             } else if (info.phase === "bg") {
-              setProgress(((idx + info.ratio * 0.05) / vidEntries.length) * 100, `${head}動かない背景を推定中...`);
+              setProgress(((idx + info.ratio * 0.05) / vidEntries.length) * 100, `${head}背景を調べています…`);
             } else if (info.phase === "main") {
               const p = describeMainProgress(info, engineLabel, head);
               setProgress(((idx + 0.05 + 0.95 * p.ratio) / vidEntries.length) * 100, p.text);
@@ -4520,11 +4376,11 @@ async function processMultipleVideosConcurrently() {
 
     const elapsedSec = ((performance.now() - startWallTime) / 1000).toFixed(1);
     if (job.cancelled) {
-      progressText.textContent = `一括処理を停止しました（完了分 ${completedCount} フォルダ / ${elapsedSec}秒）`;
+      progressText.textContent = `停止しました（${completedCount}本作成済み）`;
     } else if (savedCount === completedCount) {
-      setProgress(100, `未作成だった全 ${completedCount} フォルダの順番処理・タイムスタンプ記録・自動保存が完了しました（処理時間: ${elapsedSec}秒）`);
+      setProgress(100, `${completedCount}本を作成して保存しました（${elapsedSec}秒）`);
     } else {
-      setProgress(100, `未作成だった全 ${completedCount} フォルダの作成が完了しました（自動保存 ${savedCount} 件。保存先フォルダが未登録の ${completedCount - savedCount} 件は画面内に保持しているので、各フォルダを選んで保存ボタンから保存してください／処理時間: ${elapsedSec}秒）`);
+      setProgress(100, `${completedCount}本を作成しました。保存先フォルダが未登録の${completedCount - savedCount}本は、フォルダを選んで「画像を保存」で保存してください（${elapsedSec}秒）`);
     }
   } catch (err) {
     progressText.textContent = `エラーが発生しました: ${err && err.message ? err.message : err}`;
@@ -4648,12 +4504,14 @@ function setupViewerAfterGenerate(numCols) {
   });
 }
 
-viewerViewport.addEventListener("dblclick", (e) => {
+viewerViewport.addEventListener("dblclick", (e) => seekToViewerPoint(e.clientX, e.clientY));
+
+function seekToViewerPoint(clientX, clientY) {
   if (isGenerating || !video.src || !outputCanvas.width) return;
   shouldRestartFromBeginning = false;
   const rect = viewerViewport.getBoundingClientRect();
-  const canvasX = (e.clientX - rect.left - vX) / vScale;
-  const canvasY = (e.clientY - rect.top - vY) / vScale;
+  const canvasX = (clientX - rect.left - vX) / vScale;
+  const canvasY = (clientY - rect.top - vY) / vScale;
 
   let clickedBottomY = 0;
   const { colMaxH, totalHeight, colRects } = chartMeta;
@@ -4682,7 +4540,7 @@ viewerViewport.addEventListener("dblclick", (e) => {
   const offsetSec = parseFloat(playheadOffsetInput.value) || 0;
   const targetTime = getTimeForBottomY(clickedBottomY) - offsetSec;
   video.currentTime = Math.max(0, Math.min(video.duration || targetTime, targetTime));
-});
+}
 
 zoomInBtn.addEventListener("click", () => zoomAtCenter(1.25));
 zoomOutBtn.addEventListener("click", () => zoomAtCenter(0.8));
@@ -4693,10 +4551,10 @@ zoom100Btn.addEventListener("click", () => { vScale = 1.0; vX = 10; vY = 10; upd
 function setViewerFullscreen(enable) {
   if (enable) {
     viewerBox.classList.add("fullscreen");
-    fullscreenBtn.textContent = "全画面を閉じる (Esc)";
+    fullscreenBtn.textContent = "全画面を閉じる";
   } else {
     viewerBox.classList.remove("fullscreen");
-    fullscreenBtn.textContent = "全画面表示";
+    fullscreenBtn.textContent = "全画面";
   }
   setTimeout(fitViewerAll, 50);
 }
@@ -4729,23 +4587,85 @@ viewerViewport.addEventListener("wheel", (e) => {
   updateViewerTransform();
 }, { passive: false });
 
-viewerViewport.addEventListener("mousedown", (e) => {
-  if (e.target === exitFullscreenBtn) return;
-  isDragging = true;
-  dragStartX = e.clientX - vX;
-  dragStartY = e.clientY - vY;
-  viewerViewport.classList.add("dragging");
+// マウス・タッチ共通：1本指（左ボタン）で移動、2本指でピンチ拡大縮小、ダブルタップでその位置へ移動
+const activePointers = new Map();
+let pinchStart = null;
+let lastTap = { time: 0, x: 0, y: 0 };
+
+function startPinch() {
+  const [a, b] = Array.from(activePointers.values());
+  const rect = viewerViewport.getBoundingClientRect();
+  pinchStart = {
+    dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+    cx: (a.x + b.x) / 2 - rect.left,
+    cy: (a.y + b.y) / 2 - rect.top,
+    scale: vScale, x: vX, y: vY
+  };
+}
+
+viewerViewport.addEventListener("pointerdown", (e) => {
+  if (e.target === exitFullscreenBtn || (e.pointerType === "mouse" && e.button !== 0)) return;
+  viewerViewport.setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (activePointers.size === 1) {
+    isDragging = true;
+    dragStartX = e.clientX - vX;
+    dragStartY = e.clientY - vY;
+    viewerViewport.classList.add("dragging");
+  } else if (activePointers.size === 2) {
+    startPinch();
+  }
 });
-window.addEventListener("mousemove", (e) => {
-  if (!isDragging) return;
-  vX = e.clientX - dragStartX;
-  vY = e.clientY - dragStartY;
-  updateViewerTransform();
+viewerViewport.addEventListener("pointermove", (e) => {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (activePointers.size >= 2 && pinchStart) {
+    const [a, b] = Array.from(activePointers.values());
+    const rect = viewerViewport.getBoundingClientRect();
+    const dist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+    const cx = (a.x + b.x) / 2 - rect.left;
+    const cy = (a.y + b.y) / 2 - rect.top;
+    const newScale = Math.min(4.5, Math.max(0.05, pinchStart.scale * dist / pinchStart.dist));
+    const ratio = newScale / pinchStart.scale;
+    vX = cx - (pinchStart.cx - pinchStart.x) * ratio;
+    vY = cy - (pinchStart.cy - pinchStart.y) * ratio;
+    vScale = newScale;
+    updateViewerTransform();
+  } else if (isDragging) {
+    vX = e.clientX - dragStartX;
+    vY = e.clientY - dragStartY;
+    updateViewerTransform();
+  }
 });
-window.addEventListener("mouseup", () => {
-  isDragging = false;
-  viewerViewport.classList.remove("dragging");
-});
+function endPointer(e) {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.delete(e.pointerId);
+  if (activePointers.size === 1) {
+    // ピンチの途中で1本指に戻ったら、残った指で移動を続ける
+    const p = Array.from(activePointers.values())[0];
+    pinchStart = null;
+    dragStartX = p.x - vX;
+    dragStartY = p.y - vY;
+    return;
+  }
+  if (activePointers.size === 0) {
+    isDragging = false;
+    pinchStart = null;
+    viewerViewport.classList.remove("dragging");
+  }
+  // タッチではダブルクリックが届かないことがあるため、ダブルタップを自前で判定する
+  if (e.type === "pointerup" && e.pointerType !== "mouse") {
+    const now = performance.now();
+    if (now - lastTap.time < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+      seekToViewerPoint(e.clientX, e.clientY);
+      lastTap.time = 0;
+    } else {
+      lastTap = { time: now, x: e.clientX, y: e.clientY };
+    }
+  }
+}
+viewerViewport.addEventListener("pointerup", endPointer);
+viewerViewport.addEventListener("pointercancel", endPointer);
 window.addEventListener("resize", () => {
   positionPlayheadOverlay();
 });
@@ -4767,7 +4687,7 @@ downloadSingleColBtn.addEventListener("click", async () => {
   const colNumber = match ? parseInt(match[0], 10) : NaN;
 
   const { cropW, totalHeight } = masterChartData;
-  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
+  const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 8000);
   const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
 
   if (isNaN(colNumber) || colNumber < 1 || colNumber > numCols) {
@@ -4805,7 +4725,7 @@ downloadResultZipBtn.addEventListener("click", async () => {
 
     if (masterChartData.hasData) {
       const { cropW, totalHeight } = masterChartData;
-      const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 5400);
+      const colMaxH = Math.max(400, parseInt(colHeightInput.value, 10) || 8000);
       const numCols = Math.max(1, Math.ceil(totalHeight / colMaxH));
       const tmpColC = document.createElement("canvas");
       tmpColC.width = cropW;

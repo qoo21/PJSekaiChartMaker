@@ -2704,7 +2704,7 @@ autoSpeedBtn.addEventListener("click", async () => {
       tracker.computeFeatures(work.ctx.getImageData(0, 0, geo.cropW, tracker.fH).data, bandTop);
       if (prevT !== null) {
         const r = tracker.register(null);
-        if (r.status === "motion" && t - prevT > 1e-4) rates.push(r.d / (t - prevT));
+        if (r.status === "motion" && r.unique && t - prevT > 1e-4) rates.push(r.d / (t - prevT));
       }
       tracker.commit();
       prevT = t;
@@ -3586,6 +3586,20 @@ class ScrollRegistrationTracker {
     this.moving = false;
   }
 
+  // 予測値の出発点を与える（count 回分の仮の実測値として入れ、最初の追いつきジャンプ1回では予測が崩れないようにする）
+  seedSpeed(dPerFrame, count) {
+    this.dExp = Math.max(0.5, Math.min(this.dMax * 0.8, dPerFrame));
+    this.recent = new Array(count).fill(this.dExp);
+  }
+
+  // 直近5回の移動量の中央値を次のフレームの予測値にする（1回だけの外れ値には引きずられず、譜面の速度変化には数フレームで追従する）
+  _noteMotion(d) {
+    this.recent.push(d);
+    if (this.recent.length > 5) this.recent.shift();
+    const s = this.recent.slice().sort((x, y) => x - y);
+    this.dExp = s[(s.length - 1) >> 1];
+  }
+
   // band: RGBA データ（作業解像度の bandTop 行目から）。静止背景との差を特徴量にする
   computeFeatures(band, bandTop) {
     const { cropW } = this.geo;
@@ -3670,8 +3684,9 @@ class ScrollRegistrationTracker {
       else if (st === false) this.moving = true;
       return this.moving ? { status: "predicted", d: this.dExp } : { status: "freeze", d: 0 };
     }
-    if (diff0 < 0.3) {
+    if (diff0 < 0.1) {
       // 前フレームと実質同一（録画側で同じ画面が続いた／再生停止中）
+      // 線が薄い・まばらな区間は動いていても差が小さく出るため、明らかに同一のときだけここで止める（それ以外は下の照合で判断）
       this.moving = false;
       return { status: "freeze", d: 0 };
     }
@@ -3684,34 +3699,30 @@ class ScrollRegistrationTracker {
     // 2) 移動量0〜最大まで全範囲を探す（一部の範囲だけで判定すると、範囲内の局所的な一致を誤って採用してしまう）
     const res = this._searchAll();
     if (!res) return { status: "predicted", d: this.dExp };
-    const { best, alt } = res;
-    if (best.e < alt * 0.55) {
-      if (best.d === 0) {
-        // 譜面は止まっていて、別の表示だけが変化している
-        this.moving = false;
-        return { status: "freeze", d: 0 };
-      }
-      const d = this._subpixel(best.d, best.e);
-      this.recent.push(d);
-      if (this.recent.length > 31) this.recent.shift();
-      if (this.recent.length >= 5) {
-        const s = this.recent.slice().sort((x, y) => x - y);
-        this.dExp = s[s.length >> 1];
-      }
-      return { status: "motion", d };
+    const { best, alt, sharp } = res;
+    if (sharp < Math.max(2, best.e * 0.25)) {
+      // 縦にずらしてもほとんど変わらない（ロングノーツだけ等）：手掛かりが無いので直近の実測値で進める
+      return { status: "predicted", d: this.dExp };
     }
-    // 決め手に欠ける（等間隔のグリッド線だけ等）：同程度に一致する候補のうち、直近の実測値に最も近いものを採る
-    if (this.recent.length >= 5) {
-      let pick = null;
-      for (const c of res.refined) {
-        if (c.d === 0 || c.e > best.e * 1.8) continue;
-        if (!pick || Math.abs(c.d - this.dExp) < Math.abs(pick.d - this.dExp)) pick = c;
-      }
-      if (pick && Math.abs(pick.d - this.dExp) <= Math.max(3, this.dExp * 0.35)) {
-        return { status: "motion", d: this._subpixel(pick.d, pick.e) };
+    // 最良とほぼ同じだけ一致する候補（ノーツの無い区間で、等間隔のグリッド線が「線1本ずれ」でも重なる場合など）は
+    // どれが正しいか画像だけでは決められないので、直近の実測値に最も近いものを採る
+    const tolE = best.e + Math.max(3, sharp * 0.3);
+    const good = res.refined.filter(c => c.e <= tolE);
+    const unique = good.length === 1 && best.e < alt * 0.55;
+    let pick = best;
+    if (!unique) {
+      for (const c of good) {
+        if (Math.abs(c.d - this.dExp) < Math.abs(pick.d - this.dExp)) pick = c;
       }
     }
-    return { status: "predicted", d: this.dExp };
+    if (pick.d === 0) {
+      // 譜面は止まっていて、別の表示だけが変化している
+      this.moving = false;
+      return { status: "freeze", d: 0 };
+    }
+    const d = this._subpixel(pick.d, pick.e);
+    this._noteMotion(d);
+    return { status: "motion", d, unique };
   }
 
   // 全範囲 [0, dMax] を列帯プロファイルで粗く探し、上位の候補を2次元の二乗誤差で精密に比べる
@@ -3760,12 +3771,14 @@ class ScrollRegistrationTracker {
     }
     refined.sort((a, b) => a.e - b.e);
     const best = refined[0];
-    let alt = Infinity;
-    for (const r of refined) if (Math.abs(r.d - best.d) >= 3 && r.e < alt) alt = r.e;
+    // 最良の位置から少しずらしたときの誤差の増え方（一致の「鋭さ」）
     const spread = Math.max(3, Math.round(this.dExp * 0.25));
-    if (best.d - spread >= 0) alt = Math.min(alt, this._ssd(best.d - spread));
-    if (best.d + spread <= dMax) alt = Math.min(alt, this._ssd(best.d + spread));
-    return { best, alt, refined };
+    let spreadE = Infinity;
+    if (best.d - spread >= 0) spreadE = Math.min(spreadE, this._ssd(best.d - spread));
+    if (best.d + spread <= dMax) spreadE = Math.min(spreadE, this._ssd(best.d + spread));
+    let alt = spreadE;
+    for (const r of refined) if (Math.abs(r.d - best.d) >= 3 && r.e < alt) alt = r.e;
+    return { best, alt, refined, sharp: spreadE === Infinity ? 0 : spreadE - best.e };
   }
 
   // 放物線近似によるサブピクセル補間
@@ -3846,6 +3859,60 @@ class ChartMasterWriter {
   }
 }
 
+// 動画の数か所で、決め手のある照合結果だけを集めて「1フレームあたりのスクロール量」の基準を求める
+async function probeScrollPerFrame(source, geo, bgModel, tFrom, tTo, hintPerFrame, shouldStop) {
+  const span = tTo - tFrom;
+  if (source.kind !== "webcodecs" || span < 3) return null;
+  const layout = new ScrollRegistrationTracker(geo, bgModel, hintPerFrame);
+  const bandTop = layout.fTop;
+  const work = createWorkCanvas(geo.cropW, layout.fH, true);
+  const ds = [];
+  try {
+    for (const frac of [0.2, 0.35, 0.5, 0.65, 0.8]) {
+      if (shouldStop()) break;
+      const a = tFrom + span * frac;
+      const tr = new ScrollRegistrationTracker(geo, bgModel, hintPerFrame);
+      let prevT = null;
+      await source.forEachFrame(a, a + 0.3, async (frame, t) => {
+        drawFrameRows(work.ctx, frame, geo, bandTop);
+        tr.computeFeatures(work.ctx.getImageData(0, 0, geo.cropW, tr.fH).data, bandTop);
+        if (tr.hasPrev) {
+          const r = tr.register(null);
+          const frames = Math.max(1, Math.round((t - prevT) * source.fps));
+          if (r.status === "motion" && r.unique) ds.push(r.d / frames);
+        }
+        tr.commit();
+        prevT = t;
+      }, shouldStop);
+    }
+  } finally {
+    work.canvas.width = 0;
+  }
+  if (ds.length < 6) return null;
+  ds.sort((x, y) => x - y);
+  return ds[ds.length >> 1];
+}
+
+// 譜面エディタでは1小節目より下（再生ラインより下）には線もノーツも無いので、
+// 最初の画面のその位置に譜面要素が写っていれば「録画開始時点で再生位置が曲の途中だった」とみなす
+function detectMidChartStart(full, bg, geo, t0) {
+  const { cropW, h } = geo;
+  const y0 = Math.round(h * 0.85);
+  const y1 = Math.round(h * 0.97);
+  let hit = 0, n = 0;
+  for (let y = y0; y < y1; y += 2) {
+    for (let x = 0; x < cropW; x += 2) {
+      const i = (y * cropW + x) * 4;
+      const j = (y * cropW + x) * 3;
+      const dr = full[i] - bg[j], dg = full[i + 1] - bg[j + 1], db = full[i + 2] - bg[j + 2];
+      const dm = dr > dg ? (dr > db ? dr : db) : (dg > db ? dg : db);
+      if (dm > t0) hit++;
+      n++;
+    }
+  }
+  return n > 0 && hit / n > 0.15;
+}
+
 // ---------------------------------------------------------
 // 8-6. 合成エンジン本体
 //   各フレームの「切り出し基準ライン」がマスター上のどこに当たるか（C）を実移動量で積み上げ、
@@ -3874,7 +3941,13 @@ async function captureChartMasterFromSource(source, geo, opts, hooks) {
   const speedHint = Math.max(1, opts.speedHintPxPerSec);
   const seekStepSec = Math.min(0.2, Math.max(1 / 60, (0.4 * h * 0.12) / speedHint));
   const frameInterval = isSeek ? seekStepSec : 1 / fps;
-  const tracker = new ScrollRegistrationTracker(geo, bgModel, speedHint * frameInterval);
+  // 曲ごとにスクロール速度が違うため、設定値ではなく動画から測った速度を予測の出発点にする
+  // （出発点がずれていると、ノーツの無い前奏で「線1本ずれ」の位置を選んで譜面が伸び縮みしていた）
+  if (hooks.onPhase) hooks.onPhase("speed", 0);
+  const probed = isSeek ? null : await probeScrollPerFrame(source, geo, bgModel, opts.tStart, opts.tEnd, speedHint * frameInterval, shouldStop);
+  if (shouldStop()) return null;
+  const tracker = new ScrollRegistrationTracker(geo, bgModel, probed || speedHint * frameInterval);
+  tracker.seedSpeed(probed || speedHint * frameInterval, probed ? 3 : 1);
   const dMax = tracker.dMax;
   const bandTop = Math.max(0, Math.min(tracker.fTop, capY - dMax - 2));
   const bandBot = Math.min(h, Math.max(tracker.fBot, capY + dMax + 2));
@@ -4009,6 +4082,8 @@ async function captureChartMasterFromSource(source, geo, opts, hooks) {
       }
       yFill = C;
       timeToYMap.push({ time: t, bottomY: C });
+      // 動画の頭から作るのに、最初の画面ですでに譜面が途中まで進んでいないかを確認する
+      if (bgModel && opts.tStart < 0.5) stats.startsMidChart = detectMidChartStart(full, bgModel, geo, t0);
     } else {
       // 照合窓に手掛かりが無いときだけ、画面全体（タイマー表示など）が前フレームから変化したかを確認する
       const wholeFrameStatic = () => {
@@ -4199,6 +4274,13 @@ async function buildMasterDataForVideo(vidElem, vidItem, sourceName, isTestMode,
   return result;
 }
 
+// 録画の最初の時点でエディタの再生位置が曲の途中だった場合、その前の部分は動画に写っていないので作れない
+const MID_CHART_START_NOTE = "　注意：録画の最初の時点で、エディタの再生位置が曲の途中でした。その前の部分は動画に写っていないため画像にも入りません。曲の最初から作るには、エディタの再生位置を先頭に戻してから録画し直してください。";
+function midChartNoteFor(folders) {
+  if (!folders.length) return "";
+  return `　注意：${folders.map(f => `「${f}」`).join("")}は録画の最初の時点でエディタの再生位置が曲の途中だったため、その前の部分が入っていません（先頭に戻してから録画し直すと最初から作れます）。`;
+}
+
 function setProgress(pct, text) {
   const p = Math.max(0, Math.min(100, Math.round(pct)));
   progressPercent.textContent = `${p}%`;
@@ -4252,6 +4334,8 @@ async function generateChartImage(isTestMode = false) {
         if (deviceSpecBadge) deviceSpecBadge.textContent = info.label;
       } else if (info.phase === "bg") {
         setProgress(info.ratio * 5, "背景を調べています…");
+      } else if (info.phase === "speed") {
+        setProgress(5, "スクロール速度を測っています…");
       } else if (info.phase === "main") {
         const p = describeMainProgress(info, engineLabel);
         setProgress(5 + 95 * p.ratio, p.text);
@@ -4272,7 +4356,7 @@ async function generateChartImage(isTestMode = false) {
       const doneLabel = isTestMode
         ? "お試しで作成しました"
         : (saved ? "作成してフォルダに保存しました" : "作成しました。「画像を保存」で保存できます");
-      setProgress(100, `${doneLabel}（${elapsedSec}秒${speedNote}）`);
+      setProgress(100, `${doneLabel}（${elapsedSec}秒${speedNote}）${st.startsMidChart ? MID_CHART_START_NOTE : ""}`);
     } else if (job.cancelled) {
       progressText.textContent = "停止しました";
     }
@@ -4310,6 +4394,7 @@ async function processMultipleVideosConcurrently() {
   let completedCount = 0;
   let savedCount = 0;
   let firstCompletedFolder = "";
+  const midChartFolders = [];
 
   try {
     for (let idx = 0; idx < vidEntries.length; idx++) {
@@ -4336,6 +4421,8 @@ async function processMultipleVideosConcurrently() {
               engineLabel = info.label;
             } else if (info.phase === "bg") {
               setProgress(((idx + info.ratio * 0.05) / vidEntries.length) * 100, `${head}背景を調べています…`);
+            } else if (info.phase === "speed") {
+              setProgress(((idx + 0.05) / vidEntries.length) * 100, `${head}スクロール速度を測っています…`);
             } else if (info.phase === "main") {
               const p = describeMainProgress(info, engineLabel, head);
               setProgress(((idx + 0.05 + 0.95 * p.ratio) / vidEntries.length) * 100, p.text);
@@ -4353,6 +4440,7 @@ async function processMultipleVideosConcurrently() {
             const grp = folderGroups.get(folderName);
             const saved = await autoSaveCanvasToFolder(folderName, tempOutC);
             if (saved) savedCount++;
+            if (mData.stats && mData.stats.startsMidChart) midChartFolders.push(folderName);
             if (!saved && grp) {
               // 保存先が無い場合は画像としてメモリに残す（巨大なマスターは残さない）
               const blob = await canvasToBlobSafe(tempOutC);
@@ -4378,9 +4466,9 @@ async function processMultipleVideosConcurrently() {
     if (job.cancelled) {
       progressText.textContent = `停止しました（${completedCount}本作成済み）`;
     } else if (savedCount === completedCount) {
-      setProgress(100, `${completedCount}本を作成して保存しました（${elapsedSec}秒）`);
+      setProgress(100, `${completedCount}本を作成して保存しました（${elapsedSec}秒）${midChartNoteFor(midChartFolders)}`);
     } else {
-      setProgress(100, `${completedCount}本を作成しました。保存先フォルダが未登録の${completedCount - savedCount}本は、フォルダを選んで「画像を保存」で保存してください（${elapsedSec}秒）`);
+      setProgress(100, `${completedCount}本を作成しました。保存先フォルダが未登録の${completedCount - savedCount}本は、フォルダを選んで「画像を保存」で保存してください（${elapsedSec}秒）${midChartNoteFor(midChartFolders)}`);
     }
   } catch (err) {
     progressText.textContent = `エラーが発生しました: ${err && err.message ? err.message : err}`;
